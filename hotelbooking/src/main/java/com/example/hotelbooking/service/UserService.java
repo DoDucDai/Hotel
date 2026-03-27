@@ -1,0 +1,181 @@
+package com.example.hotelbooking.service;
+
+import java.util.List;
+import java.util.Objects;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import com.example.hotelbooking.dto.UpdateProfileRequest;
+import com.example.hotelbooking.dto.UserAccountResponse;
+import com.example.hotelbooking.model.User;
+import com.example.hotelbooking.repository.UserRepository;
+
+@Service
+public class UserService {
+
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    public UserService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    private String requireNonBlank(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw new RuntimeException(message);
+        }
+
+        return value;
+    }
+
+    // GET ALL
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    // GET BY ID
+    public User getUserById(String id) {
+        String userId = requireNonBlank(id, "User id is required");
+        return userRepository.findById(Objects.requireNonNull(userId))
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    // CREATE USER
+    public User createUser(User user) {
+        User userToCreate = Objects.requireNonNull(user, "User is required");
+        String normalizedEmail = normalizeEmail(userToCreate.getEmail());
+        if (normalizedEmail == null) {
+            throw new RuntimeException("Email is required");
+        }
+
+        if (userRepository.findByEmail(normalizedEmail).isPresent()) {
+            throw new RuntimeException("Email already exists");
+        }
+
+        String rawPassword = requireNonBlank(userToCreate.getPassword(), "Password is required");
+
+        userToCreate.setEmail(normalizedEmail);
+        userToCreate.setPassword(passwordEncoder.encode(rawPassword));
+
+        return userRepository.save(userToCreate);
+    }
+
+    // UPDATE USER (ADMIN)
+    public User updateUser(String id, User updatedUser) {
+        String userId = requireNonBlank(id, "User id is required");
+        User payload = Objects.requireNonNull(updatedUser, "User payload is required");
+        User user = getUserById(userId);
+
+        String newEmail = normalizeEmail(payload.getEmail());
+        if (newEmail != null && !user.getEmail().equalsIgnoreCase(newEmail)) {
+            if (userRepository.findByEmail(newEmail).isPresent()) {
+                throw new RuntimeException("Email already exists");
+            }
+
+            user.setEmail(newEmail);
+        }
+
+        if (payload.getName() != null) {
+            user.setName(payload.getName().trim());
+        }
+
+        if (payload.getPassword() != null && !payload.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(payload.getPassword()));
+        }
+
+        if (payload.getRole() != null) {
+            user.setRole(payload.getRole());
+        }
+
+        user.setGender(payload.getGender());
+        user.setDateOfBirth(payload.getDateOfBirth());
+        user.setCitizenId(payload.getCitizenId());
+
+        return userRepository.save(user);
+    }
+
+    // DELETE
+    public void deleteUser(String id) {
+        String userId = requireNonBlank(id, "User id is required");
+        userRepository.deleteById(Objects.requireNonNull(userId));
+    }
+
+    // GET CURRENT USER
+    public User getCurrentUser(String email) {
+        String normalizedEmail = normalizeEmail(email);
+        if (normalizedEmail == null) {
+            throw new RuntimeException("Email is required");
+        }
+
+        return userRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    public UserAccountResponse getCurrentUserAccount(String email) {
+        User user = getCurrentUser(email);
+        return UserAccountResponse.fromUser(user);
+    }
+
+    public UserAccountResponse updateCurrentUserProfile(
+            String email, UpdateProfileRequest request) {
+
+        User user = getCurrentUser(email);
+        UpdateProfileRequest safeRequest = Objects.requireNonNull(request, "Profile request is required");
+
+        if (safeRequest.getName() != null) {
+            user.setName(safeRequest.getName().trim());
+        }
+
+        if (safeRequest.getGender() != null) {
+            user.setGender(safeRequest.getGender().trim());
+        }
+
+        if (safeRequest.getDateOfBirth() != null) {
+            user.setDateOfBirth(safeRequest.getDateOfBirth().trim());
+        }
+
+        if (safeRequest.getCitizenId() != null) {
+            user.setCitizenId(safeRequest.getCitizenId().trim());
+        }
+
+        User savedUser = userRepository.save(Objects.requireNonNull(user));
+        return UserAccountResponse.fromUser(savedUser);
+    }
+
+    public User updateCurrentUserEmail(String currentEmail, String newEmailRaw) {
+        User user = getCurrentUser(currentEmail);
+
+        String newEmail = normalizeEmail(newEmailRaw);
+        if (newEmail == null) {
+            throw new RuntimeException("Email is required");
+        }
+
+        if (newEmail.equalsIgnoreCase(user.getEmail())) {
+            return user;
+        }
+
+        if (userRepository.findByEmail(newEmail).isPresent()) {
+            throw new RuntimeException("Email already exists");
+        }
+
+        user.setEmail(newEmail);
+        return userRepository.save(user);
+    }
+
+    private String normalizeEmail(String email) {
+        if (email == null) {
+            return null;
+        }
+
+        String normalized = email.trim().toLowerCase();
+        if (normalized.isEmpty()) {
+            return null;
+        }
+
+        return normalized;
+    }
+}
+
