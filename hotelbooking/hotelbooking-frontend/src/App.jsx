@@ -6,12 +6,15 @@ import SessionTimeoutManager from "./components/SessionTimeoutManager";
 import Account from "./pages/Account";
 import AdminDashboard from "./pages/AdminDashboard";
 import Booking from "./pages/Booking";
+import Forgot from "./pages/Forgot";
 import Home from "./pages/Home";
 import HotelDetail from "./pages/HotelDetail";
 import Hotels from "./pages/Hotels";
 import HostRooms from "./pages/HostRooms";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ResetPassword from "./pages/ResetPassword";
+import VerifyEmail from "./pages/VerifyEmail";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
 function GuestRoute({ children }) {
@@ -27,14 +30,19 @@ function GuestRoute({ children }) {
 
 function App() {
   const location = useLocation();
+  const authStandalonePaths = [
+    "/login",
+    "/register",
+    "/forgot-password",
+    "/reset-password",
+    "/verify-email",
+  ];
 
   const hideNavbar =
-    location.pathname === "/login" ||
-    location.pathname === "/register" ||
+    authStandalonePaths.includes(location.pathname) ||
     location.pathname === "/admin";
   const hideFooter =
-    location.pathname === "/login" ||
-    location.pathname === "/register" ||
+    authStandalonePaths.includes(location.pathname) ||
     location.pathname === "/admin";
 
   return (
@@ -61,6 +69,9 @@ function App() {
             </GuestRoute>
           }
         />
+        <Route path="/forgot-password" element={<Forgot />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
 
         <Route path="/hotels" element={<Hotels />} />
         <Route path="/hotels/:id" element={<HotelDetail />} />

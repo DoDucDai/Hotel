@@ -2,6 +2,7 @@ package com.example.hotelbooking.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDateTime;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -20,6 +21,12 @@ public class Hotel {
     private List<String> amenities = new ArrayList<>();
     private double averageRating;
     private long reviewCount;
+    private HotelApprovalStatus approvalStatus = HotelApprovalStatus.APPROVED;
+    private String approvalNote;
+    private String approvedByUserId;
+    private LocalDateTime approvedAt;
+    private int freeCancellationBeforeDays = 3;
+    private int lateCancellationRefundRate = 50;
 
     public Hotel() {}
 
@@ -66,4 +73,52 @@ public class Hotel {
 
     public long getReviewCount() { return reviewCount; }
     public void setReviewCount(long reviewCount) { this.reviewCount = reviewCount; }
+
+    public HotelApprovalStatus getApprovalStatus() {
+        return approvalStatus;
+    }
+
+    public void setApprovalStatus(HotelApprovalStatus approvalStatus) {
+        this.approvalStatus = approvalStatus;
+    }
+
+    public String getApprovalNote() {
+        return approvalNote;
+    }
+
+    public void setApprovalNote(String approvalNote) {
+        this.approvalNote = approvalNote;
+    }
+
+    public String getApprovedByUserId() {
+        return approvedByUserId;
+    }
+
+    public void setApprovedByUserId(String approvedByUserId) {
+        this.approvedByUserId = approvedByUserId;
+    }
+
+    public LocalDateTime getApprovedAt() {
+        return approvedAt;
+    }
+
+    public void setApprovedAt(LocalDateTime approvedAt) {
+        this.approvedAt = approvedAt;
+    }
+
+    public int getFreeCancellationBeforeDays() {
+        return freeCancellationBeforeDays;
+    }
+
+    public void setFreeCancellationBeforeDays(int freeCancellationBeforeDays) {
+        this.freeCancellationBeforeDays = freeCancellationBeforeDays;
+    }
+
+    public int getLateCancellationRefundRate() {
+        return lateCancellationRefundRate;
+    }
+
+    public void setLateCancellationRefundRate(int lateCancellationRefundRate) {
+        this.lateCancellationRefundRate = lateCancellationRefundRate;
+    }
 }

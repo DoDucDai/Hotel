@@ -12,6 +12,8 @@ public class UserAccountResponse {
     private String gender;
     private String dateOfBirth;
     private String citizenId;
+    private boolean emailVerified;
+    private String emailVerifiedAt;
 
     public static UserAccountResponse fromUser(User user) {
         UserAccountResponse response = new UserAccountResponse();
@@ -22,6 +24,8 @@ public class UserAccountResponse {
         response.setGender(user.getGender());
         response.setDateOfBirth(user.getDateOfBirth());
         response.setCitizenId(user.getCitizenId());
+        response.setEmailVerified(Boolean.TRUE.equals(user.getEmailVerified()));
+        response.setEmailVerifiedAt(user.getEmailVerifiedAt());
         return response;
     }
 
@@ -79,5 +83,21 @@ public class UserAccountResponse {
 
     public void setCitizenId(String citizenId) {
         this.citizenId = citizenId;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(boolean emailVerified) {
+        this.emailVerified = emailVerified;
+    }
+
+    public String getEmailVerifiedAt() {
+        return emailVerifiedAt;
+    }
+
+    public void setEmailVerifiedAt(String emailVerifiedAt) {
+        this.emailVerifiedAt = emailVerifiedAt;
     }
 }

@@ -2,6 +2,7 @@ package com.example.hotelbooking.controller;
 
 import java.util.List;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.hotelbooking.dto.CancelBookingRequest;
 import com.example.hotelbooking.dto.CreateBookingRequest;
 import com.example.hotelbooking.dto.RescheduleBookingRequest;
+import com.example.hotelbooking.dto.UpdateBookingStatusRequest;
+import com.example.hotelbooking.dto.UpdatePaymentStatusRequest;
 import com.example.hotelbooking.model.Booking;
 import com.example.hotelbooking.model.User;
 import com.example.hotelbooking.repository.BookingRepository;
@@ -73,6 +76,30 @@ public class BookingController {
             @RequestBody RescheduleBookingRequest request,
             Authentication authentication) {
         return bookingService.rescheduleBooking(id, requireNonBlank(authentication.getName(), "Unauthorized"), request);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}/payment-status")
+    public Booking updatePaymentStatus(
+            @PathVariable String id,
+            @RequestBody UpdatePaymentStatusRequest request,
+            Authentication authentication) {
+        return bookingService.updatePaymentStatus(
+                id,
+                requireNonBlank(authentication.getName(), "Unauthorized"),
+                request);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}/status")
+    public Booking updateBookingStatus(
+            @PathVariable String id,
+            @RequestBody UpdateBookingStatusRequest request,
+            Authentication authentication) {
+        return bookingService.updateBookingStatus(
+                id,
+                requireNonBlank(authentication.getName(), "Unauthorized"),
+                request);
     }
 
     @DeleteMapping("/{id}")

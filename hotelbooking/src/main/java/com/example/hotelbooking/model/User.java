@@ -25,6 +25,10 @@ public class User {
 
     private String citizenId;
 
+    private Boolean emailVerified;
+
+    private String emailVerifiedAt;
+
     public User() {
     }
 
@@ -97,5 +101,21 @@ public class User {
 
     public void setCitizenId(String citizenId) {
         this.citizenId = citizenId;
+    }
+
+    public Boolean getEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(Boolean emailVerified) {
+        this.emailVerified = emailVerified;
+    }
+
+    public String getEmailVerifiedAt() {
+        return emailVerifiedAt;
+    }
+
+    public void setEmailVerifiedAt(String emailVerifiedAt) {
+        this.emailVerifiedAt = emailVerifiedAt;
     }
 }

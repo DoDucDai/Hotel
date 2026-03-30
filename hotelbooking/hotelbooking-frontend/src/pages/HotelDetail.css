@@ -427,6 +427,45 @@
   gap: 10px;
 }
 
+.recommendation-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.recommendation-card {
+  border: 1px solid #e2ebff;
+  border-radius: 12px;
+  background: #f9fbff;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.recommendation-card p,
+.recommendation-card h3,
+.recommendation-card small {
+  margin: 0;
+}
+
+.recommendation-card p {
+  color: #315da9;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.recommendation-card h3 {
+  color: #173f76;
+  font-size: 0.98rem;
+}
+
+.recommendation-card small {
+  color: #5f7190;
+}
+
 .review-card {
   border: 1px solid #e2ebff;
   border-radius: 12px;

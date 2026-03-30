@@ -11,15 +11,19 @@ import org.springframework.stereotype.Service;
 import com.example.hotelbooking.dto.CancelBookingRequest;
 import com.example.hotelbooking.dto.CreateBookingRequest;
 import com.example.hotelbooking.dto.RescheduleBookingRequest;
+import com.example.hotelbooking.dto.UpdateBookingStatusRequest;
+import com.example.hotelbooking.dto.UpdatePaymentStatusRequest;
 import com.example.hotelbooking.model.Booking;
 import com.example.hotelbooking.model.BookingStatus;
 import com.example.hotelbooking.model.Coupon;
+import com.example.hotelbooking.model.Hotel;
 import com.example.hotelbooking.model.PaymentMethod;
 import com.example.hotelbooking.model.PaymentStatus;
 import com.example.hotelbooking.model.Role;
 import com.example.hotelbooking.model.Room;
 import com.example.hotelbooking.model.User;
 import com.example.hotelbooking.repository.BookingRepository;
+import com.example.hotelbooking.repository.HotelRepository;
 import com.example.hotelbooking.repository.RoomRepository;
 import com.example.hotelbooking.repository.UserRepository;
 
@@ -30,16 +34,25 @@ public class BookingService {
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
     private final CouponService couponService;
+    private final HotelRepository hotelRepository;
+    private final RoomInventoryService roomInventoryService;
+    private final AuditLogService auditLogService;
 
     public BookingService(
             BookingRepository bookingRepository,
             RoomRepository roomRepository,
             UserRepository userRepository,
-            CouponService couponService) {
+            CouponService couponService,
+            HotelRepository hotelRepository,
+            RoomInventoryService roomInventoryService,
+            AuditLogService auditLogService) {
         this.bookingRepository = bookingRepository;
         this.roomRepository = roomRepository;
         this.userRepository = userRepository;
         this.couponService = couponService;
+        this.hotelRepository = hotelRepository;
+        this.roomInventoryService = roomInventoryService;
+        this.auditLogService = auditLogService;
     }
 
     public Booking createBooking(CreateBookingRequest request, String email) {
@@ -58,7 +71,10 @@ public class BookingService {
             throw new RuntimeException("So khach vuot qua suc chua cua phong");
         }
 
-        ensureRoomAvailability(room.getId(), checkInDate, checkOutDate, null);
+        int availableUnits = roomInventoryService.getMinimumAvailableUnits(room, checkInDate, checkOutDate, null);
+        if (availableUnits <= 0) {
+            throw new RuntimeException("Khong con phong trong khoang thoi gian nay");
+        }
 
         long days = ChronoUnit.DAYS.between(checkInDate, checkOutDate);
         double originalPrice = room.getPrice() * days;
@@ -96,7 +112,14 @@ public class BookingService {
             booking.setPaidAt(LocalDateTime.now());
         }
 
-        return bookingRepository.save(booking);
+        Booking savedBooking = bookingRepository.save(booking);
+        auditLogService.record(
+                "CREATE_BOOKING",
+                "BOOKING",
+                savedBooking.getId(),
+                user,
+                "Tao booking moi cho room " + room.getId());
+        return savedBooking;
     }
 
     public Booking cancelBooking(String bookingId, String email, CancelBookingRequest request) {
@@ -112,15 +135,26 @@ public class BookingService {
             throw new RuntimeException("Chi co the huy booking truoc ngay nhan phong");
         }
 
+        Hotel hotel = getHotelByRoomId(requireNonBlank(booking.getRoomId(), "Room id is required"));
+        double refundAmount = calculateRefundAmount(booking, hotel);
+
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancellationReason(request == null ? null : trimToNull(request.getReason()));
         booking.setUpdatedAt(LocalDateTime.now());
+        booking.setRefundAmount(refundAmount);
 
         if (booking.getPaymentStatus() == PaymentStatus.PAID) {
             booking.setPaymentStatus(PaymentStatus.REFUNDED);
         }
 
-        return bookingRepository.save(booking);
+        Booking savedBooking = bookingRepository.save(booking);
+        auditLogService.record(
+                "CANCEL_BOOKING",
+                "BOOKING",
+                savedBooking.getId(),
+                user,
+                "Huy booking va hoan " + refundAmount);
+        return savedBooking;
     }
 
     public Booking rescheduleBooking(String bookingId, String email, RescheduleBookingRequest request) {
@@ -138,15 +172,17 @@ public class BookingService {
 
         RescheduleBookingRequest safeRequest = Objects.requireNonNull(request, "Reschedule request is required");
         validateDateRange(safeRequest.getCheckInDate(), safeRequest.getCheckOutDate());
-        ensureRoomAvailability(
-                requireNonBlank(booking.getRoomId(), "Room id is required"),
-                safeRequest.getCheckInDate(),
-                safeRequest.getCheckOutDate(),
-                booking.getId()
-        );
 
         Room room = roomRepository.findById(booking.getRoomId())
                 .orElseThrow(() -> new RuntimeException("Room not found"));
+        int availableUnits = roomInventoryService.getMinimumAvailableUnits(
+                room,
+                safeRequest.getCheckInDate(),
+                safeRequest.getCheckOutDate(),
+                booking.getId());
+        if (availableUnits <= 0) {
+            throw new RuntimeException("Khong con phong trong khoang thoi gian nay");
+        }
 
         long days = ChronoUnit.DAYS.between(safeRequest.getCheckInDate(), safeRequest.getCheckOutDate());
         double originalPrice = room.getPrice() * days;
@@ -163,7 +199,89 @@ public class BookingService {
         booking.setUpdatedAt(LocalDateTime.now());
         booking.setLastRescheduledAt(LocalDateTime.now());
 
-        return bookingRepository.save(booking);
+        Booking savedBooking = bookingRepository.save(booking);
+        auditLogService.record(
+                "RESCHEDULE_BOOKING",
+                "BOOKING",
+                savedBooking.getId(),
+                user,
+                "Doi lich booking sang " + safeRequest.getCheckInDate() + " - " + safeRequest.getCheckOutDate());
+        return savedBooking;
+    }
+
+    public Booking updatePaymentStatus(String bookingId, String email, UpdatePaymentStatusRequest request) {
+        User user = getCurrentUser(email);
+        if (user.getRole() != Role.ADMIN) {
+            throw new RuntimeException("Ban khong co quyen cap nhat payment status");
+        }
+
+        UpdatePaymentStatusRequest safeRequest =
+                Objects.requireNonNull(request, "Payment status request is required");
+        PaymentStatus nextStatus = Objects.requireNonNull(
+                safeRequest.getPaymentStatus(),
+                "Payment status is required");
+
+        Booking booking = getBookingById(bookingId);
+        booking.setPaymentStatus(nextStatus);
+        booking.setUpdatedAt(LocalDateTime.now());
+
+        if (nextStatus == PaymentStatus.PAID) {
+            booking.setPaidAt(
+                    booking.getPaidAt() == null ? LocalDateTime.now() : booking.getPaidAt());
+        } else if (nextStatus == PaymentStatus.PENDING || nextStatus == PaymentStatus.FAILED) {
+            booking.setPaidAt(null);
+        }
+
+        Booking savedBooking = bookingRepository.save(booking);
+        auditLogService.record(
+                "UPDATE_PAYMENT_STATUS",
+                "BOOKING",
+                savedBooking.getId(),
+                user,
+                "Cap nhat payment status sang " + nextStatus.name());
+        return savedBooking;
+    }
+
+    public Booking updateBookingStatus(String bookingId, String email, UpdateBookingStatusRequest request) {
+        User user = getCurrentUser(email);
+        if (user.getRole() != Role.ADMIN) {
+            throw new RuntimeException("Ban khong co quyen cap nhat trang thai luu tru");
+        }
+
+        UpdateBookingStatusRequest safeRequest = Objects.requireNonNull(request, "Booking status request is required");
+        BookingStatus nextStatus = Objects.requireNonNull(safeRequest.getStatus(), "Booking status is required");
+        Booking booking = getBookingById(bookingId);
+
+        if (booking.getStatus() == BookingStatus.CANCELLED && nextStatus != BookingStatus.CANCELLED) {
+            throw new RuntimeException("Khong the doi booking da huy sang trang thai khac");
+        }
+
+        booking.setStatus(nextStatus);
+        booking.setUpdatedAt(LocalDateTime.now());
+
+        if (nextStatus == BookingStatus.CHECKED_IN && booking.getCheckedInAt() == null) {
+            booking.setCheckedInAt(LocalDateTime.now());
+        }
+
+        if (nextStatus == BookingStatus.CHECKED_OUT) {
+            if (booking.getCheckedInAt() == null) {
+                booking.setCheckedInAt(LocalDateTime.now());
+            }
+            booking.setCheckedOutAt(LocalDateTime.now());
+        }
+
+        if (nextStatus == BookingStatus.NO_SHOW) {
+            booking.setCheckedOutAt(null);
+        }
+
+        Booking savedBooking = bookingRepository.save(booking);
+        auditLogService.record(
+                "UPDATE_BOOKING_STATUS",
+                "BOOKING",
+                savedBooking.getId(),
+                user,
+                "Cap nhat booking sang " + nextStatus.name());
+        return savedBooking;
     }
 
     public void deleteBooking(String id) {
@@ -181,43 +299,8 @@ public class BookingService {
     public double getTotalRevenue() {
         return bookingRepository.findAll()
                 .stream()
-                .filter(booking -> booking.getStatus() != BookingStatus.CANCELLED)
-                .mapToDouble(this::resolveFinalPrice)
+                .mapToDouble(this::resolveRevenueContribution)
                 .sum();
-    }
-
-    private void ensureRoomAvailability(
-            String roomId,
-            LocalDate newCheckIn,
-            LocalDate newCheckOut,
-            String excludedBookingId) {
-
-        List<Booking> bookings = bookingRepository.findByRoomId(roomId);
-
-        for (Booking existingBooking : bookings) {
-            if (existingBooking.getStatus() == BookingStatus.CANCELLED) {
-                continue;
-            }
-
-            if (excludedBookingId != null && excludedBookingId.equals(existingBooking.getId())) {
-                continue;
-            }
-
-            LocalDate existingCheckIn = existingBooking.getCheckInDate();
-            LocalDate existingCheckOut = existingBooking.getCheckOutDate();
-
-            if (existingCheckIn == null || existingCheckOut == null) {
-                continue;
-            }
-
-            boolean isOverlap =
-                    newCheckIn.isBefore(existingCheckOut)
-                            && newCheckOut.isAfter(existingCheckIn);
-
-            if (isOverlap) {
-                throw new RuntimeException("Phong da duoc dat trong khoang thoi gian nay");
-            }
-        }
     }
 
     private void validateDateRange(LocalDate checkInDate, LocalDate checkOutDate) {
@@ -261,6 +344,47 @@ public class BookingService {
         }
 
         return booking.getTotalPrice();
+    }
+
+    private double resolveRevenueContribution(Booking booking) {
+        double gross = resolveFinalPrice(booking);
+        double refundAmount = Math.max(booking.getRefundAmount(), 0);
+
+        if (booking.getStatus() == BookingStatus.CANCELLED && booking.getPaymentStatus() == PaymentStatus.PENDING) {
+            return 0;
+        }
+
+        return Math.max(gross - refundAmount, 0);
+    }
+
+    private double calculateRefundAmount(Booking booking, Hotel hotel) {
+        if (booking.getPaymentStatus() != PaymentStatus.PAID) {
+            return 0;
+        }
+
+        double finalPrice = resolveFinalPrice(booking);
+        long daysBeforeCheckIn = ChronoUnit.DAYS.between(LocalDate.now(), booking.getCheckInDate());
+        int freeCancellationDays = hotel == null ? 3 : Math.max(hotel.getFreeCancellationBeforeDays(), 0);
+        int lateRefundRate = hotel == null ? 50 : clampPercent(hotel.getLateCancellationRefundRate());
+
+        if (daysBeforeCheckIn >= freeCancellationDays) {
+            return finalPrice;
+        }
+
+        return finalPrice * lateRefundRate / 100.0;
+    }
+
+    private int clampPercent(int value) {
+        return Math.min(Math.max(value, 0), 100);
+    }
+
+    private Hotel getHotelByRoomId(String roomId) {
+        Room room = roomRepository.findById(roomId).orElse(null);
+        if (room == null || room.getHotelId() == null) {
+            return null;
+        }
+
+        return hotelRepository.findById(room.getHotelId()).orElse(null);
     }
 
     private String trimToNull(String value) {

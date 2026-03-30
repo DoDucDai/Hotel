@@ -261,7 +261,10 @@ export default function HotelsEnhanced() {
               return acc;
             }
 
-            acc[hotelId] = (acc[hotelId] || 0) + 1;
+            const availableUnits = Number(room.availableUnits);
+            acc[hotelId] =
+              (acc[hotelId] || 0) +
+              (Number.isFinite(availableUnits) && availableUnits > 0 ? availableUnits : 1);
             return acc;
           }, {});
 

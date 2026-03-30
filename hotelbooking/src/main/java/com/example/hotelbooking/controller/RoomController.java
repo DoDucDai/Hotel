@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.hotelbooking.dto.RoomDTO;
+import com.example.hotelbooking.dto.RoomInventoryDayDTO;
 import com.example.hotelbooking.model.Room;
 import com.example.hotelbooking.service.RoomService;
 
@@ -88,6 +89,14 @@ public class RoomController {
     @GetMapping("/hotel/{hotelId}")
     public List<Room> getRoomsByHotel(@PathVariable String hotelId) {
         return roomService.getRoomsByHotel(hotelId);
+    }
+
+    @GetMapping("/{id}/inventory")
+    public List<RoomInventoryDayDTO> getRoomInventory(
+            @PathVariable String id,
+            @RequestParam String startDate,
+            @RequestParam String endDate) {
+        return roomService.getInventoryCalendar(id, LocalDate.parse(startDate), LocalDate.parse(endDate));
     }
     
 }

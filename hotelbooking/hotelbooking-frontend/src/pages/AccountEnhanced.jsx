@@ -8,7 +8,9 @@ import {
 } from "../services/accountService";
 import {
   cancelBooking,
+  createDispute,
   getMyBookings,
+  getMyDisputes,
   rescheduleBooking,
 } from "../services/bookingService";
 import { getHotelById } from "../services/hotelService";
@@ -59,29 +61,29 @@ function nightsBetween(checkInDate, checkOutDate) {
 }
 
 function getStatusMeta(booking) {
-  if (booking?.status === "CANCELLED") {
-    return { label: "Da huy", className: "cancelled" };
+  switch (booking?.status) {
+    case "CANCELLED":
+      return { label: "Da huy", className: "cancelled" };
+    case "CHECKED_IN":
+      return { label: "Dang luu tru", className: "active" };
+    case "CHECKED_OUT":
+      return { label: "Da tra phong", className: "done" };
+    case "NO_SHOW":
+      return { label: "Khong den", className: "neutral" };
+    case "CONFIRMED": {
+      const checkIn = new Date(booking?.checkInDate);
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+
+      if (!Number.isNaN(checkIn.getTime()) && now < checkIn) {
+        return { label: "Sap den", className: "upcoming" };
+      }
+
+      return { label: "Da xac nhan", className: "pending" };
+    }
+    default:
+      return { label: "Khong ro", className: "neutral" };
   }
-
-  const checkIn = new Date(booking?.checkInDate);
-  const checkOut = new Date(booking?.checkOutDate);
-
-  if (Number.isNaN(checkIn.getTime()) || Number.isNaN(checkOut.getTime())) {
-    return { label: "Khong ro", className: "neutral" };
-  }
-
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-
-  if (now < checkIn) {
-    return { label: "Sap den", className: "upcoming" };
-  }
-
-  if (now >= checkIn && now < checkOut) {
-    return { label: "Dang luu tru", className: "active" };
-  }
-
-  return { label: "Da hoan tat", className: "done" };
 }
 
 function getPaymentMeta(status) {
@@ -91,6 +93,10 @@ function getPaymentMeta(status) {
 
   if (status === "REFUNDED") {
     return { label: "Da hoan tien", className: "refunded" };
+  }
+
+  if (status === "FAILED") {
+    return { label: "That bai", className: "failed" };
   }
 
   return { label: "Thanh toan sau", className: "pending" };
@@ -118,6 +124,31 @@ function normalizeWishlist(payload) {
   }
 
   return [];
+}
+
+function normalizeDisputes(payload) {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+
+  return [];
+}
+
+function formatDateTime(value) {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return date.toLocaleString("vi-VN");
 }
 
 async function enrichBookings(bookingList) {
@@ -182,6 +213,10 @@ function resolveInitialTab(locationState) {
     return "history";
   }
 
+  if (locationState?.focus === "payments") {
+    return "payments";
+  }
+
   if (locationState?.focus === "wishlist") {
     return "wishlist";
   }
@@ -199,19 +234,28 @@ export default function AccountEnhanced() {
   const [loading, setLoading] = useState(true);
   const [bookingsLoading, setBookingsLoading] = useState(true);
   const [wishlistLoading, setWishlistLoading] = useState(true);
+  const [disputesLoading, setDisputesLoading] = useState(true);
   const [profileSaving, setProfileSaving] = useState(false);
   const [emailSaving, setEmailSaving] = useState(false);
   const [actionSaving, setActionSaving] = useState(false);
+  const [disputeSaving, setDisputeSaving] = useState(false);
 
   const [profile, setProfile] = useState(initialProfile);
   const [email, setEmail] = useState("");
   const [bookings, setBookings] = useState([]);
   const [wishlistItems, setWishlistItems] = useState([]);
+  const [disputes, setDisputes] = useState([]);
   const [bookingAction, setBookingAction] = useState(null);
+  const [disputeDraft, setDisputeDraft] = useState({
+    bookingId: "",
+    subject: "",
+    description: "",
+  });
 
   const [loadError, setLoadError] = useState("");
   const [bookingsError, setBookingsError] = useState("");
   const [wishlistError, setWishlistError] = useState("");
+  const [disputesError, setDisputesError] = useState("");
 
   const hasToken = Boolean(localStorage.getItem("accessToken"));
 
@@ -232,11 +276,13 @@ export default function AccountEnhanced() {
         setLoading(true);
         setBookingsLoading(true);
         setWishlistLoading(true);
+        setDisputesLoading(true);
 
-        const [accountRes, bookingsRes, wishlistRes] = await Promise.all([
+        const [accountRes, bookingsRes, wishlistRes, disputesRes] = await Promise.all([
           getMyAccount(),
           getMyBookings(),
           getMyWishlist(),
+          getMyDisputes(),
         ]);
 
         const bookingList = normalizeBookings(bookingsRes?.data);
@@ -253,9 +299,11 @@ export default function AccountEnhanced() {
           setEmail(user.email || "");
           setBookings(enrichedBookings);
           setWishlistItems(normalizeWishlist(wishlistRes?.data));
+          setDisputes(normalizeDisputes(disputesRes?.data));
           setLoadError("");
           setBookingsError("");
           setWishlistError("");
+          setDisputesError("");
         }
       } catch (error) {
         console.error("Cannot load account", error);
@@ -263,6 +311,7 @@ export default function AccountEnhanced() {
           setLoadError("Khong the tai thong tin tai khoan. Vui long thu lai.");
           setBookingsError("Khong the tai lich su dat phong.");
           setWishlistError("Khong the tai wishlist.");
+          setDisputesError("Khong the tai danh sach tranh chap.");
           toast.error("Khong the tai du lieu tai khoan");
         }
       } finally {
@@ -270,6 +319,7 @@ export default function AccountEnhanced() {
           setLoading(false);
           setBookingsLoading(false);
           setWishlistLoading(false);
+          setDisputesLoading(false);
         }
       }
     };
@@ -293,6 +343,23 @@ export default function AccountEnhanced() {
     () => sortedBookings.find((booking) => booking.id === bookingAction?.bookingId) || null,
     [bookingAction?.bookingId, sortedBookings]
   );
+
+  const sortedDisputes = useMemo(() => {
+    return [...disputes].sort((a, b) => {
+      const aValue = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const bValue = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      return bValue - aValue;
+    });
+  }, [disputes]);
+
+  const disputesByBookingId = useMemo(() => {
+    return disputes.reduce((acc, item) => {
+      if (item?.bookingId) {
+        acc[item.bookingId] = item;
+      }
+      return acc;
+    }, {});
+  }, [disputes]);
 
   const handleProfileChange = (event) => {
     const { name, value } = event.target;
@@ -372,6 +439,21 @@ export default function AccountEnhanced() {
     }
   };
 
+  const refreshDisputes = async () => {
+    setDisputesLoading(true);
+
+    try {
+      const res = await getMyDisputes();
+      setDisputes(normalizeDisputes(res?.data));
+      setDisputesError("");
+    } catch (error) {
+      console.error("Cannot refresh disputes", error);
+      setDisputesError("Khong the tai danh sach tranh chap.");
+    } finally {
+      setDisputesLoading(false);
+    }
+  };
+
   const handleSubmitBookingAction = async () => {
     if (!selectedBooking || !bookingAction) {
       return;
@@ -412,6 +494,36 @@ export default function AccountEnhanced() {
     }
   };
 
+  const handleSubmitDispute = async (event) => {
+    event.preventDefault();
+
+    if (!disputeDraft.bookingId || !disputeDraft.subject.trim() || !disputeDraft.description.trim()) {
+      toast.error("Vui long chon booking va nhap day du noi dung tranh chap");
+      return;
+    }
+
+    try {
+      setDisputeSaving(true);
+      await createDispute({
+        bookingId: disputeDraft.bookingId,
+        subject: disputeDraft.subject.trim(),
+        description: disputeDraft.description.trim(),
+      });
+      setDisputeDraft({
+        bookingId: "",
+        subject: "",
+        description: "",
+      });
+      await refreshDisputes();
+      toast.success("Da gui tranh chap thanh cong");
+    } catch (error) {
+      console.error("Cannot create dispute", error);
+      toast.error(error?.response?.data?.error || "Khong the gui tranh chap");
+    } finally {
+      setDisputeSaving(false);
+    }
+  };
+
   return (
     <main className="account-page">
       <section className="account-shell">
@@ -420,8 +532,8 @@ export default function AccountEnhanced() {
             <p className="account-tag">Profile nguoi dung</p>
             <h1>Quan ly tai khoan cua ban</h1>
             <p className="account-subtitle">
-              Mot noi duy nhat de cap nhat profile, xem lich su booking, huy/doi lich va
-              quan ly wishlist.
+              Mot noi duy nhat de cap nhat profile, theo doi booking, lich su thanh toan,
+              hoan tien, tranh chap va quan ly wishlist.
             </p>
           </div>
           <button type="button" className="back-btn" onClick={() => navigate("/")}>
@@ -457,6 +569,13 @@ export default function AccountEnhanced() {
                 onClick={() => setActiveTab("history")}
               >
                 Lich su booking
+              </button>
+              <button
+                type="button"
+                className={`tab-btn ${activeTab === "payments" ? "active" : ""}`}
+                onClick={() => setActiveTab("payments")}
+              >
+                Thanh toan
               </button>
               <button
                 type="button"
@@ -652,6 +771,7 @@ export default function AccountEnhanced() {
                           <th>Tra phong</th>
                           <th>So dem</th>
                           <th>Tong tien</th>
+                          <th>Ghi chu</th>
                           <th>Thanh toan</th>
                           <th>Trang thai</th>
                           <th>Thao tac</th>
@@ -669,8 +789,9 @@ export default function AccountEnhanced() {
                             booking.checkOutDate
                           );
                           const allowActions =
-                            booking.status !== "CANCELLED" &&
+                            booking.status === "CONFIRMED" &&
                             statusMeta.className === "upcoming";
+                          const existingDispute = disputesByBookingId[booking.id];
 
                           return (
                             <tr key={booking.id || `${booking.roomId}-${booking.checkInDate}`}>
@@ -684,6 +805,7 @@ export default function AccountEnhanced() {
                                   ? currencyFormatter.format(totalPrice)
                                   : "-"}
                               </td>
+                              <td>{booking.note || "-"}</td>
                               <td>
                                 <span className={`payment-pill ${paymentMeta.className}`}>
                                   {paymentMeta.label}
@@ -727,18 +849,46 @@ export default function AccountEnhanced() {
                                       </button>
                                     </>
                                   ) : (
-                                    <button
-                                      type="button"
-                                      className="table-action-btn"
-                                      onClick={() =>
-                                        booking.hotel?.id
+                                      <button
+                                        type="button"
+                                        className="table-action-btn"
+                                        onClick={() =>
+                                          booking.hotel?.id
                                           ? navigate(`/hotels/${booking.hotel.id}`, {
                                               state: { hotel: booking.hotel },
                                             })
                                           : null
                                       }
+                                      >
+                                        Xem hotel
+                                      </button>
+                                  )}
+                                  {existingDispute ? (
+                                    <button
+                                      type="button"
+                                      className="table-action-btn"
+                                      onClick={() => setActiveTab("payments")}
                                     >
-                                      Xem hotel
+                                      Xem tranh chap
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      className="table-action-btn"
+                                      onClick={() => {
+                                        setActiveTab("payments");
+                                        setDisputeDraft({
+                                          bookingId: booking.id,
+                                          subject: booking.cancellationReason
+                                            ? "Can giai quyet booking da huy"
+                                            : "Can ho tro booking",
+                                          description: booking.note
+                                            ? `Chi tiet booking: ${booking.note}`
+                                            : "",
+                                        });
+                                      }}
+                                    >
+                                      Bao cao
                                     </button>
                                   )}
                                 </div>
@@ -750,6 +900,185 @@ export default function AccountEnhanced() {
                     </table>
                   </div>
                 )}
+              </section>
+            ) : null}
+
+            {activeTab === "payments" ? (
+              <section className="account-card payments-card">
+                <div className="history-head">
+                  <h2>Lich su thanh toan va tranh chap</h2>
+                  <span>{sortedBookings.length} giao dich</span>
+                </div>
+
+                <div className="payments-grid">
+                  <section className="payments-panel">
+                    <h3>Dong tien booking</h3>
+                    <p className="card-note">
+                      Theo doi payment method, thoi diem thanh toan, coupon da dung va so tien hoan lai.
+                    </p>
+
+                    {bookingsLoading ? (
+                      <div className="account-loading compact">Dang tai lich su thanh toan...</div>
+                    ) : bookingsError ? (
+                      <div className="account-error compact">{bookingsError}</div>
+                    ) : (
+                      <div className="history-table-wrap">
+                        <table className="history-table payments-table">
+                          <thead>
+                            <tr>
+                              <th>Booking</th>
+                              <th>Thanh toan</th>
+                              <th>Phuong thuc</th>
+                              <th>Da tra</th>
+                              <th>Hoan tien</th>
+                              <th>Coupon</th>
+                              <th>Cap nhat</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sortedBookings.map((booking) => {
+                              const paymentMeta = getPaymentMeta(booking.paymentStatus);
+                              return (
+                                <tr key={`payment-${booking.id}`}>
+                                  <td>
+                                    <strong>{booking.hotel?.name || "-"}</strong>
+                                    <div>{booking.room?.name || "-"}</div>
+                                  </td>
+                                  <td>
+                                    <span className={`payment-pill ${paymentMeta.className}`}>
+                                      {paymentMeta.label}
+                                    </span>
+                                  </td>
+                                  <td>{booking.paymentMethod || "PAY_AT_HOTEL"}</td>
+                                  <td>
+                                    {Number(booking.finalPrice || booking.totalPrice || 0) > 0
+                                      ? currencyFormatter.format(
+                                          Number(booking.finalPrice || booking.totalPrice || 0)
+                                        )
+                                      : "-"}
+                                  </td>
+                                  <td>
+                                    {Number(booking.refundAmount || 0) > 0
+                                      ? currencyFormatter.format(Number(booking.refundAmount || 0))
+                                      : "-"}
+                                  </td>
+                                  <td>{booking.couponCode || "-"}</td>
+                                  <td>{formatDateTime(booking.paidAt || booking.updatedAt)}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </section>
+
+                  <section className="payments-panel">
+                    <h3>Gui tranh chap / bao cao</h3>
+                    <p className="card-note">
+                      Khi co van de ve thanh toan, phong khong dung mo ta hoac can admin ho tro, ban co the gui tranh chap tai day.
+                    </p>
+
+                    <form className="account-form" onSubmit={handleSubmitDispute}>
+                      <label>
+                        <span>Booking</span>
+                        <select
+                          value={disputeDraft.bookingId}
+                          onChange={(event) =>
+                            setDisputeDraft((prev) => ({
+                              ...prev,
+                              bookingId: event.target.value,
+                            }))
+                          }
+                        >
+                          <option value="">Chon booking can bao cao</option>
+                          {sortedBookings.map((booking) => (
+                            <option
+                              key={`dispute-option-${booking.id}`}
+                              value={booking.id}
+                              disabled={Boolean(disputesByBookingId[booking.id])}
+                            >
+                              {booking.hotel?.name || "-"} - {formatDate(booking.checkInDate)}
+                              {disputesByBookingId[booking.id] ? " (da gui)" : ""}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label>
+                        <span>Chu de</span>
+                        <input
+                          value={disputeDraft.subject}
+                          onChange={(event) =>
+                            setDisputeDraft((prev) => ({
+                              ...prev,
+                              subject: event.target.value,
+                            }))
+                          }
+                          placeholder="Vi du: Hoan tien cham, phong khong dung mo ta"
+                        />
+                      </label>
+
+                      <label>
+                        <span>Noi dung</span>
+                        <textarea
+                          value={disputeDraft.description}
+                          onChange={(event) =>
+                            setDisputeDraft((prev) => ({
+                              ...prev,
+                              description: event.target.value,
+                            }))
+                          }
+                          placeholder="Mo ta cu the van de de admin co the xu ly nhanh hon"
+                        />
+                      </label>
+
+                      <button type="submit" className="save-btn" disabled={disputeSaving}>
+                        {disputeSaving ? "Dang gui..." : "Gui tranh chap"}
+                      </button>
+                    </form>
+
+                    <div className="payments-disputes">
+                      <div className="history-head compact-head">
+                        <h3>Tranh chap cua toi</h3>
+                        <button type="button" className="table-action-btn" onClick={refreshDisputes}>
+                          Tai lai
+                        </button>
+                      </div>
+
+                      {disputesLoading ? (
+                        <div className="account-loading compact">Dang tai tranh chap...</div>
+                      ) : disputesError ? (
+                        <div className="account-error compact">{disputesError}</div>
+                      ) : sortedDisputes.length === 0 ? (
+                        <p className="inline-note">Ban chua gui tranh chap nao.</p>
+                      ) : (
+                        <div className="dispute-list">
+                          {sortedDisputes.map((dispute) => (
+                            <article key={dispute.id} className="dispute-card">
+                              <div className="dispute-head">
+                                <strong>{dispute.subject || "Tranh chap booking"}</strong>
+                                <span className={`booking-status ${String(dispute.status || "").toLowerCase()}`}>
+                                  {dispute.status || "OPEN"}
+                                </span>
+                              </div>
+                              <p>{dispute.description || "-"}</p>
+                              <small>
+                                Booking: {dispute.bookingId || "-"} - Cap nhat:{" "}
+                                {formatDateTime(dispute.updatedAt || dispute.createdAt)}
+                              </small>
+                              {dispute.resolutionNote ? (
+                                <div className="resolution-note">
+                                  Admin: {dispute.resolutionNote}
+                                </div>
+                              ) : null}
+                            </article>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </section>
+                </div>
               </section>
             ) : null}
 

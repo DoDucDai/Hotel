@@ -3,6 +3,7 @@ package com.example.hotelbooking.service;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 
@@ -14,6 +15,8 @@ import com.example.hotelbooking.repository.CouponRepository;
 public class CouponService {
 
     private final CouponRepository couponRepository;
+    private final Object couponSeedLock = new Object();
+    private boolean defaultCouponsEnsured = false;
 
     public CouponService(CouponRepository couponRepository) {
         this.couponRepository = couponRepository;
@@ -28,6 +31,47 @@ public class CouponService {
                 .filter(coupon -> coupon.getExpiresAt() == null || !coupon.getExpiresAt().isBefore(today))
                 .sorted(Comparator.comparing(Coupon::getCode, String.CASE_INSENSITIVE_ORDER))
                 .toList();
+    }
+
+    public List<Coupon> getAllCoupons() {
+        ensureDefaultCoupons();
+
+        return couponRepository.findAll()
+                .stream()
+                .sorted(
+                        Comparator.comparing(Coupon::isActive).reversed()
+                                .thenComparing(
+                                        Coupon::getExpiresAt,
+                                        Comparator.nullsLast(Comparator.naturalOrder()))
+                                .thenComparing(
+                                        coupon -> coupon.getCode() == null ? "" : coupon.getCode(),
+                                        String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
+    public Coupon createCoupon(Coupon payload) {
+        ensureDefaultCoupons();
+
+        Coupon coupon = new Coupon();
+        applyCouponChanges(coupon, payload);
+        return couponRepository.save(coupon);
+    }
+
+    public Coupon updateCoupon(String id, Coupon payload) {
+        ensureDefaultCoupons();
+
+        Coupon coupon = couponRepository.findById(requireNonBlank(id, "Coupon id is required"))
+                .orElseThrow(() -> new RuntimeException("Coupon khong ton tai"));
+
+        applyCouponChanges(coupon, payload);
+        return couponRepository.save(coupon);
+    }
+
+    public void deleteCoupon(String id) {
+        Coupon coupon = couponRepository.findById(requireNonBlank(id, "Coupon id is required"))
+                .orElseThrow(() -> new RuntimeException("Coupon khong ton tai"));
+
+        couponRepository.delete(coupon);
     }
 
     public Coupon validateCoupon(String code, double orderAmount) {
@@ -70,6 +114,41 @@ public class CouponService {
         return Math.max(Math.min(discount, orderAmount), 0);
     }
 
+    private void applyCouponChanges(Coupon coupon, Coupon payload) {
+        Coupon safePayload = Objects.requireNonNull(payload, "Coupon payload is required");
+        String normalizedCode = normalizeCode(
+                requireNonBlank(safePayload.getCode(), "Ma giam gia khong duoc de trong"));
+
+        couponRepository.findByCodeIgnoreCase(normalizedCode)
+                .ifPresent(existing -> {
+                    if (coupon.getId() == null || !coupon.getId().equals(existing.getId())) {
+                        throw new RuntimeException("Ma giam gia da ton tai");
+                    }
+                });
+
+        DiscountType discountType = safePayload.getDiscountType() == null
+                ? DiscountType.PERCENT
+                : safePayload.getDiscountType();
+
+        double discountValue = safePayload.getDiscountValue();
+        if (!Double.isFinite(discountValue) || discountValue <= 0) {
+            throw new RuntimeException("Gia tri giam gia phai lon hon 0");
+        }
+
+        if (discountType == DiscountType.PERCENT && discountValue > 100) {
+            throw new RuntimeException("Ma phan tram khong duoc vuot qua 100%");
+        }
+
+        String description = trimToNull(safePayload.getDescription());
+        coupon.setCode(normalizedCode);
+        coupon.setDescription(description != null ? description : "Coupon " + normalizedCode);
+        coupon.setDiscountType(discountType);
+        coupon.setDiscountValue(discountValue);
+        coupon.setMinOrderAmount(Math.max(safePayload.getMinOrderAmount(), 0));
+        coupon.setActive(safePayload.isActive());
+        coupon.setExpiresAt(safePayload.getExpiresAt());
+    }
+
     private void assertCouponUsable(Coupon coupon, double orderAmount) {
         if (!coupon.isActive()) {
             throw new RuntimeException("Ma giam gia da bi vo hieu hoa");
@@ -89,9 +168,25 @@ public class CouponService {
     }
 
     private void ensureDefaultCoupons() {
-        upsertDefaultCoupon("WELCOME10", "Giam 10% cho don tu 500.000 VND", DiscountType.PERCENT, 10, 500000, LocalDate.now().plusYears(2));
-        upsertDefaultCoupon("STAY5", "Giam 5% cho moi booking", DiscountType.PERCENT, 5, 0, LocalDate.now().plusYears(2));
-        upsertDefaultCoupon("LUXE200", "Giam truc tiep 200.000 VND", DiscountType.FIXED, 200000, 1500000, LocalDate.now().plusYears(2));
+        if (defaultCouponsEnsured) {
+            return;
+        }
+
+        synchronized (couponSeedLock) {
+            if (defaultCouponsEnsured) {
+                return;
+            }
+
+            if (couponRepository.count() > 0) {
+                defaultCouponsEnsured = true;
+                return;
+            }
+
+            upsertDefaultCoupon("WELCOME10", "Giam 10% cho don tu 500.000 VND", DiscountType.PERCENT, 10, 500000, LocalDate.now().plusYears(2));
+            upsertDefaultCoupon("STAY5", "Giam 5% cho moi booking", DiscountType.PERCENT, 5, 0, LocalDate.now().plusYears(2));
+            upsertDefaultCoupon("LUXE200", "Giam truc tiep 200.000 VND", DiscountType.FIXED, 200000, 1500000, LocalDate.now().plusYears(2));
+            defaultCouponsEnsured = true;
+        }
     }
 
     private void upsertDefaultCoupon(
@@ -124,5 +219,22 @@ public class CouponService {
 
         String normalized = code.trim().toUpperCase();
         return normalized.isEmpty() ? null : normalized;
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String normalized = value.trim();
+        return normalized.isEmpty() ? null : normalized;
+    }
+
+    private String requireNonBlank(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(message);
+        }
+
+        return value;
     }
 }

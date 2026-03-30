@@ -22,3 +22,7 @@ export const uploadHotelImage = (id, file) => {
 
   return axiosClient.post(`/hotels/${id}/image`, formData);
 };
+
+export const getHotelRecommendations = (id, limit = 4) => {
+  return axiosClient.get(`/hotels/${id}/recommendations?limit=${limit}`);
+};

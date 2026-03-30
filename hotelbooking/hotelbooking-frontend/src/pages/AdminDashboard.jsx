@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import HotelCard from "../components/HotelCard";
+import ConfirmDialog from "../components/ConfirmDialog";
 import { useToast } from "../components/ToastProvider";
 import {
   getMyAccount,
@@ -8,13 +8,23 @@ import {
   updateMyProfile,
 } from "../services/accountService";
 import {
+  createAdminCoupon,
+  deleteAdminCoupon,
+  getAdminDisputes,
   getAdminBookings,
+  getAdminCoupons,
   getAdminDashboard,
+  getAdminHotelsAll,
+  getAdminLogs,
   getAdminRooms,
   getAdminUsers,
+  updateAdminBookingStatus,
+  updateAdminBookingPaymentStatus,
+  updateAdminCoupon,
+  updateAdminDisputeStatus,
+  updateAdminHotelApproval,
 } from "../services/adminService";
 import { getMyHostRooms } from "../services/hostService";
-import { getHotels } from "../services/hotelService";
 import "./AdminDashboard.css";
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN", {
@@ -31,6 +41,57 @@ const accountInitialState = {
   dateOfBirth: "",
   citizenId: "",
 };
+
+const couponInitialState = {
+  code: "",
+  description: "",
+  discountType: "PERCENT",
+  discountValue: "",
+  minOrderAmount: "0",
+  expiresAt: "",
+  active: true,
+};
+
+const paymentStatusOptions = [
+  { value: "PENDING", label: "Cho thanh toan" },
+  { value: "PAID", label: "Da thanh toan" },
+  { value: "REFUNDED", label: "Da hoan tien" },
+  { value: "FAILED", label: "That bai" },
+];
+
+const paymentStatusFilterOptions = [
+  { value: "all", label: "Tat ca payment" },
+  ...paymentStatusOptions,
+];
+
+const bookingStatusOptions = [
+  { value: "CONFIRMED", label: "Da xac nhan" },
+  { value: "CHECKED_IN", label: "Checked-in" },
+  { value: "CHECKED_OUT", label: "Checked-out" },
+  { value: "NO_SHOW", label: "No-show" },
+  { value: "CANCELLED", label: "Da huy" },
+];
+
+const hotelApprovalOptions = [
+  { value: "PENDING", label: "Cho duyet" },
+  { value: "APPROVED", label: "Da duyet" },
+  { value: "REJECTED", label: "Tu choi" },
+];
+
+const disputeStatusOptions = [
+  { value: "OPEN", label: "Moi tao" },
+  { value: "IN_REVIEW", label: "Dang xu ly" },
+  { value: "RESOLVED", label: "Da giai quyet" },
+  { value: "REJECTED", label: "Tu choi" },
+];
+
+const bookingStayStatusOptions = [
+  { value: "all", label: "Tat ca trang thai o" },
+  { value: "upcoming", label: "Sap den" },
+  { value: "active", label: "Dang o" },
+  { value: "completed", label: "Hoan tat" },
+  { value: "cancelled", label: "Da huy" },
+];
 
 function normalizeHotels(payload) {
   if (Array.isArray(payload)) {
@@ -92,6 +153,42 @@ function normalizeUsers(payload) {
   return [];
 }
 
+function normalizeCoupons(payload) {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+
+  return [];
+}
+
+function normalizeDisputes(payload) {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+
+  return [];
+}
+
+function normalizeLogs(payload) {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+
+  return [];
+}
+
 function parseDate(value) {
   if (!value) {
     return null;
@@ -115,30 +212,209 @@ function formatDate(value) {
   return date.toLocaleDateString("vi-VN");
 }
 
-function bookingStatusMeta(booking) {
-  if (booking?.status === "CANCELLED") {
-    return { label: "Da huy", className: "neutral" };
+function formatDateTime(value) {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return date.toLocaleString("vi-VN");
+}
+
+function bookingStayFilterValue(booking) {
+  const meta = bookingStatusMeta(booking);
+
+  if (meta.className === "pending") {
+    return "upcoming";
+  }
+
+  if (meta.className === "success") {
+    return "active";
+  }
+
+  if (meta.className === "danger") {
+    return "cancelled";
+  }
+
+  return "completed";
+}
+
+function bookingMatchesDateRange(booking, dateFromValue, dateToValue) {
+  const rawStart = parseDate(dateFromValue);
+  const rawEnd = parseDate(dateToValue);
+
+  if (!rawStart && !rawEnd) {
+    return true;
+  }
+
+  let rangeStart = rawStart;
+  let rangeEnd = rawEnd;
+
+  if (rangeStart && rangeEnd && rangeStart > rangeEnd) {
+    rangeStart = rawEnd;
+    rangeEnd = rawStart;
   }
 
   const checkIn = parseDate(booking?.checkInDate);
   const checkOut = parseDate(booking?.checkOutDate);
-
   if (!checkIn || !checkOut) {
-    return { label: "Khong ro", className: "neutral" };
+    return false;
   }
 
+  if (rangeStart && checkOut <= rangeStart) {
+    return false;
+  }
+
+  if (rangeEnd) {
+    const rangeEndExclusive = new Date(rangeEnd);
+    rangeEndExclusive.setDate(rangeEndExclusive.getDate() + 1);
+    if (checkIn >= rangeEndExclusive) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function bookingRevenueValue(booking) {
+  return Number(booking?.finalPrice || booking?.totalPrice || 0);
+}
+
+function bookingStatusMeta(booking) {
+  switch (booking?.status) {
+    case "CANCELLED":
+      return { label: "Da huy", className: "danger" };
+    case "CHECKED_IN":
+      return { label: "Dang o", className: "success" };
+    case "CHECKED_OUT":
+      return { label: "Da tra phong", className: "neutral" };
+    case "NO_SHOW":
+      return { label: "No-show", className: "info" };
+    case "CONFIRMED": {
+      const checkIn = parseDate(booking?.checkInDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (checkIn && today < checkIn) {
+        return { label: "Sap den", className: "pending" };
+      }
+
+      return { label: "Da xac nhan", className: "pending" };
+    }
+    default:
+      return { label: "Khong ro", className: "neutral" };
+  }
+}
+
+function paymentStatusMeta(status) {
+  switch (status) {
+    case "PAID":
+      return { label: "Da thanh toan", className: "success", kind: "paid" };
+    case "PENDING":
+      return { label: "Cho thanh toan", className: "pending", kind: "pending" };
+    case "REFUNDED":
+      return { label: "Da hoan tien", className: "info", kind: "refunded" };
+    case "FAILED":
+      return { label: "That bai", className: "danger", kind: "failed" };
+    default:
+      return { label: "Khong ro", className: "neutral", kind: "unknown" };
+  }
+}
+
+function hotelApprovalMeta(status) {
+  switch (status) {
+    case "APPROVED":
+      return { label: "Da duyet", className: "success" };
+    case "REJECTED":
+      return { label: "Tu choi", className: "danger" };
+    default:
+      return { label: "Cho duyet", className: "pending" };
+  }
+}
+
+function disputeStatusMeta(status) {
+  switch (status) {
+    case "RESOLVED":
+      return { label: "Da giai quyet", className: "success" };
+    case "IN_REVIEW":
+      return { label: "Dang xu ly", className: "info" };
+    case "REJECTED":
+      return { label: "Tu choi", className: "danger" };
+    default:
+      return { label: "Moi tao", className: "pending" };
+  }
+}
+
+function paymentMethodLabel(method) {
+  switch (method) {
+    case "BANK_TRANSFER":
+      return "Chuyen khoan";
+    case "E_WALLET":
+      return "Vi dien tu";
+    case "PAY_AT_HOTEL":
+      return "Tai khach san";
+    default:
+      return "-";
+  }
+}
+
+function couponStatusMeta(coupon) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  if (today < checkIn) {
-    return { label: "Sap den", className: "pending" };
+  if (!coupon?.active) {
+    return { label: "Tam tat", className: "neutral", kind: "inactive" };
   }
 
-  if (today >= checkIn && today < checkOut) {
-    return { label: "Dang o", className: "success" };
+  const expiresAt = parseDate(coupon?.expiresAt);
+  if (expiresAt && expiresAt < today) {
+    return { label: "Het han", className: "danger", kind: "expired" };
   }
 
-  return { label: "Hoan tat", className: "neutral" };
+  return { label: "Dang hoat dong", className: "success", kind: "active" };
+}
+
+function formatCouponValue(coupon) {
+  if (!coupon) {
+    return "-";
+  }
+
+  if (coupon.discountType === "FIXED") {
+    return currencyFormatter.format(Number(coupon.discountValue || 0));
+  }
+
+  return `${numberFormatter.format(Number(coupon.discountValue || 0))}%`;
+}
+
+function formatCellText(value, fallback = "-") {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+
+  const normalized = typeof value === "string" ? value.trim() : value;
+  return normalized === "" ? fallback : normalized;
+}
+
+function toCouponFormState(coupon) {
+  return {
+    code: coupon?.code || "",
+    description: coupon?.description || "",
+    discountType: coupon?.discountType || "PERCENT",
+    discountValue:
+      coupon?.discountValue === undefined || coupon?.discountValue === null
+        ? ""
+        : String(coupon.discountValue),
+    minOrderAmount:
+      coupon?.minOrderAmount === undefined || coupon?.minOrderAmount === null
+        ? "0"
+        : String(coupon.minOrderAmount),
+    expiresAt: coupon?.expiresAt || "",
+    active: coupon?.active ?? true,
+  };
 }
 
 function shortId(value) {
@@ -210,6 +486,9 @@ function AdminDashboard() {
   const [hotels, setHotels] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [coupons, setCoupons] = useState([]);
+  const [disputes, setDisputes] = useState([]);
+  const [logs, setLogs] = useState([]);
 
   const [accountLoading, setAccountLoading] = useState(true);
   const [accountError, setAccountError] = useState("");
@@ -219,6 +498,31 @@ function AdminDashboard() {
   const [emailSaving, setEmailSaving] = useState(false);
   const [profileMessage, setProfileMessage] = useState(null);
   const [emailMessage, setEmailMessage] = useState(null);
+  const [couponForm, setCouponForm] = useState(couponInitialState);
+  const [editingCouponId, setEditingCouponId] = useState(null);
+  const [couponSaving, setCouponSaving] = useState(false);
+  const [couponDeletingId, setCouponDeletingId] = useState(null);
+  const [couponMessage, setCouponMessage] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState(null);
+  const [bookingFilters, setBookingFilters] = useState({
+    paymentStatus: "all",
+    stayStatus: "all",
+    dateFrom: "",
+    dateTo: "",
+    userQuery: "",
+    hotelQuery: "",
+  });
+  const [paymentDrafts, setPaymentDrafts] = useState({});
+  const [paymentUpdatingId, setPaymentUpdatingId] = useState(null);
+  const [bookingStatusDrafts, setBookingStatusDrafts] = useState({});
+  const [bookingStatusNotes, setBookingStatusNotes] = useState({});
+  const [bookingStatusUpdatingId, setBookingStatusUpdatingId] = useState(null);
+  const [hotelApprovalDrafts, setHotelApprovalDrafts] = useState({});
+  const [hotelApprovalNotes, setHotelApprovalNotes] = useState({});
+  const [hotelApprovalUpdatingId, setHotelApprovalUpdatingId] = useState(null);
+  const [disputeStatusDrafts, setDisputeStatusDrafts] = useState({});
+  const [disputeNotes, setDisputeNotes] = useState({});
+  const [disputeUpdatingId, setDisputeUpdatingId] = useState(null);
   const [hotelFilters, setHotelFilters] = useState({
     city: "all",
     minRooms: "0",
@@ -256,13 +560,25 @@ function AdminDashboard() {
           }
         })();
 
-        const [dashboardRes, hotelsRes, bookingsRes, usersRes, roomsPayload] =
+        const [
+          dashboardRes,
+          hotelsRes,
+          bookingsRes,
+          usersRes,
+          roomsPayload,
+          couponsRes,
+          disputesRes,
+          logsRes,
+        ] =
           await Promise.all([
             getAdminDashboard(),
-            getHotels(0, 500),
+            getAdminHotelsAll(),
             getAdminBookings(),
             getAdminUsers(),
             roomsPromise,
+            getAdminCoupons(),
+            getAdminDisputes(),
+            getAdminLogs(),
           ]);
 
         setDashboard(dashboardRes?.data || {});
@@ -270,6 +586,9 @@ function AdminDashboard() {
         setBookings(normalizeBookings(bookingsRes?.data));
         setUsers(normalizeUsers(usersRes?.data));
         setRooms(roomsPayload);
+        setCoupons(normalizeCoupons(couponsRes?.data));
+        setDisputes(normalizeDisputes(disputesRes?.data));
+        setLogs(normalizeLogs(logsRes?.data));
       } catch (loadError) {
         console.error("Cannot load admin dashboard", loadError);
         setError("Khong the tai du lieu dashboard. Vui long thu lai.");
@@ -332,10 +651,31 @@ function AdminDashboard() {
       };
     }
 
+    if (activeView === "coupons") {
+      return {
+        title: "Quan ly coupon",
+        subtitle: "Tao, cap nhat va kiem soat uu dai dang ap dung trong he thong",
+      };
+    }
+
     if (activeView === "account") {
       return {
         title: "Profile admin",
         subtitle: "Cap nhat thong tin ca nhan va cai dat email",
+      };
+    }
+
+    if (activeView === "disputes") {
+      return {
+        title: "Tranh chap va bao cao",
+        subtitle: "Xu ly cac ticket lien quan den booking, thanh toan va chat luong luu tru",
+      };
+    }
+
+    if (activeView === "logs") {
+      return {
+        title: "Nhat ky hoat dong",
+        subtitle: "Theo doi nhung thay doi quan trong de kiem soat van hanh he thong",
       };
     }
 
@@ -369,7 +709,9 @@ function AdminDashboard() {
         room,
         hotel,
         user,
+        rawStatus: booking.status,
         status,
+        paymentMeta: paymentStatusMeta(booking?.paymentStatus),
       };
     });
   }, [bookings, hotelMap, roomMap, userMap]);
@@ -389,6 +731,8 @@ function AdminDashboard() {
           acc.upcoming += 1;
         } else if (booking.status.className === "success") {
           acc.active += 1;
+        } else if (booking.status.className === "danger") {
+          acc.cancelled += 1;
         } else if (booking.status.className === "neutral") {
           acc.completed += 1;
         } else {
@@ -396,7 +740,7 @@ function AdminDashboard() {
         }
         return acc;
       },
-      { upcoming: 0, active: 0, completed: 0, unknown: 0 }
+      { upcoming: 0, active: 0, completed: 0, cancelled: 0, unknown: 0 }
     );
   }, [bookingsWithMeta]);
 
@@ -424,6 +768,10 @@ function AdminDashboard() {
     );
 
     bookingsWithMeta.forEach((booking) => {
+      if (booking.status.className === "danger") {
+        return;
+      }
+
       const time =
         parseDate(booking.checkInDate) || parseDate(booking.checkOutDate);
       if (!time) {
@@ -435,7 +783,7 @@ function AdminDashboard() {
         return;
       }
 
-      valueByKey[key] += Number(booking.totalPrice || 0);
+      valueByKey[key] += bookingRevenueValue(booking);
     });
 
     return initialMonths.map((month) => ({
@@ -563,6 +911,119 @@ function AdminDashboard() {
     return maxValue || 1;
   }, [monthlyRevenue]);
 
+  const sortedCoupons = useMemo(() => {
+    const couponPriority = {
+      active: 0,
+      expired: 1,
+      inactive: 2,
+    };
+
+    return [...coupons].sort((a, b) => {
+      const aMeta = couponStatusMeta(a);
+      const bMeta = couponStatusMeta(b);
+      const kindDiff = couponPriority[aMeta.kind] - couponPriority[bMeta.kind];
+
+      if (kindDiff !== 0) {
+        return kindDiff;
+      }
+
+      const aExpiry = parseDate(a.expiresAt)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      const bExpiry = parseDate(b.expiresAt)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      if (aExpiry !== bExpiry) {
+        return aExpiry - bExpiry;
+      }
+
+      return (a.code || "").localeCompare(b.code || "", "vi");
+    });
+  }, [coupons]);
+
+  const couponSummary = useMemo(() => {
+    return sortedCoupons.reduce(
+      (acc, coupon) => {
+        const meta = couponStatusMeta(coupon);
+        acc.total += 1;
+        if (meta.kind === "active") {
+          acc.active += 1;
+        } else if (meta.kind === "expired") {
+          acc.expired += 1;
+        } else {
+          acc.inactive += 1;
+        }
+        return acc;
+      },
+      { total: 0, active: 0, expired: 0, inactive: 0 }
+    );
+  }, [sortedCoupons]);
+
+  const paymentSummary = useMemo(() => {
+    return bookingsWithMeta.reduce(
+      (acc, booking) => {
+        if (booking.paymentMeta.kind === "paid") {
+          acc.paid += 1;
+        } else if (booking.paymentMeta.kind === "pending") {
+          acc.pending += 1;
+        } else if (booking.paymentMeta.kind === "refunded") {
+          acc.refunded += 1;
+        } else if (booking.paymentMeta.kind === "failed") {
+          acc.failed += 1;
+        }
+        return acc;
+      },
+      { paid: 0, pending: 0, refunded: 0, failed: 0 }
+    );
+  }, [bookingsWithMeta]);
+
+  const filteredBookings = useMemo(() => {
+    return sortedBookings.filter((booking) => {
+      const paymentMatch =
+        bookingFilters.paymentStatus === "all" ||
+        (booking.paymentStatus || "PENDING") === bookingFilters.paymentStatus;
+
+      const stayMatch =
+        bookingFilters.stayStatus === "all" ||
+        bookingStayFilterValue(booking) === bookingFilters.stayStatus;
+
+      const dateMatch = bookingMatchesDateRange(
+        booking,
+        bookingFilters.dateFrom,
+        bookingFilters.dateTo
+      );
+      const userQuery = bookingFilters.userQuery.trim().toLowerCase();
+      const hotelQuery = bookingFilters.hotelQuery.trim().toLowerCase();
+      const userSource = `${booking.user?.name || ""} ${booking.user?.email || ""} ${booking.userId || ""}`.toLowerCase();
+      const hotelSource =
+        `${booking.hotel?.name || ""} ${booking.hotel?.city || ""} ${booking.room?.name || ""}`.toLowerCase();
+      const userMatch = !userQuery || userSource.includes(userQuery);
+      const hotelMatch = !hotelQuery || hotelSource.includes(hotelQuery);
+
+      return paymentMatch && stayMatch && dateMatch && userMatch && hotelMatch;
+    });
+  }, [
+    bookingFilters.dateFrom,
+    bookingFilters.dateTo,
+    bookingFilters.hotelQuery,
+    bookingFilters.paymentStatus,
+    bookingFilters.stayStatus,
+    bookingFilters.userQuery,
+    sortedBookings,
+  ]);
+
+  const sortedDisputes = useMemo(() => {
+    return [...disputes].sort((a, b) => {
+      const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      return bTime - aTime;
+    });
+  }, [disputes]);
+
+  const sortedLogs = useMemo(() => {
+    return [...logs].sort((a, b) => {
+      const aTime = new Date(a.createdAt || 0).getTime();
+      const bTime = new Date(b.createdAt || 0).getTime();
+      return bTime - aTime;
+    });
+  }, [logs]);
+
   const openView = (view) => {
     setActiveView(view);
     setSidebarOpen(false);
@@ -573,11 +1034,27 @@ function AdminDashboard() {
     setHotelFilters((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleBookingFilterChange = (event) => {
+    const { name, value } = event.target;
+    setBookingFilters((prev) => ({ ...prev, [name]: value }));
+  };
+
   const resetHotelFilters = () => {
     setHotelFilters({
       city: "all",
       minRooms: "0",
       minOccupancy: "0",
+    });
+  };
+
+  const resetBookingFilters = () => {
+    setBookingFilters({
+      paymentStatus: "all",
+      stayStatus: "all",
+      dateFrom: "",
+      dateTo: "",
+      userQuery: "",
+      hotelQuery: "",
     });
   };
 
@@ -659,6 +1136,370 @@ function AdminDashboard() {
     }
   };
 
+  const handleCouponFieldChange = (event) => {
+    const { name, type, value, checked } = event.target;
+    setCouponForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const resetCouponForm = () => {
+    setCouponForm({ ...couponInitialState });
+    setEditingCouponId(null);
+    setCouponMessage(null);
+  };
+
+  const closeConfirmDialog = () => {
+    if (couponDeletingId) {
+      return;
+    }
+
+    setConfirmDialog(null);
+  };
+
+  const performCouponDelete = async (coupon) => {
+    if (!coupon?.id) {
+      toast.error("Coupon nay chua san sang de xoa.");
+      return;
+    }
+
+    setCouponDeletingId(coupon.id);
+    setCouponMessage(null);
+
+    try {
+      await deleteAdminCoupon(coupon.id);
+      setCoupons((prev) => prev.filter((item) => item.id !== coupon.id));
+
+      if (editingCouponId === coupon.id) {
+        resetCouponForm();
+      }
+
+      setConfirmDialog(null);
+      toast.success("Da xoa coupon thanh cong.");
+    } catch (deleteError) {
+      console.error("Cannot delete coupon", deleteError);
+      const responseMessage =
+        typeof deleteError?.response?.data === "string"
+          ? deleteError.response.data
+          : deleteError?.response?.data?.message;
+      toast.error(responseMessage || "Khong the xoa coupon. Vui long thu lai.");
+    } finally {
+      setCouponDeletingId(null);
+    }
+  };
+
+  const handleCouponDeleteRequest = (coupon) => {
+    if (!coupon?.id) {
+      toast.error("Coupon nay chua san sang de xoa.");
+      return;
+    }
+
+    setConfirmDialog({
+      type: "delete-coupon",
+      title: "Xoa coupon nay?",
+      description: `Coupon ${coupon.code || ""} se bi xoa khoi he thong va khong con hien o trang booking.`,
+      confirmLabel: "Xoa coupon",
+      coupon,
+    });
+  };
+
+  const handleConfirmDialogAction = async () => {
+    if (!confirmDialog) {
+      return;
+    }
+
+    if (confirmDialog.type === "delete-coupon") {
+      await performCouponDelete(confirmDialog.coupon);
+    }
+  };
+
+  const handleCouponEdit = (coupon) => {
+    setCouponForm(toCouponFormState(coupon));
+    setEditingCouponId(coupon?.id || null);
+    setCouponMessage(null);
+    setActiveView("coupons");
+    setSidebarOpen(false);
+  };
+
+  const handleCouponSubmit = async (event) => {
+    event.preventDefault();
+    setCouponSaving(true);
+    setCouponMessage(null);
+
+    const payload = {
+      code: couponForm.code.trim().toUpperCase(),
+      description: couponForm.description.trim(),
+      discountType: couponForm.discountType,
+      discountValue: Number(couponForm.discountValue),
+      minOrderAmount: Math.max(Number(couponForm.minOrderAmount) || 0, 0),
+      expiresAt: couponForm.expiresAt || null,
+      active: Boolean(couponForm.active),
+    };
+
+    try {
+      const res = editingCouponId
+        ? await updateAdminCoupon(editingCouponId, payload)
+        : await createAdminCoupon(payload);
+
+      const savedCoupon = res?.data;
+      setCoupons((prev) => {
+        const nextCoupons = editingCouponId
+          ? prev.map((item) => (item.id === savedCoupon?.id ? savedCoupon : item))
+          : [savedCoupon, ...prev];
+
+        const seen = new Set();
+        return nextCoupons.filter((item) => {
+          const key = item?.id || item?.code;
+          if (!key || seen.has(key)) {
+            return false;
+          }
+          seen.add(key);
+          return true;
+        });
+      });
+
+      const successMessage = editingCouponId
+        ? "Da cap nhat coupon thanh cong."
+        : "Da tao coupon moi thanh cong.";
+
+      setCouponMessage({ type: "success", text: successMessage });
+      toast.success(successMessage);
+      setCouponForm({ ...couponInitialState });
+      setEditingCouponId(null);
+    } catch (saveError) {
+      console.error("Cannot save coupon", saveError);
+      const responseMessage =
+        typeof saveError?.response?.data === "string"
+          ? saveError.response.data
+          : saveError?.response?.data?.message;
+      const message = responseMessage || "Khong the luu coupon. Vui long thu lai.";
+      setCouponMessage({ type: "error", text: message });
+      toast.error(message);
+    } finally {
+      setCouponSaving(false);
+    }
+  };
+
+  const handlePaymentDraftChange = (bookingId, paymentStatus) => {
+    setPaymentDrafts((prev) => ({
+      ...prev,
+      [bookingId]: paymentStatus,
+    }));
+  };
+
+  const handleBookingStatusDraftChange = (bookingId, status) => {
+    setBookingStatusDrafts((prev) => ({
+      ...prev,
+      [bookingId]: status,
+    }));
+  };
+
+  const handleBookingStatusNoteChange = (bookingId, note) => {
+    setBookingStatusNotes((prev) => ({
+      ...prev,
+      [bookingId]: note,
+    }));
+  };
+
+  const handleHotelApprovalDraftChange = (hotelId, status) => {
+    setHotelApprovalDrafts((prev) => ({
+      ...prev,
+      [hotelId]: status,
+    }));
+  };
+
+  const handleHotelApprovalNoteChange = (hotelId, note) => {
+    setHotelApprovalNotes((prev) => ({
+      ...prev,
+      [hotelId]: note,
+    }));
+  };
+
+  const handleDisputeStatusDraftChange = (disputeId, status) => {
+    setDisputeStatusDrafts((prev) => ({
+      ...prev,
+      [disputeId]: status,
+    }));
+  };
+
+  const handleDisputeNoteChange = (disputeId, note) => {
+    setDisputeNotes((prev) => ({
+      ...prev,
+      [disputeId]: note,
+    }));
+  };
+
+  const handlePaymentStatusUpdate = async (booking) => {
+    const nextStatus = paymentDrafts[booking.id] || booking.paymentStatus || "PENDING";
+    const currentStatus = booking.paymentStatus || "PENDING";
+
+    if (!booking?.id || nextStatus === currentStatus) {
+      return;
+    }
+
+    setPaymentUpdatingId(booking.id);
+
+    try {
+      const res = await updateAdminBookingPaymentStatus(booking.id, {
+        paymentStatus: nextStatus,
+      });
+
+      const updatedBooking = res?.data;
+      setBookings((prev) =>
+        prev.map((item) => (item.id === updatedBooking?.id ? updatedBooking : item))
+      );
+      setPaymentDrafts((prev) => {
+        const nextDrafts = { ...prev };
+        delete nextDrafts[booking.id];
+        return nextDrafts;
+      });
+      toast.success(
+        `Da cap nhat payment status: ${paymentStatusMeta(nextStatus).label}.`
+      );
+    } catch (updateError) {
+      console.error("Cannot update payment status", updateError);
+      const responseMessage =
+        typeof updateError?.response?.data === "string"
+          ? updateError.response.data
+          : updateError?.response?.data?.message;
+      toast.error(
+        responseMessage || "Khong the cap nhat payment status. Vui long thu lai."
+      );
+    } finally {
+      setPaymentUpdatingId(null);
+    }
+  };
+
+  const handleBookingStatusUpdate = async (booking) => {
+    const nextStatus = bookingStatusDrafts[booking.id] || booking.rawStatus || "CONFIRMED";
+    const currentStatus = booking.rawStatus || "CONFIRMED";
+
+    if (!booking?.id || nextStatus === currentStatus) {
+      return;
+    }
+
+    setBookingStatusUpdatingId(booking.id);
+
+    try {
+      const res = await updateAdminBookingStatus(booking.id, {
+        status: nextStatus,
+        note: bookingStatusNotes[booking.id] || "",
+      });
+
+      const updatedBooking = res?.data;
+      setBookings((prev) =>
+        prev.map((item) => (item.id === updatedBooking?.id ? updatedBooking : item))
+      );
+      setBookingStatusDrafts((prev) => {
+        const next = { ...prev };
+        delete next[booking.id];
+        return next;
+      });
+      setBookingStatusNotes((prev) => {
+        const next = { ...prev };
+        delete next[booking.id];
+        return next;
+      });
+      toast.success("Da cap nhat trang thai booking");
+    } catch (updateError) {
+      console.error("Cannot update booking status", updateError);
+      const responseMessage =
+        typeof updateError?.response?.data === "string"
+          ? updateError.response.data
+          : updateError?.response?.data?.message;
+      toast.error(responseMessage || "Khong the cap nhat trang thai booking.");
+    } finally {
+      setBookingStatusUpdatingId(null);
+    }
+  };
+
+  const handleHotelApprovalUpdate = async (hotel) => {
+    const nextStatus = hotelApprovalDrafts[hotel.id] || hotel.approvalStatus || "PENDING";
+    const currentStatus = hotel.approvalStatus || "PENDING";
+    const nextNote = (hotelApprovalNotes[hotel.id] ?? hotel.approvalNote ?? "").trim();
+    const currentNote = (hotel.approvalNote || "").trim();
+
+    if (!hotel?.id || (nextStatus === currentStatus && nextNote === currentNote)) {
+      return;
+    }
+
+    setHotelApprovalUpdatingId(hotel.id);
+
+    try {
+      const res = await updateAdminHotelApproval(hotel.id, {
+        status: nextStatus,
+        note: nextNote,
+      });
+      const updatedHotel = res?.data;
+      setHotels((prev) => prev.map((item) => (item.id === updatedHotel?.id ? updatedHotel : item)));
+      setHotelApprovalDrafts((prev) => {
+        const next = { ...prev };
+        delete next[hotel.id];
+        return next;
+      });
+      setHotelApprovalNotes((prev) => {
+        const next = { ...prev };
+        delete next[hotel.id];
+        return next;
+      });
+      toast.success("Da cap nhat trang thai duyet hotel");
+    } catch (updateError) {
+      console.error("Cannot update hotel approval", updateError);
+      const responseMessage =
+        typeof updateError?.response?.data === "string"
+          ? updateError.response.data
+          : updateError?.response?.data?.message;
+      toast.error(responseMessage || "Khong the cap nhat trang thai hotel.");
+    } finally {
+      setHotelApprovalUpdatingId(null);
+    }
+  };
+
+  const handleDisputeUpdate = async (dispute) => {
+    const nextStatus = disputeStatusDrafts[dispute.id] || dispute.status || "OPEN";
+    const currentStatus = dispute.status || "OPEN";
+    const nextNote = (disputeNotes[dispute.id] ?? dispute.resolutionNote ?? "").trim();
+    const currentNote = (dispute.resolutionNote || "").trim();
+
+    if (!dispute?.id || (nextStatus === currentStatus && nextNote === currentNote)) {
+      return;
+    }
+
+    setDisputeUpdatingId(dispute.id);
+
+    try {
+      const res = await updateAdminDisputeStatus(dispute.id, {
+        status: nextStatus,
+        resolutionNote: nextNote,
+      });
+      const updatedDispute = res?.data;
+      setDisputes((prev) =>
+        prev.map((item) => (item.id === updatedDispute?.id ? updatedDispute : item))
+      );
+      setDisputeStatusDrafts((prev) => {
+        const next = { ...prev };
+        delete next[dispute.id];
+        return next;
+      });
+      setDisputeNotes((prev) => {
+        const next = { ...prev };
+        delete next[dispute.id];
+        return next;
+      });
+      toast.success("Da cap nhat tranh chap");
+    } catch (updateError) {
+      console.error("Cannot update dispute", updateError);
+      const responseMessage =
+        typeof updateError?.response?.data === "string"
+          ? updateError.response.data
+          : updateError?.response?.data?.message;
+      toast.error(responseMessage || "Khong the cap nhat tranh chap.");
+    } finally {
+      setDisputeUpdatingId(null);
+    }
+  };
+
   const renderOverview = () => (
     <>
       <section className="kpi-grid">
@@ -682,7 +1523,9 @@ function AdminDashboard() {
         <article className="kpi-card">
           <p className="kpi-label">Tong booking</p>
           <h3>{numberFormatter.format(dashboard.totalBookings || 0)}</h3>
-          <p className="kpi-trend down">{overviewStatus.upcoming} booking sap den</p>
+          <p className="kpi-trend down">
+            {overviewStatus.upcoming} sap den | {overviewStatus.cancelled} da huy
+          </p>
         </article>
       </section>
 
@@ -773,9 +1616,7 @@ function AdminDashboard() {
                       {formatDate(booking.checkInDate)} - {formatDate(booking.checkOutDate)}
                     </td>
                     <td>
-                      {currencyFormatter.format(
-                        Number(booking.finalPrice || booking.totalPrice || 0)
-                      )}
+                      {currencyFormatter.format(bookingRevenueValue(booking))}
                     </td>
                     <td>
                       <span className={`status-pill ${booking.status.className}`}>
@@ -802,10 +1643,20 @@ function AdminDashboard() {
               <h3>Trang thai booking</h3>
               <p>
                 Sap den: {overviewStatus.upcoming} | Dang o: {overviewStatus.active} | Hoan tat:{" "}
-                {overviewStatus.completed}
+                {overviewStatus.completed} | Da huy: {overviewStatus.cancelled}
               </p>
               <button type="button" onClick={() => openView("bookings")}>
                 Xem booking
+              </button>
+            </article>
+            <article className="type-card">
+              <h3>Thanh toan</h3>
+              <p>
+                Da thanh toan: {paymentSummary.paid} | Cho thanh toan: {paymentSummary.pending} |
+                Hoan tien: {paymentSummary.refunded} | That bai: {paymentSummary.failed}
+              </p>
+              <button type="button" onClick={() => openView("bookings")}>
+                Xem payment
               </button>
             </article>
             <article className="type-card">
@@ -817,6 +1668,16 @@ function AdminDashboard() {
               </p>
               <button type="button" onClick={() => openView("hotels")}>
                 Xem hotels
+              </button>
+            </article>
+            <article className="type-card">
+              <h3>Coupon dang dung</h3>
+              <p>
+                Hoat dong: {couponSummary.active} | Het han: {couponSummary.expired} | Tam tat:{" "}
+                {couponSummary.inactive}
+              </p>
+              <button type="button" onClick={() => openView("coupons")}>
+                Quan ly coupon
               </button>
             </article>
             <article className="type-card">
@@ -911,17 +1772,95 @@ function AdminDashboard() {
         {hotelCards.length ? (
           filteredHotelCards.length ? (
           <div className="admin-hotel-grid">
-            {filteredHotelCards.map((hotel) => (
-              <HotelCard
-                key={hotel.id}
-                hotel={hotel}
-                onView={(hotelItem) =>
-                  navigate(`/hotels/${hotelItem.id}`, {
-                    state: { hotel: hotelItem },
-                  })
-                }
-              />
-            ))}
+            {filteredHotelCards.map((hotel) => {
+              const approvalMetaItem = hotelApprovalMeta(hotel.approvalStatus);
+              const selectedStatus =
+                hotelApprovalDrafts[hotel.id] || hotel.approvalStatus || "PENDING";
+              const noteValue = hotelApprovalNotes[hotel.id] ?? hotel.approvalNote ?? "";
+              const statusDirty =
+                selectedStatus !== (hotel.approvalStatus || "PENDING") ||
+                noteValue.trim() !== String(hotel.approvalNote || "").trim();
+
+              return (
+                <article key={hotel.id} className="admin-hotel-admin-card">
+                  <div className="admin-hotel-card-head">
+                    <div>
+                      <p className="panel-tag">{hotel.city || "Viet Nam"}</p>
+                      <h3>{hotel.name || "Khach san"}</h3>
+                    </div>
+                    <span className={`status-pill ${approvalMetaItem.className}`}>
+                      {approvalMetaItem.label}
+                    </span>
+                  </div>
+
+                  <p className="admin-hotel-address">{hotel.address || "-"}</p>
+
+                  <div className="admin-hotel-meta">
+                    <span>{hotel.starRating || 3} sao</span>
+                    <span>{hotel.totalRooms || 0} loai phong</span>
+                    <span>{hotel.totalBookings || 0} booking</span>
+                    <span>Lap day {hotel.occupancy || 0}%</span>
+                  </div>
+
+                  <div className="admin-hotel-meta">
+                    <span>Huy mien phi: {hotel.freeCancellationBeforeDays ?? 0} ngay</span>
+                    <span>Hoan tien muon: {hotel.lateCancellationRefundRate ?? 0}%</span>
+                  </div>
+
+                  <div className="admin-form-stack">
+                    <label className="admin-filter-field">
+                      <span>Duyet hotel</span>
+                      <select
+                        value={selectedStatus}
+                        onChange={(event) =>
+                          handleHotelApprovalDraftChange(hotel.id, event.target.value)
+                        }
+                        disabled={hotelApprovalUpdatingId === hotel.id}
+                      >
+                        {hotelApprovalOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="admin-filter-field">
+                      <span>Ghi chu admin</span>
+                      <textarea
+                        value={noteValue}
+                        onChange={(event) =>
+                          handleHotelApprovalNoteChange(hotel.id, event.target.value)
+                        }
+                        placeholder="Ly do duyet, tu choi hoac can host bo sung thong tin"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="admin-card-actions">
+                    <button
+                      type="button"
+                      className="btn-action btn-secondary"
+                      onClick={() =>
+                        navigate(`/hotels/${hotel.id}`, {
+                          state: { hotel },
+                        })
+                      }
+                    >
+                      Xem chi tiet
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-action btn-primary"
+                      disabled={!statusDirty || hotelApprovalUpdatingId === hotel.id}
+                      onClick={() => handleHotelApprovalUpdate(hotel)}
+                    >
+                      {hotelApprovalUpdatingId === hotel.id ? "Dang luu..." : "Luu duyet"}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         ) : (
             <div className="admin-empty-state">
@@ -943,46 +1882,588 @@ function AdminDashboard() {
             <p className="panel-tag">Tat ca booking</p>
             <h2>Quan sat booking theo tinh trang thuc te</h2>
           </div>
-          <span className="panel-badge">{sortedBookings.length} booking</span>
+          <span className="panel-badge">
+            {filteredBookings.length}/{sortedBookings.length} booking
+          </span>
         </div>
 
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Ma booking</th>
-                <th>User</th>
-                <th>Hotel</th>
-                <th>Room</th>
-                <th>Check-in</th>
-                <th>Check-out</th>
-                <th>Tong tien</th>
-                <th>Trang thai</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedBookings.map((booking) => (
-                <tr key={booking.id}>
-                  <td>{shortId(booking.id)}</td>
-                  <td>{booking.user?.name || booking.user?.email || booking.userId || "-"}</td>
-                  <td>{booking.hotel?.name || "-"}</td>
-                  <td>{booking.room?.name || booking.roomId || "-"}</td>
-                  <td>{formatDate(booking.checkInDate)}</td>
-                  <td>{formatDate(booking.checkOutDate)}</td>
-                  <td>
-                    {currencyFormatter.format(
-                      Number(booking.finalPrice || booking.totalPrice || 0)
-                    )}
-                  </td>
-                  <td>
-                    <span className={`status-pill ${booking.status.className}`}>
-                      {booking.status.label}
-                    </span>
-                  </td>
-                </tr>
+        <div className="admin-booking-filters">
+          <label className="admin-filter-field">
+            <span>Payment status</span>
+            <select
+              name="paymentStatus"
+              value={bookingFilters.paymentStatus}
+              onChange={handleBookingFilterChange}
+            >
+              {paymentStatusFilterOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
               ))}
-            </tbody>
-          </table>
+            </select>
+          </label>
+
+          <label className="admin-filter-field">
+            <span>User</span>
+            <input
+              type="text"
+              name="userQuery"
+              value={bookingFilters.userQuery}
+              onChange={handleBookingFilterChange}
+              placeholder="Ten, email nguoi dat"
+            />
+          </label>
+
+          <label className="admin-filter-field">
+            <span>Hotel</span>
+            <input
+              type="text"
+              name="hotelQuery"
+              value={bookingFilters.hotelQuery}
+              onChange={handleBookingFilterChange}
+              placeholder="Ten hotel hoac phong"
+            />
+          </label>
+
+          <label className="admin-filter-field">
+            <span>Trang thai o</span>
+            <select
+              name="stayStatus"
+              value={bookingFilters.stayStatus}
+              onChange={handleBookingFilterChange}
+            >
+              {bookingStayStatusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="admin-filter-field">
+            <span>Tu ngay</span>
+            <input
+              type="date"
+              name="dateFrom"
+              value={bookingFilters.dateFrom}
+              onChange={handleBookingFilterChange}
+            />
+          </label>
+
+          <label className="admin-filter-field">
+            <span>Den ngay</span>
+            <input
+              type="date"
+              name="dateTo"
+              value={bookingFilters.dateTo}
+              onChange={handleBookingFilterChange}
+            />
+          </label>
+
+          <button
+            type="button"
+            className="admin-filter-reset"
+            onClick={resetBookingFilters}
+          >
+            Dat lai bo loc
+          </button>
+        </div>
+
+        {filteredBookings.length ? (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ma booking</th>
+                  <th>User</th>
+                  <th>Hotel</th>
+                  <th>Room</th>
+                  <th>Check-in</th>
+                  <th>Check-out</th>
+                  <th>Tong tien</th>
+                  <th>Thanh toan</th>
+                  <th>Coupon</th>
+                  <th>Ghi chu</th>
+                  <th>Trang thai</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredBookings.map((booking) => {
+                  const selectedPaymentStatus =
+                    paymentDrafts[booking.id] || booking.paymentStatus || "PENDING";
+                  const paymentDirty =
+                    selectedPaymentStatus !== (booking.paymentStatus || "PENDING");
+                  const selectedBookingStatus =
+                    bookingStatusDrafts[booking.id] || booking.rawStatus || "CONFIRMED";
+                  const bookingStatusDirty =
+                    selectedBookingStatus !== (booking.rawStatus || "CONFIRMED");
+
+                  return (
+                    <tr key={booking.id}>
+                      <td>{shortId(booking.id)}</td>
+                      <td>{booking.user?.name || booking.user?.email || booking.userId || "-"}</td>
+                      <td>{booking.hotel?.name || "-"}</td>
+                      <td>{booking.room?.name || booking.roomId || "-"}</td>
+                      <td>{formatDate(booking.checkInDate)}</td>
+                      <td>{formatDate(booking.checkOutDate)}</td>
+                      <td>{currencyFormatter.format(bookingRevenueValue(booking))}</td>
+                      <td>
+                        <div className="admin-table-stack">
+                          <span className={`status-pill ${booking.paymentMeta.className}`}>
+                            {booking.paymentMeta.label}
+                          </span>
+                          <span className="admin-cell-note">
+                            {paymentMethodLabel(booking.paymentMethod)}
+                          </span>
+                          <div className="admin-payment-editor">
+                            <select
+                              value={selectedPaymentStatus}
+                              onChange={(event) =>
+                                handlePaymentDraftChange(booking.id, event.target.value)
+                              }
+                              disabled={paymentUpdatingId === booking.id}
+                            >
+                              {paymentStatusOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              className="admin-mini-btn"
+                              disabled={!paymentDirty || paymentUpdatingId === booking.id}
+                              onClick={() => handlePaymentStatusUpdate(booking)}
+                            >
+                              {paymentUpdatingId === booking.id ? "Dang luu..." : "Luu"}
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="admin-table-stack">
+                          <strong>{booking.couponCode || "-"}</strong>
+                          {Number(booking.discountAmount || 0) > 0 ? (
+                            <span className="admin-cell-note">
+                              -{currencyFormatter.format(Number(booking.discountAmount || 0))}
+                            </span>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="admin-table-stack">
+                          <span className="admin-note-cell">
+                            {formatCellText(booking.note, "Khong co ghi chu")}
+                          </span>
+                          {booking.cancellationReason ? (
+                            <span className="admin-cell-note">
+                              Ly do huy: {booking.cancellationReason}
+                            </span>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="admin-table-stack">
+                          <span className={`status-pill ${booking.status.className}`}>
+                            {booking.status.label}
+                          </span>
+                          <div className="admin-payment-editor">
+                            <select
+                              value={selectedBookingStatus}
+                              onChange={(event) =>
+                                handleBookingStatusDraftChange(booking.id, event.target.value)
+                              }
+                              disabled={bookingStatusUpdatingId === booking.id}
+                            >
+                              {bookingStatusOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              className="admin-mini-btn"
+                              disabled={!bookingStatusDirty || bookingStatusUpdatingId === booking.id}
+                              onClick={() => handleBookingStatusUpdate(booking)}
+                            >
+                              {bookingStatusUpdatingId === booking.id ? "Dang luu..." : "Luu"}
+                            </button>
+                          </div>
+                          <input
+                            type="text"
+                            className="admin-inline-input"
+                            value={bookingStatusNotes[booking.id] || ""}
+                            onChange={(event) =>
+                              handleBookingStatusNoteChange(booking.id, event.target.value)
+                            }
+                            placeholder="Ghi chu check-in/out"
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="admin-empty-state">
+            Khong co booking phu hop bo loc payment status hien tai.
+          </div>
+        )}
+      </article>
+    </section>
+  );
+
+  const renderDisputes = () => (
+    <section className="admin-view-stack">
+      <article className="panel">
+        <div className="panel-head">
+          <div>
+            <p className="panel-tag">Tranh chap booking</p>
+            <h2>Xu ly ticket do nguoi dung gui len he thong</h2>
+          </div>
+          <span className="panel-badge">{sortedDisputes.length} tranh chap</span>
+        </div>
+
+        {sortedDisputes.length ? (
+          <div className="admin-dispute-list">
+            {sortedDisputes.map((dispute) => {
+              const user = userMap[dispute.userId] || null;
+              const hotel = hotelMap[dispute.hotelId] || null;
+              const room = roomMap[dispute.roomId] || null;
+              const disputeMeta = disputeStatusMeta(dispute.status);
+              const selectedStatus = disputeStatusDrafts[dispute.id] || dispute.status || "OPEN";
+              const noteValue = disputeNotes[dispute.id] ?? dispute.resolutionNote ?? "";
+              const statusDirty =
+                selectedStatus !== (dispute.status || "OPEN") ||
+                noteValue.trim() !== String(dispute.resolutionNote || "").trim();
+
+              return (
+                <article key={dispute.id} className="admin-dispute-card">
+                  <div className="admin-dispute-head">
+                    <div>
+                      <p className="panel-tag">Booking {shortId(dispute.bookingId)}</p>
+                      <h3>{dispute.subject || "Tranh chap booking"}</h3>
+                    </div>
+                    <span className={`status-pill ${disputeMeta.className}`}>
+                      {disputeMeta.label}
+                    </span>
+                  </div>
+
+                  <div className="admin-hotel-meta">
+                    <span>User: {user?.name || user?.email || dispute.userId || "-"}</span>
+                    <span>Hotel: {hotel?.name || dispute.hotelId || "-"}</span>
+                    <span>Room: {room?.name || dispute.roomId || "-"}</span>
+                  </div>
+
+                  <p className="admin-dispute-body">{dispute.description || "-"}</p>
+
+                  <div className="admin-form-stack">
+                    <label className="admin-filter-field">
+                      <span>Trang thai xu ly</span>
+                      <select
+                        value={selectedStatus}
+                        onChange={(event) =>
+                          handleDisputeStatusDraftChange(dispute.id, event.target.value)
+                        }
+                        disabled={disputeUpdatingId === dispute.id}
+                      >
+                        {disputeStatusOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="admin-filter-field">
+                      <span>Phan hoi admin</span>
+                      <textarea
+                        value={noteValue}
+                        onChange={(event) =>
+                          handleDisputeNoteChange(dispute.id, event.target.value)
+                        }
+                        placeholder="Cap nhat ket qua xu ly cho nguoi dung"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="admin-card-actions">
+                    <span className="admin-cell-note">
+                      Cap nhat: {formatDateTime(dispute.updatedAt || dispute.createdAt)}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn-action btn-primary"
+                      disabled={!statusDirty || disputeUpdatingId === dispute.id}
+                      onClick={() => handleDisputeUpdate(dispute)}
+                    >
+                      {disputeUpdatingId === dispute.id ? "Dang luu..." : "Luu xu ly"}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="admin-empty-state">Chua co tranh chap nao can xu ly.</div>
+        )}
+      </article>
+    </section>
+  );
+
+  const renderLogs = () => (
+    <section className="admin-view-stack">
+      <article className="panel">
+        <div className="panel-head">
+          <div>
+            <p className="panel-tag">Audit log</p>
+            <h2>Theo doi nhat ky thay doi trong he thong</h2>
+          </div>
+          <span className="panel-badge">{sortedLogs.length} su kien</span>
+        </div>
+
+        {sortedLogs.length ? (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Thoi gian</th>
+                  <th>Hanh dong</th>
+                  <th>Thuc the</th>
+                  <th>Actor</th>
+                  <th>Noi dung</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedLogs.map((log) => (
+                  <tr key={log.id}>
+                    <td>{formatDateTime(log.createdAt)}</td>
+                    <td>{log.action || "-"}</td>
+                    <td>
+                      {(log.entityType || "-") + " " + shortId(log.entityId)}
+                    </td>
+                    <td>{log.actorEmail || log.actorRole || "-"}</td>
+                    <td>{log.message || "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="admin-empty-state">Chua co nhat ky hoat dong nao.</div>
+        )}
+      </article>
+    </section>
+  );
+
+  const renderCoupons = () => (
+    <section className="admin-view-stack">
+      <article className="panel">
+        <div className="panel-head">
+          <div>
+            <p className="panel-tag">Quan ly coupon</p>
+            <h2>Dieu chinh uu dai va theo doi trang thai ma giam gia</h2>
+          </div>
+          <span className="panel-badge">{couponSummary.total} coupon</span>
+        </div>
+
+        <div className="admin-summary-grid">
+          <div className="type-card">
+            <h3>Dang hoat dong</h3>
+            <p>{couponSummary.active} coupon co the ap dung cho booking moi</p>
+          </div>
+          <div className="type-card">
+            <h3>Da het han</h3>
+            <p>{couponSummary.expired} coupon can gia han hoac tat di</p>
+          </div>
+          <div className="type-card">
+            <h3>Tam tat</h3>
+            <p>{couponSummary.inactive} coupon dang dung o che do an</p>
+          </div>
+        </div>
+
+        <div className="admin-coupon-grid">
+          <article className="admin-coupon-editor">
+            <h3>{editingCouponId ? "Cap nhat coupon" : "Tao coupon moi"}</h3>
+            <p className="admin-account-note">
+              Quan ly ma giam gia ngay trong dashboard admin va dong bo truc tiep sang trang
+              booking.
+            </p>
+
+            <form className="admin-coupon-form" onSubmit={handleCouponSubmit}>
+              <label>
+                <span>Ma coupon</span>
+                <input
+                  name="code"
+                  value={couponForm.code}
+                  onChange={handleCouponFieldChange}
+                  placeholder="VD: SUMMER15"
+                  required
+                />
+              </label>
+
+              <label>
+                <span>Mo ta</span>
+                <textarea
+                  name="description"
+                  value={couponForm.description}
+                  onChange={handleCouponFieldChange}
+                  placeholder="Mo ta uu dai de user de nhan biet"
+                  rows="3"
+                />
+              </label>
+
+              <div className="admin-coupon-form-grid">
+                <label>
+                  <span>Loai giam</span>
+                  <select
+                    name="discountType"
+                    value={couponForm.discountType}
+                    onChange={handleCouponFieldChange}
+                  >
+                    <option value="PERCENT">Phan tram</option>
+                    <option value="FIXED">Tien mat</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Gia tri giam</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    name="discountValue"
+                    value={couponForm.discountValue}
+                    onChange={handleCouponFieldChange}
+                    placeholder="10"
+                    required
+                  />
+                </label>
+              </div>
+
+              <div className="admin-coupon-form-grid">
+                <label>
+                  <span>Don toi thieu</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1000"
+                    name="minOrderAmount"
+                    value={couponForm.minOrderAmount}
+                    onChange={handleCouponFieldChange}
+                  />
+                </label>
+
+                <label>
+                  <span>Ngay het han</span>
+                  <input
+                    type="date"
+                    name="expiresAt"
+                    value={couponForm.expiresAt}
+                    onChange={handleCouponFieldChange}
+                  />
+                </label>
+              </div>
+
+              <label className="admin-checkbox-field">
+                <input
+                  type="checkbox"
+                  name="active"
+                  checked={couponForm.active}
+                  onChange={handleCouponFieldChange}
+                />
+                <span>Cho phep coupon hoat dong ngay</span>
+              </label>
+
+              {couponMessage && (
+                <p className={`admin-form-message ${couponMessage.type}`}>
+                  {couponMessage.text}
+                </p>
+              )}
+
+              <div className="admin-form-actions">
+                <button type="submit" className="admin-save-btn" disabled={couponSaving}>
+                  {couponSaving
+                    ? "Dang luu..."
+                    : editingCouponId
+                      ? "Cap nhat coupon"
+                      : "Tao coupon"}
+                </button>
+                <button
+                  type="button"
+                  className="admin-save-btn secondary"
+                  onClick={resetCouponForm}
+                  disabled={couponSaving}
+                >
+                  {editingCouponId ? "Bo sua" : "Dat lai form"}
+                </button>
+              </div>
+            </form>
+          </article>
+
+          <div className="admin-coupon-list">
+            {sortedCoupons.length ? (
+              sortedCoupons.map((coupon) => {
+                const statusMeta = couponStatusMeta(coupon);
+
+                return (
+                  <article key={coupon.id || coupon.code} className="coupon-card">
+                    <div className="coupon-card-head">
+                      <div>
+                        <h3>{coupon.code || "COUPON"}</h3>
+                        <p>{formatCellText(coupon.description, "Chua co mo ta")}</p>
+                      </div>
+                      <span className={`status-pill ${statusMeta.className}`}>
+                        {statusMeta.label}
+                      </span>
+                    </div>
+
+                    <ul className="coupon-meta-list">
+                      <li>
+                        <span>Gia tri giam</span>
+                        <strong>{formatCouponValue(coupon)}</strong>
+                      </li>
+                      <li>
+                        <span>Don toi thieu</span>
+                        <strong>
+                          {currencyFormatter.format(Number(coupon.minOrderAmount || 0))}
+                        </strong>
+                      </li>
+                      <li>
+                        <span>Ngay het han</span>
+                        <strong>
+                          {coupon.expiresAt ? formatDate(coupon.expiresAt) : "Khong gioi han"}
+                        </strong>
+                      </li>
+                    </ul>
+
+                    <div className="coupon-card-actions">
+                      <button
+                        type="button"
+                        className="coupon-edit-btn"
+                        onClick={() => handleCouponEdit(coupon)}
+                      >
+                        Chinh sua coupon
+                      </button>
+                      <button
+                        type="button"
+                        className="coupon-delete-btn"
+                        onClick={() => handleCouponDeleteRequest(coupon)}
+                        disabled={couponDeletingId === coupon.id}
+                      >
+                        {couponDeletingId === coupon.id ? "Dang xoa..." : "Xoa coupon"}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })
+            ) : (
+              <div className="admin-empty-state">Chua co coupon nao trong he thong.</div>
+            )}
+          </div>
         </div>
       </article>
     </section>
@@ -1205,6 +2686,18 @@ function AdminDashboard() {
       return renderUsers();
     }
 
+    if (activeView === "coupons") {
+      return renderCoupons();
+    }
+
+    if (activeView === "disputes") {
+      return renderDisputes();
+    }
+
+    if (activeView === "logs") {
+      return renderLogs();
+    }
+
     if (activeView === "account") {
       return renderAccount();
     }
@@ -1215,6 +2708,15 @@ function AdminDashboard() {
   return (
     <main className="admin-dashboard">
       {sidebarOpen && <button type="button" className="admin-overlay" onClick={() => setSidebarOpen(false)} />}
+      <ConfirmDialog
+        open={Boolean(confirmDialog)}
+        title={confirmDialog?.title || ""}
+        description={confirmDialog?.description || ""}
+        confirmLabel={confirmDialog?.confirmLabel || "Xac nhan"}
+        loading={Boolean(couponDeletingId)}
+        onClose={closeConfirmDialog}
+        onConfirm={handleConfirmDialogAction}
+      />
 
       <aside className={`admin-sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-brand">
@@ -1277,6 +2779,33 @@ function AdminDashboard() {
                   onClick={() => openView("users")}
                 >
                   Users
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className={`submenu-btn ${activeView === "coupons" ? "active" : ""}`}
+                  onClick={() => openView("coupons")}
+                >
+                  Coupons
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className={`submenu-btn ${activeView === "disputes" ? "active" : ""}`}
+                  onClick={() => openView("disputes")}
+                >
+                  Disputes
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className={`submenu-btn ${activeView === "logs" ? "active" : ""}`}
+                  onClick={() => openView("logs")}
+                >
+                  Audit logs
                 </button>
               </li>
             </ul>
@@ -1383,6 +2912,9 @@ function AdminDashboard() {
                   </div>
                   <button type="button" className="dropdown-item" onClick={() => openView("account")}>
                     Profile admin
+                  </button>
+                  <button type="button" className="dropdown-item" onClick={() => openView("coupons")}>
+                    Quan ly coupon
                   </button>
                   <button type="button" className="dropdown-item" onClick={() => navigate("/host")}>
                     Quan ly dang phong

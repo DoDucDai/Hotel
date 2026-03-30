@@ -1,5 +1,15 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import {
+  FaArrowRight,
+  FaCheckCircle,
+  FaEnvelope,
+  FaEye,
+  FaEyeSlash,
+  FaLock,
+  FaShieldAlt,
+  FaUser,
+} from "react-icons/fa";
 import { register as registerUser } from "../services/authService";
 import { useToast } from "../components/ToastProvider";
 import "./Register.css";
@@ -13,10 +23,18 @@ function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const redirectTo = location.state?.redirectTo || "/";
   const redirectState = location.state?.redirectState || null;
+  const passwordMismatch = confirmPassword.length > 0 && password !== confirmPassword;
+  const passwordReady = password.length >= 6 && !passwordMismatch;
+  const readAuthError = (error, fallback) =>
+    error?.response?.data?.error ||
+    error?.response?.data?.message ||
+    fallback;
 
   const handleRegister = async (event) => {
     event.preventDefault();
@@ -29,75 +47,165 @@ function Register() {
         return;
       }
 
-      await registerUser({ name, email, password });
-      toast.success("Dang ky thanh cong, vui long dang nhap");
+      const res = await registerUser({ name, email, password });
+      toast.success(
+        res?.data?.message || "Dang ky thanh cong, vui long kiem tra email xac nhan"
+      );
 
       navigate("/login", {
         replace: true,
         state: {
+          registeredEmail: email,
           redirectTo,
           redirectState,
         },
       });
     } catch (registerError) {
       console.error("Register failed", registerError);
-      toast.error(registerError?.response?.data?.message || "Dang ky that bai");
+      toast.error(readAuthError(registerError, "Dang ky that bai"));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="register-wrapper">
-      <div className="register-card">
-        <div className="register-left">
-          <div className="hero">
-            <img src="/logo192.png" alt="hero" style={{ width: 160 }} />
-            <h3>HON 50.000 CHU TRO</h3>
-            <p>Tin tuong va su dung dich vu cua chung toi</p>
+    <main className="register-page">
+      <section className="register-shell">
+        <article className="register-card register-copy">
+          <p className="register-eyebrow">Tao tai khoan moi</p>
+          <h1>Bat dau hanh trinh dat phong va quan ly luu tru theo cach gon hon.</h1>
+          <p className="register-description">
+            Dang ky mot tai khoan de luu lich su booking, wishlist va tiep tuc cac thao tac dang
+            cho ma khong can nhap lai tu dau.
+          </p>
+
+          <div className="register-benefits">
+            <article className="register-benefit">
+              <span className="register-benefit-icon">
+                <FaCheckCircle />
+              </span>
+              <div>
+                <strong>Dang ky nhanh</strong>
+                <p>Giao dien don gian, ro rang va toi uu cho ca desktop lan mobile.</p>
+              </div>
+            </article>
+
+            <article className="register-benefit">
+              <span className="register-benefit-icon">
+                <FaShieldAlt />
+              </span>
+              <div>
+                <strong>Thong tin nhat quan</strong>
+                <p>Giup ban quay lai nhanh trang can den sau khi dang ky va dang nhap.</p>
+              </div>
+            </article>
           </div>
-        </div>
+        </article>
 
-        <div className="register-right">
-          <h2>Dang Ky Tai Khoan Moi</h2>
+        <article className="register-card register-form-card">
+          <div className="register-top">
+            <p className="register-form-tag">Create account</p>
+            <h2>Dang ky tai khoan</h2>
+            <p className="register-note">
+              Nhap thong tin co ban de bat dau su dung he thong. Sau khi dang ky, he thong se
+              gui email xac nhan cho ban.
+            </p>
+          </div>
 
-          <form onSubmit={handleRegister}>
-            <input
-              placeholder="Ho va Ten"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              required
-            />
+          <form className="register-form" onSubmit={handleRegister}>
+            <label className="register-field">
+              <span>Ho va ten</span>
+              <div className="register-input-shell">
+                <FaUser />
+                <input
+                  placeholder="Nhap ho va ten"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  autoComplete="name"
+                  required
+                />
+              </div>
+            </label>
 
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
+            <label className="register-field">
+              <span>Email</span>
+              <div className="register-input-shell">
+                <FaEnvelope />
+                <input
+                  type="email"
+                  placeholder="name@email.com"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  autoComplete="email"
+                  required
+                />
+              </div>
+            </label>
 
-            <input
-              type="password"
-              placeholder="Mat khau"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-            />
+            <label className="register-field">
+              <span>Mat khau</span>
+              <div className="register-input-shell">
+                <FaLock />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Toi thieu 6 ky tu"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  autoComplete="new-password"
+                  required
+                />
+                <button
+                  type="button"
+                  className="register-visibility-btn"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label={showPassword ? "An mat khau" : "Hien mat khau"}
+                >
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
+            </label>
 
-            <input
-              type="password"
-              placeholder="Xac nhan mat khau"
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-              required
-            />
+            <label className="register-field">
+              <span>Xac nhan mat khau</span>
+              <div className="register-input-shell">
+                <FaLock />
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Nhap lai mat khau"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  autoComplete="new-password"
+                  required
+                />
+                <button
+                  type="button"
+                  className="register-visibility-btn"
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  aria-label={showConfirmPassword ? "An mat khau xac nhan" : "Hien mat khau xac nhan"}
+                >
+                  {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
+            </label>
 
-            <button disabled={loading}>{loading ? "Dang dang ky..." : "Dang ky"}</button>
+            <p className={`register-helper ${passwordReady ? "success" : passwordMismatch ? "error" : ""}`}>
+              {passwordMismatch
+                ? "Mat khau va xac nhan mat khau chua khop."
+                : password.length > 0
+                  ? "Mat khau da san sang. Hay dam bao tu 6 ky tu tro len."
+                  : "Mat khau nen co it nhat 6 ky tu de dang ky on dinh hon."}
+            </p>
+
+            <button type="submit" className="register-submit-btn" disabled={loading}>
+              <span>{loading ? "Dang dang ky..." : "Dang ky tai khoan"}</span>
+              <FaArrowRight />
+            </button>
           </form>
 
-          <div className="register-extra">
-            <span
+          <div className="register-footer">
+            <button
+              type="button"
+              className="register-link-btn"
               onClick={() =>
                 navigate("/login", {
                   state: {
@@ -108,11 +216,11 @@ function Register() {
               }
             >
               Ban da co tai khoan? Dang nhap
-            </span>
+            </button>
           </div>
-        </div>
-      </div>
-    </div>
+        </article>
+      </section>
+    </main>
   );
 }
 

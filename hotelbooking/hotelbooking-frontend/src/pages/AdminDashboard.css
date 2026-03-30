@@ -308,6 +308,11 @@
   box-shadow: 0 8px 18px rgba(255, 111, 47, 0.36);
 }
 
+.btn-secondary {
+  background: #edf3ff;
+  color: #1f4ea7;
+}
+
 .profile-box {
   position: relative;
 }
@@ -627,7 +632,7 @@
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 620px;
+  min-width: 880px;
 }
 
 th,
@@ -675,6 +680,18 @@ td {
   color: #4a5f86;
   background: #edf2fb;
   border-color: #dbe4f3;
+}
+
+.status-pill.danger {
+  color: #b64f3e;
+  background: #fff3f0;
+  border-color: #ffd7cf;
+}
+
+.status-pill.info {
+  color: #1f63ac;
+  background: #edf5ff;
+  border-color: #d5e6ff;
 }
 
 .type-grid {
@@ -752,7 +769,8 @@ td {
   gap: 7px;
 }
 
-.admin-account-form label span {
+.admin-account-form label span,
+.admin-coupon-form label span {
   color: #335486;
   font-size: 0.78rem;
   text-transform: uppercase;
@@ -761,7 +779,10 @@ td {
 }
 
 .admin-account-form input,
-.admin-account-form select {
+.admin-account-form select,
+.admin-coupon-form input,
+.admin-coupon-form select,
+.admin-coupon-form textarea {
   width: 100%;
   border: 1px solid #d5e2fa;
   border-radius: 11px;
@@ -774,9 +795,18 @@ td {
 }
 
 .admin-account-form input:focus,
-.admin-account-form select:focus {
+.admin-account-form select:focus,
+.admin-coupon-form input:focus,
+.admin-coupon-form select:focus,
+.admin-coupon-form textarea:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 4px rgba(25, 103, 243, 0.16);
+}
+
+.admin-coupon-form textarea {
+  resize: vertical;
+  min-height: 96px;
+  font-family: inherit;
 }
 
 .admin-save-btn {
@@ -953,6 +983,182 @@ td {
   gap: 12px;
 }
 
+.admin-coupon-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.admin-coupon-editor {
+  border: 1px solid #dfe9fd;
+  border-radius: 14px;
+  background: #fbfdff;
+  padding: 14px;
+}
+
+.admin-coupon-editor h3 {
+  margin: 0;
+  font-size: 1.02rem;
+}
+
+.admin-coupon-form {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.admin-coupon-form label {
+  display: grid;
+  gap: 7px;
+}
+
+.admin-coupon-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #dbe7fb;
+  border-radius: 11px;
+  background: #f7fbff;
+  padding: 11px 12px;
+  color: #28477b;
+  font-size: 0.87rem;
+  font-weight: 600;
+}
+
+.admin-checkbox-field input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.admin-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-form-actions .admin-save-btn {
+  flex: 1 1 180px;
+}
+
+.admin-coupon-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.coupon-card {
+  border: 1px solid #dfe9fd;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 14px;
+  box-shadow: 0 10px 20px rgba(10, 33, 72, 0.05);
+  display: grid;
+  gap: 12px;
+}
+
+.coupon-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.coupon-card-head h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #143968;
+}
+
+.coupon-card-head p {
+  margin: 6px 0 0;
+  color: #667a9d;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.coupon-meta-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 9px;
+}
+
+.coupon-meta-list li {
+  border: 1px solid #e4ecfb;
+  border-radius: 11px;
+  background: #f9fbff;
+  padding: 9px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.coupon-meta-list li span {
+  color: #607596;
+  font-size: 0.79rem;
+}
+
+.coupon-meta-list li strong {
+  color: #173968;
+  font-size: 0.85rem;
+  text-align: right;
+}
+
+.coupon-edit-btn {
+  border: none;
+  border-radius: 11px;
+  background: #edf3ff;
+  color: #1f4ea7;
+  padding: 10px 12px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.coupon-edit-btn:hover {
+  background: #e4edff;
+}
+
+.coupon-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.coupon-card-actions button {
+  flex: 1 1 140px;
+}
+
+.coupon-delete-btn {
+  border: none;
+  border-radius: 11px;
+  background: #fff3f0;
+  color: #b14d3d;
+  padding: 10px 12px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.coupon-delete-btn:hover {
+  background: #ffe8e2;
+}
+
+.coupon-delete-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .admin-summary-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -965,6 +1171,18 @@ td {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 12px;
+}
+
+.admin-booking-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+  align-items: end;
+}
+
+.admin-booking-filters .admin-filter-reset {
+  width: 100%;
 }
 
 .admin-filter-field {
@@ -1058,7 +1276,158 @@ td {
   margin: 0;
 }
 
+.admin-table-stack {
+  display: grid;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.admin-cell-note {
+  color: #667a9d;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.admin-note-cell {
+  max-width: 260px;
+  color: #27446f;
+  white-space: normal;
+  line-height: 1.55;
+}
+
+.admin-payment-editor {
+  display: grid;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.admin-payment-editor select {
+  width: 100%;
+  border: 1px solid #d5e2fa;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #102243;
+  padding: 8px 10px;
+  font-size: 0.84rem;
+  outline: none;
+}
+
+.admin-payment-editor select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(25, 103, 243, 0.16);
+}
+
+.admin-mini-btn {
+  border: none;
+  border-radius: 10px;
+  background: #edf3ff;
+  color: #1f4ea7;
+  padding: 8px 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-mini-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.admin-inline-input,
+.admin-form-stack textarea {
+  width: 100%;
+  border: 1px solid #d5e2fa;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #102243;
+  padding: 8px 10px;
+  font-size: 0.84rem;
+  outline: none;
+}
+
+.admin-inline-input:focus,
+.admin-form-stack textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(25, 103, 243, 0.16);
+}
+
+.admin-form-stack textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.admin-hotel-admin-card,
+.admin-dispute-card {
+  border: 1px solid #dce5f4;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 12px 24px rgba(10, 33, 72, 0.06);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.admin-hotel-card-head,
+.admin-dispute-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-hotel-card-head h3,
+.admin-dispute-head h3 {
+  margin: 4px 0 0;
+  color: #153f78;
+  font-size: 1.02rem;
+}
+
+.admin-hotel-address,
+.admin-dispute-body {
+  margin: 0;
+  color: #5c7195;
+  line-height: 1.6;
+}
+
+.admin-hotel-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-hotel-meta span {
+  border-radius: 999px;
+  background: #eef4ff;
+  color: #2b4e83;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 5px 9px;
+}
+
+.admin-form-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-dispute-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+}
+
 @media (max-width: 1200px) {
+  .admin-coupon-grid {
+    grid-template-columns: 1fr;
+  }
+
   .admin-hotel-filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1066,9 +1435,17 @@ td {
   .admin-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .admin-booking-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 720px) {
+  .admin-coupon-form-grid {
+    grid-template-columns: 1fr;
+  }
+
   .admin-hotel-filters {
     grid-template-columns: 1fr;
   }
@@ -1078,6 +1455,10 @@ td {
   }
 
   .admin-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-booking-filters {
     grid-template-columns: 1fr;
   }
 }

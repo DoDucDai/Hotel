@@ -1,5 +1,7 @@
 package com.example.hotelbooking.controller;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -13,15 +15,22 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.hotelbooking.dto.InventoryBlockRequest;
+import com.example.hotelbooking.dto.RoomInventoryDayDTO;
 import com.example.hotelbooking.model.Hotel;
+import com.example.hotelbooking.model.HotelApprovalStatus;
 import com.example.hotelbooking.model.Role;
 import com.example.hotelbooking.model.Room;
+import com.example.hotelbooking.model.RoomInventoryBlock;
 import com.example.hotelbooking.model.User;
 import com.example.hotelbooking.repository.HotelRepository;
 import com.example.hotelbooking.repository.RoomRepository;
 import com.example.hotelbooking.repository.UserRepository;
+import com.example.hotelbooking.service.AuditLogService;
+import com.example.hotelbooking.service.RoomInventoryService;
 
 @RestController
 @RequestMapping("/host")
@@ -31,14 +40,20 @@ public class HostController {
     private final UserRepository userRepository;
     private final HotelRepository hotelRepository;
     private final RoomRepository roomRepository;
+    private final RoomInventoryService roomInventoryService;
+    private final AuditLogService auditLogService;
 
     public HostController(
             UserRepository userRepository,
             HotelRepository hotelRepository,
-            RoomRepository roomRepository) {
+            RoomRepository roomRepository,
+            RoomInventoryService roomInventoryService,
+            AuditLogService auditLogService) {
         this.userRepository = userRepository;
         this.hotelRepository = hotelRepository;
         this.roomRepository = roomRepository;
+        this.roomInventoryService = roomInventoryService;
+        this.auditLogService = auditLogService;
     }
 
     @GetMapping("/hotels/my")
@@ -65,8 +80,19 @@ public class HostController {
         newHotel.setStarRating(normalizeStarRating(payload.getStarRating()));
         newHotel.setAmenities(normalizeAmenities(payload.getAmenities()));
         newHotel.setOwnerId(requireUserId(user));
+        newHotel.setFreeCancellationBeforeDays(Math.max(payload.getFreeCancellationBeforeDays(), 0));
+        newHotel.setLateCancellationRefundRate(clampPercent(payload.getLateCancellationRefundRate()));
+        newHotel.setApprovalStatus(isAdmin(user) ? HotelApprovalStatus.APPROVED : HotelApprovalStatus.PENDING);
+        newHotel.setApprovalNote(
+                isAdmin(user)
+                        ? "Duoc tao boi admin"
+                        : "Dang cho admin duyet truoc khi hien thi cong khai");
+        newHotel.setApprovedAt(isAdmin(user) ? LocalDateTime.now() : null);
+        newHotel.setApprovedByUserId(isAdmin(user) ? user.getId() : null);
 
-        return hotelRepository.save(newHotel);
+        Hotel savedHotel = hotelRepository.save(newHotel);
+        auditLogService.record("CREATE_HOTEL", "HOTEL", savedHotel.getId(), user, "Host tao hotel moi");
+        return savedHotel;
     }
 
     @PutMapping("/hotels/{id}")
@@ -91,8 +117,19 @@ public class HostController {
         hotel.setImageUrl(payload.getImageUrl());
         hotel.setStarRating(normalizeStarRating(payload.getStarRating()));
         hotel.setAmenities(normalizeAmenities(payload.getAmenities()));
+        hotel.setFreeCancellationBeforeDays(Math.max(payload.getFreeCancellationBeforeDays(), 0));
+        hotel.setLateCancellationRefundRate(clampPercent(payload.getLateCancellationRefundRate()));
 
-        return hotelRepository.save(hotel);
+        if (!isAdmin(user)) {
+            hotel.setApprovalStatus(HotelApprovalStatus.PENDING);
+            hotel.setApprovalNote("Host vua cap nhat. Can admin duyet lai");
+            hotel.setApprovedAt(null);
+            hotel.setApprovedByUserId(null);
+        }
+
+        Hotel savedHotel = hotelRepository.save(hotel);
+        auditLogService.record("UPDATE_HOTEL", "HOTEL", savedHotel.getId(), user, "Cap nhat hotel");
+        return savedHotel;
     }
 
     @DeleteMapping("/hotels/{id}")
@@ -109,10 +146,12 @@ public class HostController {
 
         List<Room> rooms = roomRepository.findByHotelId(hotelId);
         if (!rooms.isEmpty()) {
+            rooms.forEach((room) -> roomInventoryService.deleteBlocksByRoomId(room.getId()));
             roomRepository.deleteAll(rooms);
         }
 
         hotelRepository.deleteById(hotelId);
+        auditLogService.record("DELETE_HOTEL", "HOTEL", hotelId, user, "Xoa hotel");
         return Map.of("message", "Hotel deleted");
     }
 
@@ -144,8 +183,15 @@ public class HostController {
         newRoom.setName(payload.getName().trim());
         newRoom.setCapacity(payload.getCapacity());
         newRoom.setPrice(payload.getPrice());
+        newRoom.setRoomType(trimToNull(payload.getRoomType()) == null ? "STANDARD" : payload.getRoomType().trim());
+        newRoom.setBedType(trimToNull(payload.getBedType()));
+        newRoom.setDescription(trimToNull(payload.getDescription()));
+        newRoom.setTotalUnits(Math.max(payload.getTotalUnits(), 1));
+        newRoom.setAmenities(normalizeAmenities(payload.getAmenities()));
 
-        return roomRepository.save(newRoom);
+        Room savedRoom = roomRepository.save(newRoom);
+        auditLogService.record("CREATE_ROOM", "ROOM", savedRoom.getId(), user, "Host tao loai phong moi");
+        return savedRoom;
     }
 
     @PutMapping("/rooms/{id}")
@@ -176,8 +222,15 @@ public class HostController {
         room.setName(payload.getName().trim());
         room.setCapacity(payload.getCapacity());
         room.setPrice(payload.getPrice());
+        room.setRoomType(trimToNull(payload.getRoomType()) == null ? "STANDARD" : payload.getRoomType().trim());
+        room.setBedType(trimToNull(payload.getBedType()));
+        room.setDescription(trimToNull(payload.getDescription()));
+        room.setTotalUnits(Math.max(payload.getTotalUnits(), 1));
+        room.setAmenities(normalizeAmenities(payload.getAmenities()));
 
-        return roomRepository.save(room);
+        Room savedRoom = roomRepository.save(room);
+        auditLogService.record("UPDATE_ROOM", "ROOM", savedRoom.getId(), user, "Host cap nhat loai phong");
+        return savedRoom;
     }
 
     @DeleteMapping("/rooms/{id}")
@@ -194,8 +247,93 @@ public class HostController {
             throw new RuntimeException("You do not have permission to delete this room");
         }
 
+        roomInventoryService.deleteBlocksByRoomId(roomId);
         roomRepository.deleteById(roomId);
+        auditLogService.record("DELETE_ROOM", "ROOM", roomId, user, "Host xoa loai phong");
         return Map.of("message", "Room deleted");
+    }
+
+    @GetMapping("/rooms/{roomId}/inventory")
+    public List<RoomInventoryDayDTO> getRoomInventory(
+            @PathVariable String roomId,
+            @RequestParam String startDate,
+            @RequestParam String endDate,
+            Authentication authentication) {
+
+        User user = getCurrentUser(authentication);
+        Room room = roomRepository.findById(requireNonBlank(roomId, "Room id is required"))
+                .orElseThrow(() -> new RuntimeException("Room not found"));
+        assertRoomOwner(user, room);
+
+        return roomInventoryService.buildInventoryCalendar(
+                room,
+                LocalDate.parse(startDate),
+                LocalDate.parse(endDate));
+    }
+
+    @GetMapping("/rooms/{roomId}/inventory-blocks")
+    public List<RoomInventoryBlock> getRoomInventoryBlocks(
+            @PathVariable String roomId,
+            Authentication authentication) {
+
+        User user = getCurrentUser(authentication);
+        Room room = roomRepository.findById(requireNonBlank(roomId, "Room id is required"))
+                .orElseThrow(() -> new RuntimeException("Room not found"));
+        assertRoomOwner(user, room);
+        return roomInventoryService.getBlocksByRoomId(room.getId());
+    }
+
+    @PostMapping("/rooms/{roomId}/inventory-blocks")
+    public RoomInventoryBlock createInventoryBlock(
+            @PathVariable String roomId,
+            @RequestBody InventoryBlockRequest request,
+            Authentication authentication) {
+
+        User user = getCurrentUser(authentication);
+        Room room = roomRepository.findById(requireNonBlank(roomId, "Room id is required"))
+                .orElseThrow(() -> new RuntimeException("Room not found"));
+        assertRoomOwner(user, room);
+
+        InventoryBlockRequest safeRequest = Objects.requireNonNull(request, "Inventory block request is required");
+        LocalDate startDate = Objects.requireNonNull(safeRequest.getStartDate(), "Ngay bat dau la bat buoc");
+        LocalDate endDate = Objects.requireNonNull(safeRequest.getEndDate(), "Ngay ket thuc la bat buoc");
+        if (endDate.isBefore(startDate)) {
+            throw new RuntimeException("Ngay ket thuc block khong hop le");
+        }
+
+        int blockedUnits = Math.max(safeRequest.getBlockedUnits(), 1);
+        if (blockedUnits > Math.max(room.getTotalUnits(), 1)) {
+            throw new RuntimeException("So phong block vuot qua tong so luong phong");
+        }
+
+        RoomInventoryBlock block = new RoomInventoryBlock();
+        block.setRoomId(room.getId());
+        block.setStartDate(startDate);
+        block.setEndDate(endDate);
+        block.setBlockedUnits(blockedUnits);
+        block.setReason(trimToNull(safeRequest.getReason()));
+        block.setCreatedByUserId(user.getId());
+        block.setCreatedAt(LocalDateTime.now());
+
+        RoomInventoryBlock savedBlock = roomInventoryService.saveBlock(block);
+        auditLogService.record("BLOCK_ROOM_INVENTORY", "ROOM", room.getId(), user, "Block ton kho theo ngay");
+        return savedBlock;
+    }
+
+    @DeleteMapping("/inventory-blocks/{blockId}")
+    public Map<String, String> deleteInventoryBlock(
+            @PathVariable String blockId,
+            Authentication authentication) {
+
+        User user = getCurrentUser(authentication);
+        RoomInventoryBlock block = roomInventoryService.getBlockById(blockId);
+        Room room = roomRepository.findById(requireNonBlank(block.getRoomId(), "Room id is required"))
+                .orElseThrow(() -> new RuntimeException("Room not found"));
+        assertRoomOwner(user, room);
+
+        roomInventoryService.deleteBlock(blockId);
+        auditLogService.record("UNBLOCK_ROOM_INVENTORY", "ROOM", room.getId(), user, "Go block ton kho");
+        return Map.of("message", "Inventory block deleted");
     }
 
     private void validateHotelInput(Hotel hotel) {
@@ -232,6 +370,10 @@ public class HostController {
         if (room.getPrice() < 0) {
             throw new RuntimeException("Room price must be non-negative");
         }
+
+        if (room.getTotalUnits() < 1) {
+            throw new RuntimeException("Tong so phong phai lon hon hoac bang 1");
+        }
     }
 
     private void assertHotelOwner(User user, Hotel hotel) {
@@ -241,6 +383,16 @@ public class HostController {
 
         if (hotel.getOwnerId() == null || !hotel.getOwnerId().equals(requireUserId(user))) {
             throw new RuntimeException("You do not have permission for this hotel");
+        }
+    }
+
+    private void assertRoomOwner(User user, Room room) {
+        if (isAdmin(user)) {
+            return;
+        }
+
+        if (room.getOwnerId() == null || !room.getOwnerId().equals(requireUserId(user))) {
+            throw new RuntimeException("You do not have permission for this room");
         }
     }
 
@@ -275,6 +427,10 @@ public class HostController {
         return starRating < 1 || starRating > 5 ? 3 : starRating;
     }
 
+    private int clampPercent(int value) {
+        return Math.min(Math.max(value, 0), 100);
+    }
+
     private List<String> normalizeAmenities(List<String> amenities) {
         if (amenities == null) {
             return List.of();
@@ -286,6 +442,15 @@ public class HostController {
                 .filter(value -> !value.isBlank())
                 .distinct()
                 .collect(Collectors.toList());
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String normalized = value.trim();
+        return normalized.isEmpty() ? null : normalized;
     }
 }
 

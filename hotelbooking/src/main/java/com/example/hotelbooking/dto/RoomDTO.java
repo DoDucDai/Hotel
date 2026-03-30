@@ -17,14 +17,35 @@ public class RoomDTO {
     @Min(0)
     private double price;
 
+    private String roomType;
+    private String bedType;
+    private String description;
+    private int totalUnits;
+    private int availableUnits;
+
     public RoomDTO() {}
 
-    public RoomDTO(String id, String hotelId, String name, int capacity, double price) {
+    public RoomDTO(
+            String id,
+            String hotelId,
+            String name,
+            int capacity,
+            double price,
+            String roomType,
+            String bedType,
+            String description,
+            int totalUnits,
+            int availableUnits) {
         this.id = id;
         this.hotelId = hotelId;
         this.name = name;
         this.capacity = capacity;
         this.price = price;
+        this.roomType = roomType;
+        this.bedType = bedType;
+        this.description = description;
+        this.totalUnits = totalUnits;
+        this.availableUnits = availableUnits;
     }
 
     public String getId() {
@@ -45,5 +66,25 @@ public class RoomDTO {
 
     public double getPrice() {
         return price;
+    }
+
+    public String getRoomType() {
+        return roomType;
+    }
+
+    public String getBedType() {
+        return bedType;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public int getTotalUnits() {
+        return totalUnits;
+    }
+
+    public int getAvailableUnits() {
+        return availableUnits;
     }
 }

@@ -2,6 +2,8 @@ package com.example.hotelbooking.controller;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.hotelbooking.model.Hotel;
+import com.example.hotelbooking.model.HotelApprovalStatus;
 import com.example.hotelbooking.repository.HotelRepository;
 
 @RestController
@@ -42,14 +45,24 @@ public class HotelController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Hotel> hotelPage = hotelRepository.findAll(pageable);
+        List<Hotel> publicHotels = hotelRepository.findAll()
+                .stream()
+                .filter(this::isPublicHotel)
+                .sorted(Comparator.comparing(Hotel::getName, Comparator.nullsLast(String::compareToIgnoreCase)))
+                .toList();
+
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.max(size, 1);
+        int start = Math.min(safePage * safeSize, publicHotels.size());
+        int end = Math.min(start + safeSize, publicHotels.size());
+        List<Hotel> content = publicHotels.subList(start, end);
+        int totalPages = publicHotels.isEmpty() ? 0 : (int) Math.ceil((double) publicHotels.size() / safeSize);
 
         return ResponseEntity.ok(Map.of(
-                "content", hotelPage.getContent(),
-                "totalPages", hotelPage.getTotalPages(),
-                "totalElements", hotelPage.getTotalElements(),
-                "currentPage", page
+                "content", content,
+                "totalPages", totalPages,
+                "totalElements", publicHotels.size(),
+                "currentPage", safePage
         ));
     }
 
@@ -58,7 +71,7 @@ public class HotelController {
         String hotelId = requireNonBlank(id, "Hotel id is required");
         Optional<Hotel> optionalHotel = hotelRepository.findById(Objects.requireNonNull(hotelId));
 
-        if (optionalHotel.isPresent()) {
+        if (optionalHotel.isPresent() && isPublicHotel(optionalHotel.get())) {
             return ResponseEntity.ok(optionalHotel.get());
         }
 
@@ -97,6 +110,15 @@ public class HotelController {
         hotel.setImageUrl(updatedHotel.getImageUrl());
         hotel.setStarRating(normalizeStarRating(updatedHotel.getStarRating()));
         hotel.setAmenities(normalizeAmenities(updatedHotel.getAmenities()));
+        hotel.setFreeCancellationBeforeDays(Math.max(updatedHotel.getFreeCancellationBeforeDays(), 0));
+        hotel.setLateCancellationRefundRate(clampPercent(updatedHotel.getLateCancellationRefundRate()));
+        hotel.setApprovalStatus(updatedHotel.getApprovalStatus() == null
+                ? hotel.getApprovalStatus()
+                : updatedHotel.getApprovalStatus());
+        hotel.setApprovalNote(updatedHotel.getApprovalNote());
+        if (updatedHotel.getApprovalStatus() == HotelApprovalStatus.APPROVED) {
+            hotel.setApprovedAt(hotel.getApprovedAt() == null ? LocalDateTime.now() : hotel.getApprovedAt());
+        }
 
         return ResponseEntity.ok(hotelRepository.save(hotel));
     }
@@ -121,15 +143,65 @@ public class HotelController {
             @RequestParam(defaultValue = "10") int size) {
 
         String cityKeyword = requireNonBlank(city, "City is required");
-        Pageable pageable = PageRequest.of(page, size);
+        List<Hotel> matchedHotels = hotelRepository.findAll()
+                .stream()
+                .filter(this::isPublicHotel)
+                .filter((hotel) -> {
+                    String hotelCity = hotel.getCity() == null ? "" : hotel.getCity().toLowerCase();
+                    return hotelCity.contains(cityKeyword.toLowerCase());
+                })
+                .sorted(Comparator.comparing(Hotel::getName, Comparator.nullsLast(String::compareToIgnoreCase)))
+                .toList();
 
-        Page<Hotel> hotelPage
-                = hotelRepository.findByCityContainingIgnoreCase(cityKeyword, pageable);
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.max(size, 1);
+        int start = Math.min(safePage * safeSize, matchedHotels.size());
+        int end = Math.min(start + safeSize, matchedHotels.size());
+        List<Hotel> content = matchedHotels.subList(start, end);
+        int totalPages = matchedHotels.isEmpty() ? 0 : (int) Math.ceil((double) matchedHotels.size() / safeSize);
 
         return ResponseEntity.ok(Map.of(
-                "content", hotelPage.getContent(),
-                "totalPages", hotelPage.getTotalPages()
+                "content", content,
+                "totalPages", totalPages
         ));
+    }
+
+    @GetMapping("/{id}/recommendations")
+    public ResponseEntity<?> getRecommendations(
+            @PathVariable String id,
+            @RequestParam(defaultValue = "4") int limit) {
+
+        String hotelId = requireNonBlank(id, "Hotel id is required");
+        Hotel currentHotel = hotelRepository.findById(hotelId)
+                .orElseThrow(() -> new RuntimeException("Hotel not found"));
+
+        List<Hotel> recommendations = hotelRepository.findAll()
+                .stream()
+                .filter(this::isPublicHotel)
+                .filter((hotel) -> !Objects.equals(hotel.getId(), currentHotel.getId()))
+                .sorted((left, right) -> {
+                    int sameCityLeft = sameCityScore(left, currentHotel);
+                    int sameCityRight = sameCityScore(right, currentHotel);
+                    if (sameCityLeft != sameCityRight) {
+                        return Integer.compare(sameCityRight, sameCityLeft);
+                    }
+
+                    int ratingCompare = Double.compare(right.getAverageRating(), left.getAverageRating());
+                    if (ratingCompare != 0) {
+                        return ratingCompare;
+                    }
+
+                    int starCompare = Integer.compare(right.getStarRating(), left.getStarRating());
+                    if (starCompare != 0) {
+                        return starCompare;
+                    }
+
+                    return Long.compare(right.getReviewCount(), left.getReviewCount());
+                })
+                .limit(Math.max(limit, 1))
+                .toList();
+
+        return ResponseEntity.ok(recommendations);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -183,6 +255,10 @@ public class HotelController {
         return starRating < 1 || starRating > 5 ? 3 : starRating;
     }
 
+    private int clampPercent(int value) {
+        return Math.min(Math.max(value, 0), 100);
+    }
+
     private List<String> normalizeAmenities(List<String> amenities) {
         if (amenities == null) {
             return List.of();
@@ -194,6 +270,19 @@ public class HotelController {
                 .filter(value -> !value.isBlank())
                 .distinct()
                 .collect(Collectors.toList());
+    }
+
+    private boolean isPublicHotel(Hotel hotel) {
+        return hotel != null && hotel.getApprovalStatus() == HotelApprovalStatus.APPROVED;
+    }
+
+    private int sameCityScore(Hotel hotel, Hotel currentHotel) {
+        String leftCity = hotel == null || hotel.getCity() == null ? "" : hotel.getCity().trim().toLowerCase();
+        String rightCity = currentHotel == null || currentHotel.getCity() == null
+                ? ""
+                : currentHotel.getCity().trim().toLowerCase();
+
+        return leftCity.isEmpty() || rightCity.isEmpty() || !leftCity.equals(rightCity) ? 0 : 1;
     }
 }
 

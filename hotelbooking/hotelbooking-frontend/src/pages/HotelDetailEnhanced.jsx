@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useToast } from "../components/ToastProvider";
 import { getMyBookings } from "../services/bookingService";
-import { getHotelById } from "../services/hotelService";
+import { getHotelById, getHotelRecommendations } from "../services/hotelService";
 import { getHotelReviews, createReview } from "../services/reviewService";
 import { getRoomsByHotel } from "../services/roomService";
 import { addToWishlist, getMyWishlist, removeFromWishlist } from "../services/wishlistService";
@@ -32,14 +32,6 @@ const currencyFormatter = new Intl.NumberFormat("vi-VN", {
   maximumFractionDigits: 0,
 });
 
-const POLICY_ITEMS = [
-  "Nhan phong tu 14:00",
-  "Tra phong truoc 12:00",
-  "Khong hut thuoc trong phong",
-  "Ho tro hoa don theo yeu cau",
-  "Can xuat trinh giay to tuy than khi check-in",
-];
-
 function resolveHotelImage(hotel) {
   if (hotel?.imageUrl) {
     return hotel.imageUrl.startsWith("http")
@@ -61,6 +53,18 @@ function normalizeRooms(payload) {
 
   if (Array.isArray(payload?.content)) {
     return payload.content;
+  }
+
+  return [];
+}
+
+function normalizeHotels(payload) {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
   }
 
   return [];
@@ -143,12 +147,14 @@ export default function HotelDetailEnhanced() {
   const [hotel, setHotel] = useState(preloadedHotel);
   const [rooms, setRooms] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
   const [myBookings, setMyBookings] = useState([]);
   const [loading, setLoading] = useState(!preloadedHotel);
   const [roomsLoading, setRoomsLoading] = useState(true);
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [error, setError] = useState("");
   const [roomsError, setRoomsError] = useState("");
+  const [recommendationsError, setRecommendationsError] = useState("");
   const [selectedImage, setSelectedImage] = useState(FALLBACK_IMAGE);
   const [selectedRating, setSelectedRating] = useState("5");
   const [reviewComment, setReviewComment] = useState("");
@@ -182,6 +188,32 @@ export default function HotelDetailEnhanced() {
     };
 
     fetchHotel();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchRecommendations = async () => {
+      try {
+        const res = await getHotelRecommendations(id, 4);
+        if (isMounted) {
+          setRecommendations(normalizeHotels(res?.data));
+          setRecommendationsError("");
+        }
+      } catch (fetchError) {
+        console.error("Cannot load recommendations", fetchError);
+        if (isMounted) {
+          setRecommendations([]);
+          setRecommendationsError("Chua tai duoc danh sach goi y luc nay.");
+        }
+      }
+    };
+
+    fetchRecommendations();
 
     return () => {
       isMounted = false;
@@ -303,6 +335,16 @@ export default function HotelDetailEnhanced() {
 
     return ["Wifi mien phi", "Le tan 24/7", "Bai do xe"];
   }, [hotel?.amenities]);
+
+  const policyItems = useMemo(() => {
+    return [
+      `Nhan phong tu 14:00, tra phong truoc 12:00`,
+      `Huy mien phi truoc ${hotel?.freeCancellationBeforeDays ?? 0} ngay`,
+      `Neu huy muon, muc hoan tien con lai la ${hotel?.lateCancellationRefundRate ?? 0}%`,
+      "Can xuat trinh giay to tuy than khi check-in",
+      "Ho tro hoa don theo yeu cau",
+    ];
+  }, [hotel?.freeCancellationBeforeDays, hotel?.lateCancellationRefundRate]);
 
   const eligibleBooking = useMemo(() => {
     if (!hasToken || !rooms.length) {
@@ -586,7 +628,17 @@ export default function HotelDetailEnhanced() {
                     <article key={room.id || `${room.name}-${index}`} className="room-row">
                       <div>
                         <h3>{room.name || `Phong ${index + 1}`}</h3>
-                        <p>Suc chua: {room.capacity || 1} khach</p>
+                        <p>
+                          {room.roomType || "STANDARD"} - {room.capacity || 1} khach -{" "}
+                          {room.totalUnits || 1} phong
+                        </p>
+                        <p>
+                          {room.bedType || "Chua khai bao loai giuong"}
+                          {room.availableUnits !== undefined
+                            ? ` - Con ${room.availableUnits} phong`
+                            : ""}
+                        </p>
+                        {room.description ? <p>{room.description}</p> : null}
                       </div>
 
                       <div className="room-price-block">
@@ -675,10 +727,49 @@ export default function HotelDetailEnhanced() {
             <article className="info-card">
               <h2>Chinh sach luu tru</h2>
               <ul className="policy-list">
-                {POLICY_ITEMS.map((item) => (
+                {policyItems.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
+            </article>
+
+            <article className="info-card">
+              <div className="card-head">
+                <h2>Goi y cho ban</h2>
+                <span>{recommendations.length} khach san</span>
+              </div>
+
+              {recommendationsError ? (
+                <div className="inline-state error">{recommendationsError}</div>
+              ) : recommendations.length === 0 ? (
+                <div className="inline-state">Chua co goi y phu hop cho khach san nay.</div>
+              ) : (
+                <div className="recommendation-grid">
+                  {recommendations.map((item) => (
+                    <article key={item.id} className="recommendation-card">
+                      <p>{item.city || "Viet Nam"}</p>
+                      <h3>{item.name || "Khach san"}</h3>
+                      <small>
+                        {item.starRating || 3} sao
+                        {item.averageRating
+                          ? ` - ${Number(item.averageRating).toFixed(1)}/5`
+                          : ""}
+                      </small>
+                      <button
+                        type="button"
+                        className="detail-secondary-btn"
+                        onClick={() =>
+                          navigate(`/hotels/${item.id}`, {
+                            state: { hotel: item, searchCriteria },
+                          })
+                        }
+                      >
+                        Xem chi tiet
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              )}
             </article>
           </div>
 

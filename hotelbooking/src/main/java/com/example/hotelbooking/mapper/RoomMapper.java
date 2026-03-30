@@ -11,7 +11,12 @@ public class RoomMapper {
                 room.getHotelId(),
                 room.getName(),
                 room.getCapacity(),
-                room.getPrice()
+                room.getPrice(),
+                room.getRoomType(),
+                room.getBedType(),
+                room.getDescription(),
+                room.getTotalUnits(),
+                room.getAvailableUnits()
         );
     }
 }

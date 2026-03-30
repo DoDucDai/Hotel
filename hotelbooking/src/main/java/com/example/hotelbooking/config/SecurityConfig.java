@@ -65,7 +65,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/hotels/*/image").hasRole("ADMIN")
                 // public APIs
                 .requestMatchers("/uploads/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/coupons/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/coupons/active").permitAll()
                 .requestMatchers("/hotels/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/rooms/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/reviews/**").permitAll()
@@ -77,6 +77,9 @@ public class SecurityConfig {
                 .requestMatchers("/wishlist/**").hasAnyRole("USER", "ADMIN")
                 .requestMatchers("/reviews/**").hasAnyRole("USER", "ADMIN")
                 .requestMatchers("/rooms/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/coupons/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/coupons/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/coupons/**").hasRole("ADMIN")
                 // admin APIs
                 .requestMatchers("/users/**").hasRole("ADMIN")
                 .requestMatchers("/admin/**").hasRole("ADMIN")

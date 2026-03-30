@@ -1,116 +1,266 @@
- 
-
-.register-card{
-  width:100%;
-  max-width:1000px;
-  display:flex;
-  background:#fff;
-  border-radius:16px;
-  box-shadow:0 8px 30px rgba(20,40,80,0.08);
-  overflow:hidden;
+.register-page {
+  min-height: 100vh;
+  padding: 28px;
+  background:
+    radial-gradient(circle at 10% 18%, rgba(255, 138, 84, 0.16), transparent 22%),
+    radial-gradient(circle at 82% 16%, rgba(8, 175, 159, 0.15), transparent 24%),
+    linear-gradient(135deg, #fff6ef 0%, #f7fbff 48%, #edf9f6 100%);
+  font-family: "Be Vietnam Pro", "Segoe UI", sans-serif;
 }
 
-.register-wrapper{
-  min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background: linear-gradient(90deg,#e6f0ff 0%, #f8fbff 100%);
-  padding:40px 20px;
+.register-shell {
+  min-height: calc(100vh - 56px);
+  max-width: 1180px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 0.98fr 1.02fr;
+  gap: 18px;
 }
 
-.register-left{
-  flex:1.1;
-  background: linear-gradient(180deg,#f5fbff 0%, #eef7ff 100%);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:40px;
+.register-card {
+  border: 1px solid rgba(214, 226, 244, 0.92);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.93);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 24px 48px rgba(16, 42, 84, 0.08);
 }
 
-.register-left .hero{
-  width:100%;
-  max-width:340px;
-  text-align:center;
+.register-copy {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background:
+    radial-gradient(circle at top right, rgba(255, 154, 96, 0.16), transparent 30%),
+    linear-gradient(160deg, #fffdf9 0%, #fff5ee 42%, #eef9f6 100%);
 }
 
-.register-left h3{
-  color:#0b4da2;
-  margin-top:18px;
-  font-size:18px;
+.register-eyebrow {
+  margin: 0;
+  color: #ef6a3c;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
 }
 
-.register-right{
-  flex:0.9;
-  padding:36px 42px;
+.register-copy h1 {
+  margin: 14px 0 0;
+  color: #16335c;
+  font-size: clamp(2.2rem, 4vw, 3.4rem);
+  line-height: 1.08;
 }
 
-.register-right h2{
-  margin:0 0 18px 0;
-  font-size:20px;
-  color:#12263f;
+.register-description {
+  margin: 16px 0 0;
+  max-width: 500px;
+  color: #61728f;
+  font-size: 1rem;
+  line-height: 1.82;
 }
 
-.register-right form{
-  display:flex;
-  flex-direction:column;
-  gap:14px;
+.register-benefits {
+  margin-top: 24px;
+  display: grid;
+  gap: 14px;
 }
 
-.register-right input{
-  height:44px;
-  padding:10px 12px;
-  border:1px solid #e6eef8;
-  border-radius:8px;
-  background:#fbfdff;
-  font-size:14px;
-  color:#1b2b47;
+.register-benefit {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  border: 1px solid #e6edf9;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 16px;
 }
 
-.register-right input:focus{
-  outline:none;
-  border-color:#8bb0ff;
-  box-shadow:0 6px 18px rgba(60,120,240,0.08);
+.register-benefit-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #ff9163, #0fa7a6);
+  color: #ffffff;
+  flex-shrink: 0;
 }
 
-.register-right button{
-  margin-top:6px;
-  height:46px;
-  background:#0b63ff;
-  color:#fff;
-  border:none;
-  border-radius:10px;
-  font-weight:600;
-  cursor:pointer;
+.register-benefit strong {
+  display: block;
+  color: #16335c;
+  font-size: 0.98rem;
 }
 
-.register-right button:disabled{
-  opacity:0.7;
-  cursor:default;
+.register-benefit p {
+  margin: 7px 0 0;
+  color: #677995;
+  font-size: 0.88rem;
+  line-height: 1.7;
 }
 
-.register-extra{
-  margin-top:12px;
-  font-size:13px;
-  color:#5b6b85;
+.register-form-card {
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
-.register-extra span{
-  color:#0b63ff;
-  cursor:pointer;
+.register-top {
+  margin-bottom: 18px;
 }
 
-.register-error{
-  margin-top:12px;
-  color:#b00020;
-  background:#fff5f6;
-  padding:8px 10px;
-  border-radius:8px;
-  font-size:13px;
+.register-form-tag {
+  margin: 0;
+  color: #0d67f3;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
 }
 
-@media (max-width:900px){
-  .register-card{flex-direction:column}
-  .register-left{display:none}
-  .register-right{padding:28px}
+.register-form-card h2 {
+  margin: 10px 0 0;
+  color: #12263f;
+  font-size: 2rem;
+}
+
+.register-note {
+  margin: 10px 0 0;
+  color: #61728f;
+  line-height: 1.7;
+  font-size: 0.94rem;
+}
+
+.register-form {
+  display: grid;
+  gap: 14px;
+}
+
+.register-field {
+  display: grid;
+  gap: 8px;
+}
+
+.register-field span {
+  color: #2d4f84;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}
+
+.register-input-shell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #d8e3f7;
+  border-radius: 16px;
+  background: #f8fbff;
+  padding: 12px 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.register-input-shell:focus-within {
+  border-color: #0d67f3;
+  box-shadow: 0 0 0 4px rgba(13, 103, 243, 0.14);
+  transform: translateY(-1px);
+}
+
+.register-input-shell svg {
+  color: #7391bd;
+}
+
+.register-input-shell input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  color: #173968;
+  font-size: 0.96rem;
+}
+
+.register-visibility-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 11px;
+  background: #e9f1ff;
+  color: #2b5fae;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.register-helper {
+  margin: 0;
+  color: #73849e;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.register-helper.success {
+  color: #1d8d61;
+}
+
+.register-helper.error {
+  color: #ba4d3d;
+}
+
+.register-submit-btn {
+  margin-top: 6px;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #1269f3, #ff8a54);
+  color: #ffffff;
+  padding: 14px 16px;
+  font-size: 0.96rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: 0 14px 24px rgba(18, 105, 243, 0.2);
+}
+
+.register-submit-btn:disabled {
+  opacity: 0.76;
+  cursor: not-allowed;
+}
+
+.register-footer {
+  margin-top: 18px;
+}
+
+.register-link-btn {
+  border: none;
+  background: transparent;
+  color: #0d67f3;
+  font-size: 0.92rem;
+  font-weight: 700;
+  padding: 0;
+  cursor: pointer;
+}
+
+@media (max-width: 980px) {
+  .register-page {
+    padding: 18px;
+  }
+
+  .register-shell {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .register-copy,
+  .register-form-card {
+    padding: 22px;
+    border-radius: 22px;
+  }
+
+  .register-form-card h2 {
+    font-size: 1.7rem;
+  }
 }

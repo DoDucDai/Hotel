@@ -40,6 +40,9 @@ public class Booking {
     private LocalDateTime updatedAt;
     private LocalDateTime paidAt;
     private LocalDateTime lastRescheduledAt;
+    private LocalDateTime checkedInAt;
+    private LocalDateTime checkedOutAt;
+    private double refundAmount;
 
     private double totalPrice;
 
@@ -199,6 +202,30 @@ public class Booking {
 
     public void setLastRescheduledAt(LocalDateTime lastRescheduledAt) {
         this.lastRescheduledAt = lastRescheduledAt;
+    }
+
+    public LocalDateTime getCheckedInAt() {
+        return checkedInAt;
+    }
+
+    public void setCheckedInAt(LocalDateTime checkedInAt) {
+        this.checkedInAt = checkedInAt;
+    }
+
+    public LocalDateTime getCheckedOutAt() {
+        return checkedOutAt;
+    }
+
+    public void setCheckedOutAt(LocalDateTime checkedOutAt) {
+        this.checkedOutAt = checkedOutAt;
+    }
+
+    public double getRefundAmount() {
+        return refundAmount;
+    }
+
+    public void setRefundAmount(double refundAmount) {
+        this.refundAmount = refundAmount;
     }
 
     public void setTotalPrice(double totalPrice) {

@@ -15,3 +15,11 @@ export const cancelBooking = (bookingId, reason) => {
 export const rescheduleBooking = (bookingId, data) => {
   return axiosClient.put(`/bookings/${bookingId}/reschedule`, data);
 };
+
+export const createDispute = (data) => {
+  return axiosClient.post("/disputes", data);
+};
+
+export const getMyDisputes = () => {
+  return axiosClient.get("/disputes/my");
+};

@@ -31,3 +31,22 @@ export const updateHostRoom = (id, data) => {
 export const deleteHostRoom = (id) => {
   return axiosClient.delete(`/host/rooms/${id}`);
 };
+
+export const getHostRoomInventory = (roomId, startDate, endDate) => {
+  const params = new URLSearchParams();
+  params.append("startDate", startDate);
+  params.append("endDate", endDate);
+  return axiosClient.get(`/host/rooms/${roomId}/inventory?${params.toString()}`);
+};
+
+export const getHostInventoryBlocks = (roomId) => {
+  return axiosClient.get(`/host/rooms/${roomId}/inventory-blocks`);
+};
+
+export const createHostInventoryBlock = (roomId, payload) => {
+  return axiosClient.post(`/host/rooms/${roomId}/inventory-blocks`, payload);
+};
+
+export const deleteHostInventoryBlock = (blockId) => {
+  return axiosClient.delete(`/host/inventory-blocks/${blockId}`);
+};
