@@ -18,103 +18,103 @@ import VerifyEmail from "./pages/VerifyEmail";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
 function GuestRoute({ children }) {
-  const token = localStorage.getItem("accessToken");
-  const role = localStorage.getItem("role");
+ const token = localStorage.getItem("accessToken");
+ const role = localStorage.getItem("role");
 
-  if (token) {
-    return <Navigate to={role === "ADMIN" ? "/admin" : "/"} replace />;
-  }
+ if (token) {
+ return <Navigate to={role === "ADMIN" ? "/admin" : "/"} replace />;
+ }
 
-  return children;
+ return children;
 }
 
 function App() {
-  const location = useLocation();
-  const authStandalonePaths = [
-    "/login",
-    "/register",
-    "/forgot-password",
-    "/reset-password",
-    "/verify-email",
-  ];
+ const location = useLocation();
+ const authStandalonePaths = [
+ "/login",
+ "/register",
+ "/forgot-password",
+ "/reset-password",
+ "/verify-email",
+ ];
 
-  const hideNavbar =
-    authStandalonePaths.includes(location.pathname) ||
-    location.pathname === "/admin";
-  const hideFooter =
-    authStandalonePaths.includes(location.pathname) ||
-    location.pathname === "/admin";
+ const hideNavbar =
+ authStandalonePaths.includes(location.pathname) ||
+ location.pathname === "/admin";
+ const hideFooter =
+ authStandalonePaths.includes(location.pathname) ||
+ location.pathname === "/admin";
 
-  return (
-    <>
-      <SessionTimeoutManager />
-      {!hideNavbar && <Navbar />}
+ return (
+ <>
+ <SessionTimeoutManager />
+ {!hideNavbar && <Navbar />}
 
-      <Routes>
-        <Route path="/" element={<Home />} />
+ <Routes>
+ <Route path="/" element={<Home />} />
 
-        <Route
-          path="/login"
-          element={
-            <GuestRoute>
-              <Login />
-            </GuestRoute>
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            <GuestRoute>
-              <Register />
-            </GuestRoute>
-          }
-        />
-        <Route path="/forgot-password" element={<Forgot />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
+ <Route
+ path="/login"
+ element={
+ <GuestRoute>
+ <Login />
+ </GuestRoute>
+ }
+ />
+ <Route
+ path="/register"
+ element={
+ <GuestRoute>
+ <Register />
+ </GuestRoute>
+ }
+ />
+ <Route path="/forgot-password" element={<Forgot />} />
+ <Route path="/reset-password" element={<ResetPassword />} />
+ <Route path="/verify-email" element={<VerifyEmail />} />
 
-        <Route path="/hotels" element={<Hotels />} />
-        <Route path="/hotels/:id" element={<HotelDetail />} />
-        <Route
-          path="/booking"
-          element={
-            <ProtectedRoute>
-              <Booking />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/account"
-          element={
-            <ProtectedRoute>
-              <Account />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/host"
-          element={
-            <ProtectedRoute>
-              <HostRooms />
-            </ProtectedRoute>
-          }
-        />
+ <Route path="/hotels" element={<Hotels />} />
+ <Route path="/hotels/:id" element={<HotelDetail />} />
+ <Route
+ path="/booking"
+ element={
+ <ProtectedRoute>
+ <Booking />
+ </ProtectedRoute>
+ }
+ />
+ <Route
+ path="/account"
+ element={
+ <ProtectedRoute>
+ <Account />
+ </ProtectedRoute>
+ }
+ />
+ <Route
+ path="/host"
+ element={
+ <ProtectedRoute>
+ <HostRooms />
+ </ProtectedRoute>
+ }
+ />
 
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute roleRequired="ADMIN">
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
+ <Route
+ path="/admin"
+ element={
+ <ProtectedRoute roleRequired="ADMIN">
+ <AdminDashboard />
+ </ProtectedRoute>
+ }
+ />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+ <Route path="*" element={<Navigate to="/" replace />} />
+ </Routes>
 
-      {!hideFooter && <Footer />}
-    </>
-  );
+ {!hideFooter && <Footer />}
+ </>
+ );
 }
 
 export default App;

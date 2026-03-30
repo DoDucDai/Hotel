@@ -54,17 +54,21 @@ public class AuthEmailService {
     }
 
     public void sendPasswordReset(User user, String token) {
-        String actionUrl = buildActionUrl("/reset-password", token);
+        String actionUrl = buildActionUrl("/forgot-password", token);
         String message = """
                 Xin chao,
 
                 Chung toi da nhan duoc yeu cau dat lai mat khau cho tai khoan Hotel Booking cua ban.
-                Bam vao link ben duoi de tao mat khau moi:
+                Ban co the chon 1 trong 2 cach:
+                1) Bam vao link duoi day de den trang dat lai mat khau:
+                %s
+
+                2) Hoac nhap ma OTP 6 so nay tren man hinh "Quen mat khau":
                 %s
 
                 Link dat lai mat khau co hieu luc trong 30 phut.
                 Neu ban khong thuc hien yeu cau nay, hay bo qua email.
-                """.formatted(actionUrl);
+                """.formatted(actionUrl, token);
 
         sendMessage(user.getEmail(), "Dat lai mat khau - Hotel Booking", message, "password reset", actionUrl);
     }

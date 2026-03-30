@@ -1,8 +1,8 @@
 package com.example.hotelbooking.controller;
 
-import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -29,15 +29,18 @@ import org.springframework.web.multipart.MultipartFile;
 import com.example.hotelbooking.model.Hotel;
 import com.example.hotelbooking.model.HotelApprovalStatus;
 import com.example.hotelbooking.repository.HotelRepository;
+import com.example.hotelbooking.service.UploadStorageService;
 
 @RestController
 @RequestMapping("/hotels")
 public class HotelController {
 
     private final HotelRepository hotelRepository;
+    private final UploadStorageService uploadStorageService;
 
-    public HotelController(HotelRepository hotelRepository) {
+    public HotelController(HotelRepository hotelRepository, UploadStorageService uploadStorageService) {
         this.hotelRepository = hotelRepository;
+        this.uploadStorageService = uploadStorageService;
     }
 
     @GetMapping
@@ -87,6 +90,7 @@ public class HotelController {
 
         hotel.setStarRating(normalizeStarRating(hotel.getStarRating()));
         hotel.setAmenities(normalizeAmenities(hotel.getAmenities()));
+        applyImagePayload(hotel, hotel);
         return ResponseEntity.ok(hotelRepository.save(hotel));
     }
 
@@ -107,11 +111,11 @@ public class HotelController {
         hotel.setName(updatedHotel.getName());
         hotel.setAddress(updatedHotel.getAddress());
         hotel.setCity(updatedHotel.getCity());
-        hotel.setImageUrl(updatedHotel.getImageUrl());
         hotel.setStarRating(normalizeStarRating(updatedHotel.getStarRating()));
         hotel.setAmenities(normalizeAmenities(updatedHotel.getAmenities()));
         hotel.setFreeCancellationBeforeDays(Math.max(updatedHotel.getFreeCancellationBeforeDays(), 0));
         hotel.setLateCancellationRefundRate(clampPercent(updatedHotel.getLateCancellationRefundRate()));
+        applyImagePayload(hotel, updatedHotel);
         hotel.setApprovalStatus(updatedHotel.getApprovalStatus() == null
                 ? hotel.getApprovalStatus()
                 : updatedHotel.getApprovalStatus());
@@ -216,29 +220,32 @@ public class HotelController {
             return ResponseEntity.status(404).body("Hotel not found");
         }
 
-        if (file.isEmpty()) {
-            return ResponseEntity.badRequest().body("File is empty");
-        }
-
-        String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
-            return ResponseEntity.badRequest().body("Only image allowed");
-        }
-
-        // Save uploads to project root `uploads/` so WebConfig can serve them
-        String uploadDir = System.getProperty("user.dir") + "/uploads";
-        File folder = new File(uploadDir);
-        if (!folder.exists()) {
-            folder.mkdirs();
-        }
-
-        String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-        File dest = new File(folder, fileName);
-        file.transferTo(dest);
-
         Hotel hotel = hotelRepository.findById(Objects.requireNonNull(hotelId))
                 .orElseThrow(() -> new RuntimeException("Hotel not found"));
-        hotel.setImageUrl("/uploads/" + fileName);
+        String uploadedUrl = uploadStorageService.storeImage(file);
+        List<String> mergedImages = new ArrayList<>();
+        mergedImages.add(uploadedUrl);
+        mergedImages.addAll(hotel.getImageUrls());
+        hotel.setImageUrls(mergedImages);
+        hotel.setImageUrl(uploadedUrl);
+
+        return ResponseEntity.ok(hotelRepository.save(hotel));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/{id}/images")
+    public ResponseEntity<?> uploadImages(
+            @PathVariable String id,
+            @RequestParam("files") MultipartFile[] files) throws IOException {
+
+        String hotelId = requireNonBlank(id, "Hotel id is required");
+        Hotel hotel = hotelRepository.findById(Objects.requireNonNull(hotelId))
+                .orElseThrow(() -> new RuntimeException("Hotel not found"));
+
+        List<String> uploadedUrls = uploadStorageService.storeImages(files);
+        List<String> mergedImages = new ArrayList<>(hotel.getImageUrls());
+        mergedImages.addAll(uploadedUrls);
+        hotel.setImageUrls(mergedImages);
 
         return ResponseEntity.ok(hotelRepository.save(hotel));
     }
@@ -272,6 +279,17 @@ public class HotelController {
                 .collect(Collectors.toList());
     }
 
+    private void applyImagePayload(Hotel targetHotel, Hotel payloadHotel) {
+        if (targetHotel == null || payloadHotel == null || !hasImagePayload(payloadHotel)) {
+            return;
+        }
+
+        targetHotel.setImageUrls(payloadHotel.getImageUrls());
+        if (hasText(payloadHotel.getImageUrl())) {
+            targetHotel.setImageUrl(payloadHotel.getImageUrl());
+        }
+    }
+
     private boolean isPublicHotel(Hotel hotel) {
         return hotel != null && hotel.getApprovalStatus() == HotelApprovalStatus.APPROVED;
     }
@@ -283,6 +301,16 @@ public class HotelController {
                 : currentHotel.getCity().trim().toLowerCase();
 
         return leftCity.isEmpty() || rightCity.isEmpty() || !leftCity.equals(rightCity) ? 0 : 1;
+    }
+
+    private boolean hasImagePayload(Hotel hotel) {
+        return hotel != null
+                && (hasText(hotel.getImageUrl())
+                || hotel.getImageUrls().stream().anyMatch(this::hasText));
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }
 

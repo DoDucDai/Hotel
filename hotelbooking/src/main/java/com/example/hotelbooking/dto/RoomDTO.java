@@ -1,5 +1,8 @@
 package com.example.hotelbooking.dto;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 
@@ -20,6 +23,8 @@ public class RoomDTO {
     private String roomType;
     private String bedType;
     private String description;
+    private String imageUrl;
+    private List<String> imageUrls = new ArrayList<>();
     private int totalUnits;
     private int availableUnits;
 
@@ -34,6 +39,8 @@ public class RoomDTO {
             String roomType,
             String bedType,
             String description,
+            String imageUrl,
+            List<String> imageUrls,
             int totalUnits,
             int availableUnits) {
         this.id = id;
@@ -44,6 +51,8 @@ public class RoomDTO {
         this.roomType = roomType;
         this.bedType = bedType;
         this.description = description;
+        this.imageUrl = imageUrl;
+        this.imageUrls = imageUrls == null ? new ArrayList<>() : new ArrayList<>(imageUrls);
         this.totalUnits = totalUnits;
         this.availableUnits = availableUnits;
     }
@@ -78,6 +87,14 @@ public class RoomDTO {
 
     public String getDescription() {
         return description;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public List<String> getImageUrls() {
+        return imageUrls;
     }
 
     public int getTotalUnits() {

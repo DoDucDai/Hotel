@@ -1,7 +1,9 @@
 package com.example.hotelbooking.model;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.annotation.Id;
@@ -36,6 +38,8 @@ public class Room {
     private String bedType;
 
     private String description;
+    private String imageUrl;
+    private List<String> imageUrls = new ArrayList<>();
 
     @Min(1)
     private int totalUnits = 1;
@@ -132,6 +136,26 @@ public class Room {
         this.description = description;
     }
 
+    public String getImageUrl() {
+        syncImageGallery();
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = normalizeText(imageUrl);
+        syncImageGallery();
+    }
+
+    public List<String> getImageUrls() {
+        syncImageGallery();
+        return imageUrls;
+    }
+
+    public void setImageUrls(List<String> imageUrls) {
+        this.imageUrls = normalizeImageUrls(imageUrls);
+        syncImageGallery();
+    }
+
     public int getTotalUnits() {
         return totalUnits;
     }
@@ -173,5 +197,43 @@ public class Room {
 
     public void setBlockedUnits(int blockedUnits) {
         this.blockedUnits = blockedUnits;
+    }
+
+    private void syncImageGallery() {
+        if (imageUrls == null) {
+            imageUrls = new ArrayList<>();
+        }
+
+        imageUrls = normalizeImageUrls(imageUrls);
+        if (hasText(imageUrl)) {
+            imageUrls.removeIf((url) -> Objects.equals(url, imageUrl));
+            imageUrls.add(0, imageUrl);
+        }
+
+        imageUrl = imageUrls.isEmpty() ? null : imageUrls.get(0);
+    }
+
+    private List<String> normalizeImageUrls(List<String> urls) {
+        LinkedHashSet<String> normalized = new LinkedHashSet<>();
+        if (urls != null) {
+            urls.stream()
+                    .map(this::normalizeText)
+                    .filter(this::hasText)
+                    .forEach(normalized::add);
+        }
+        return new ArrayList<>(normalized);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private String normalizeText(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String normalized = value.trim();
+        return normalized.isEmpty() ? null : normalized;
     }
 }

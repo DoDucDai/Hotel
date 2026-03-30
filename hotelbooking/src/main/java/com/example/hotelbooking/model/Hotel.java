@@ -1,7 +1,9 @@
 package com.example.hotelbooking.model;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.time.LocalDateTime;
 
 import org.springframework.data.annotation.Id;
@@ -17,6 +19,7 @@ public class Hotel {
     private String address;
     private String city;
     private String imageUrl;
+    private List<String> imageUrls = new ArrayList<>();
     private int starRating = 3;
     private List<String> amenities = new ArrayList<>();
     private double averageRating;
@@ -51,8 +54,25 @@ public class Hotel {
     public String getCity() { return city; }
     public void setCity(String city) { this.city = city; }
 
-    public String getImageUrl() { return imageUrl; }
-    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+    public String getImageUrl() {
+        syncImageGallery();
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = normalizeText(imageUrl);
+        syncImageGallery();
+    }
+
+    public List<String> getImageUrls() {
+        syncImageGallery();
+        return imageUrls;
+    }
+
+    public void setImageUrls(List<String> imageUrls) {
+        this.imageUrls = normalizeImageUrls(imageUrls);
+        syncImageGallery();
+    }
 
     public int getStarRating() { return starRating; }
     public void setStarRating(int starRating) { this.starRating = starRating; }
@@ -120,5 +140,43 @@ public class Hotel {
 
     public void setLateCancellationRefundRate(int lateCancellationRefundRate) {
         this.lateCancellationRefundRate = lateCancellationRefundRate;
+    }
+
+    private void syncImageGallery() {
+        if (imageUrls == null) {
+            imageUrls = new ArrayList<>();
+        }
+
+        imageUrls = normalizeImageUrls(imageUrls);
+        if (hasText(imageUrl)) {
+            imageUrls.removeIf((url) -> Objects.equals(url, imageUrl));
+            imageUrls.add(0, imageUrl);
+        }
+
+        imageUrl = imageUrls.isEmpty() ? null : imageUrls.get(0);
+    }
+
+    private List<String> normalizeImageUrls(List<String> urls) {
+        LinkedHashSet<String> normalized = new LinkedHashSet<>();
+        if (urls != null) {
+            urls.stream()
+                    .map(this::normalizeText)
+                    .filter(this::hasText)
+                    .forEach(normalized::add);
+        }
+        return new ArrayList<>(normalized);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private String normalizeText(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String normalized = value.trim();
+        return normalized.isEmpty() ? null : normalized;
     }
 }

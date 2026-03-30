@@ -23,6 +23,19 @@ From the `hotelbooking` directory, run:
 ```
 The backend will be available at `http://localhost:8080`.
 
+### SMTP email (forgot password / verify email)
+Mail config is in `src/main/resources/application.properties` and reads from variables:
+- `MAIL_HOST` (default `smtp.gmail.com`)
+- `MAIL_PORT` (default `587`)
+- `MAIL_USERNAME` (default `doducdai17042004@gmail.com`)
+- `MAIL_PASSWORD` (Gmail App Password, required to send)
+- `APP_MAIL_FROM` (sender address)
+- `APP_FRONTEND_URL` (reset/verify link base URL)
+
+To keep secrets out of git, create `src/main/resources/application-local.properties` from
+`src/main/resources/application-local.properties.example`.
+This local file is auto-loaded by `application.properties`.
+
 ## Frontend (React)
 
 ### How to install dependencies:

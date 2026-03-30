@@ -1,5 +1,7 @@
 package com.example.hotelbooking.controller;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -8,6 +10,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,8 +18,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.hotelbooking.dto.InventoryBlockRequest;
 import com.example.hotelbooking.dto.RoomInventoryDayDTO;
@@ -31,6 +34,7 @@ import com.example.hotelbooking.repository.RoomRepository;
 import com.example.hotelbooking.repository.UserRepository;
 import com.example.hotelbooking.service.AuditLogService;
 import com.example.hotelbooking.service.RoomInventoryService;
+import com.example.hotelbooking.service.UploadStorageService;
 
 @RestController
 @RequestMapping("/host")
@@ -42,18 +46,21 @@ public class HostController {
     private final RoomRepository roomRepository;
     private final RoomInventoryService roomInventoryService;
     private final AuditLogService auditLogService;
+    private final UploadStorageService uploadStorageService;
 
     public HostController(
             UserRepository userRepository,
             HotelRepository hotelRepository,
             RoomRepository roomRepository,
             RoomInventoryService roomInventoryService,
-            AuditLogService auditLogService) {
+            AuditLogService auditLogService,
+            UploadStorageService uploadStorageService) {
         this.userRepository = userRepository;
         this.hotelRepository = hotelRepository;
         this.roomRepository = roomRepository;
         this.roomInventoryService = roomInventoryService;
         this.auditLogService = auditLogService;
+        this.uploadStorageService = uploadStorageService;
     }
 
     @GetMapping("/hotels/my")
@@ -76,12 +83,12 @@ public class HostController {
         newHotel.setName(payload.getName().trim());
         newHotel.setAddress(payload.getAddress().trim());
         newHotel.setCity(payload.getCity().trim());
-        newHotel.setImageUrl(payload.getImageUrl());
         newHotel.setStarRating(normalizeStarRating(payload.getStarRating()));
         newHotel.setAmenities(normalizeAmenities(payload.getAmenities()));
         newHotel.setOwnerId(requireUserId(user));
         newHotel.setFreeCancellationBeforeDays(Math.max(payload.getFreeCancellationBeforeDays(), 0));
         newHotel.setLateCancellationRefundRate(clampPercent(payload.getLateCancellationRefundRate()));
+        applyHotelImages(newHotel, payload);
         newHotel.setApprovalStatus(isAdmin(user) ? HotelApprovalStatus.APPROVED : HotelApprovalStatus.PENDING);
         newHotel.setApprovalNote(
                 isAdmin(user)
@@ -114,11 +121,11 @@ public class HostController {
         hotel.setName(payload.getName().trim());
         hotel.setAddress(payload.getAddress().trim());
         hotel.setCity(payload.getCity().trim());
-        hotel.setImageUrl(payload.getImageUrl());
         hotel.setStarRating(normalizeStarRating(payload.getStarRating()));
         hotel.setAmenities(normalizeAmenities(payload.getAmenities()));
         hotel.setFreeCancellationBeforeDays(Math.max(payload.getFreeCancellationBeforeDays(), 0));
         hotel.setLateCancellationRefundRate(clampPercent(payload.getLateCancellationRefundRate()));
+        applyHotelImages(hotel, payload);
 
         if (!isAdmin(user)) {
             hotel.setApprovalStatus(HotelApprovalStatus.PENDING);
@@ -155,6 +162,29 @@ public class HostController {
         return Map.of("message", "Hotel deleted");
     }
 
+    @PostMapping("/hotels/{id}/images")
+    public Hotel uploadHotelImages(
+            @PathVariable String id,
+            @RequestParam("files") MultipartFile[] files,
+            Authentication authentication) throws IOException {
+
+        String hotelId = requireNonBlank(id, "Hotel id is required");
+        User user = getCurrentUser(authentication);
+        Hotel hotel = hotelRepository.findById(hotelId)
+                .orElseThrow(() -> new RuntimeException("Hotel not found"));
+
+        assertHotelOwner(user, hotel);
+
+        List<String> uploadedUrls = uploadStorageService.storeImages(files);
+        List<String> mergedImages = new ArrayList<>(hotel.getImageUrls());
+        mergedImages.addAll(uploadedUrls);
+        hotel.setImageUrls(mergedImages);
+
+        Hotel savedHotel = hotelRepository.save(hotel);
+        auditLogService.record("UPLOAD_HOTEL_IMAGES", "HOTEL", savedHotel.getId(), user, "Them gallery anh hotel");
+        return savedHotel;
+    }
+
     @GetMapping("/rooms/my")
     public List<Room> getMyRooms(Authentication authentication) {
         User user = getCurrentUser(authentication);
@@ -186,6 +216,7 @@ public class HostController {
         newRoom.setRoomType(trimToNull(payload.getRoomType()) == null ? "STANDARD" : payload.getRoomType().trim());
         newRoom.setBedType(trimToNull(payload.getBedType()));
         newRoom.setDescription(trimToNull(payload.getDescription()));
+        applyRoomImages(newRoom, payload);
         newRoom.setTotalUnits(Math.max(payload.getTotalUnits(), 1));
         newRoom.setAmenities(normalizeAmenities(payload.getAmenities()));
 
@@ -225,6 +256,7 @@ public class HostController {
         room.setRoomType(trimToNull(payload.getRoomType()) == null ? "STANDARD" : payload.getRoomType().trim());
         room.setBedType(trimToNull(payload.getBedType()));
         room.setDescription(trimToNull(payload.getDescription()));
+        applyRoomImages(room, payload);
         room.setTotalUnits(Math.max(payload.getTotalUnits(), 1));
         room.setAmenities(normalizeAmenities(payload.getAmenities()));
 
@@ -251,6 +283,29 @@ public class HostController {
         roomRepository.deleteById(roomId);
         auditLogService.record("DELETE_ROOM", "ROOM", roomId, user, "Host xoa loai phong");
         return Map.of("message", "Room deleted");
+    }
+
+    @PostMapping("/rooms/{id}/images")
+    public Room uploadRoomImages(
+            @PathVariable String id,
+            @RequestParam("files") MultipartFile[] files,
+            Authentication authentication) throws IOException {
+
+        String roomId = requireNonBlank(id, "Room id is required");
+        User user = getCurrentUser(authentication);
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new RuntimeException("Room not found"));
+
+        assertRoomOwner(user, room);
+
+        List<String> uploadedUrls = uploadStorageService.storeImages(files);
+        List<String> mergedImages = new ArrayList<>(room.getImageUrls());
+        mergedImages.addAll(uploadedUrls);
+        room.setImageUrls(mergedImages);
+
+        Room savedRoom = roomRepository.save(room);
+        auditLogService.record("UPLOAD_ROOM_IMAGES", "ROOM", savedRoom.getId(), user, "Them gallery anh room");
+        return savedRoom;
     }
 
     @GetMapping("/rooms/{roomId}/inventory")
@@ -451,6 +506,44 @@ public class HostController {
 
         String normalized = value.trim();
         return normalized.isEmpty() ? null : normalized;
+    }
+
+    private void applyHotelImages(Hotel targetHotel, Hotel payloadHotel) {
+        if (targetHotel == null || payloadHotel == null || !hasHotelImages(payloadHotel)) {
+            return;
+        }
+
+        targetHotel.setImageUrls(payloadHotel.getImageUrls());
+        if (hasText(payloadHotel.getImageUrl())) {
+            targetHotel.setImageUrl(payloadHotel.getImageUrl());
+        }
+    }
+
+    private void applyRoomImages(Room targetRoom, Room payloadRoom) {
+        if (targetRoom == null || payloadRoom == null || !hasRoomImages(payloadRoom)) {
+            return;
+        }
+
+        targetRoom.setImageUrls(payloadRoom.getImageUrls());
+        if (hasText(payloadRoom.getImageUrl())) {
+            targetRoom.setImageUrl(payloadRoom.getImageUrl());
+        }
+    }
+
+    private boolean hasHotelImages(Hotel hotel) {
+        return hotel != null
+                && (hasText(hotel.getImageUrl())
+                || hotel.getImageUrls().stream().anyMatch(this::hasText));
+    }
+
+    private boolean hasRoomImages(Room room) {
+        return room != null
+                && (hasText(room.getImageUrl())
+                || room.getImageUrls().stream().anyMatch(this::hasText));
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }
 

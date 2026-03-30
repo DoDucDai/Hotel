@@ -1,93 +1,93 @@
 .toast-viewport {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  z-index: 3000;
-  display: grid;
-  gap: 10px;
-  width: min(360px, calc(100vw - 24px));
+ position: fixed;
+ top: 16px;
+ right: 16px;
+ z-index: 3000;
+ display: grid;
+ gap: 10px;
+ width: min(360px, calc(100vw - 24px));
 }
 
 .toast-item {
-  border-radius: 14px;
-  border: 1px solid #d8e4ff;
-  background: #ffffff;
-  box-shadow: 0 14px 30px rgba(8, 34, 79, 0.18);
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 12px;
-  animation: toast-enter 0.2s ease;
+ border-radius: 14px;
+ border: 1px solid #d8e4ff;
+ background: #ffffff;
+ box-shadow: 0 14px 30px rgba(8, 34, 79, 0.18);
+ display: flex;
+ align-items: flex-start;
+ justify-content: space-between;
+ gap: 10px;
+ padding: 12px;
+ animation: toast-enter 0.2s ease;
 }
 
 .toast-item.success {
-  border-color: #bde7d3;
-  background: #f1fbf6;
+ border-color: #bde7d3;
+ background: #f1fbf6;
 }
 
 .toast-item.error {
-  border-color: #ffd1cb;
-  background: #fff5f3;
+ border-color: #ffd1cb;
+ background: #fff5f3;
 }
 
 .toast-item.warning {
-  border-color: #ffe0b9;
-  background: #fff8ef;
+ border-color: #ffe0b9;
+ background: #fff8ef;
 }
 
 .toast-item.info {
-  border-color: #d5e3ff;
-  background: #f5f8ff;
+ border-color: #d5e3ff;
+ background: #f5f8ff;
 }
 
 .toast-content {
-  display: grid;
-  gap: 5px;
+ display: grid;
+ gap: 5px;
 }
 
 .toast-content strong {
-  color: #143e8b;
-  font-size: 0.92rem;
-  line-height: 1.2;
+ color: #143e8b;
+ font-size: 0.92rem;
+ line-height: 1.2;
 }
 
 .toast-content p {
-  margin: 0;
-  color: #42516f;
-  font-size: 0.86rem;
-  line-height: 1.5;
+ margin: 0;
+ color: #42516f;
+ font-size: 0.86rem;
+ line-height: 1.5;
 }
 
 .toast-close {
-  border: none;
-  border-radius: 8px;
-  background: #eaf1ff;
-  color: #214c9f;
-  font-size: 0.78rem;
-  font-weight: 700;
-  min-width: 26px;
-  height: 26px;
-  cursor: pointer;
-  padding: 0;
+ border: none;
+ border-radius: 8px;
+ background: #eaf1ff;
+ color: #214c9f;
+ font-size: 0.78rem;
+ font-weight: 700;
+ min-width: 26px;
+ height: 26px;
+ cursor: pointer;
+ padding: 0;
 }
 
 @keyframes toast-enter {
-  from {
-    transform: translateY(-6px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+ from {
+ transform: translateY(-6px);
+ opacity: 0;
+ }
+ to {
+ transform: translateY(0);
+ opacity: 1;
+ }
 }
 
 @media (max-width: 640px) {
-  .toast-viewport {
-    top: 10px;
-    left: 10px;
-    right: 10px;
-    width: auto;
-  }
+ .toast-viewport {
+ top: 10px;
+ left: 10px;
+ right: 10px;
+ width: auto;
+ }
 }

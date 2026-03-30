@@ -2,6 +2,7 @@ package com.example.hotelbooking.service;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.security.SecureRandom;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -13,6 +14,11 @@ import com.example.hotelbooking.repository.AuthActionTokenRepository;
 
 @Service
 public class AuthTokenService {
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final int OTP_DIGITS = 6;
+    private static final int OTP_MAX_VALUE = 1_000_000;
+    private static final int OTP_RETRY_LIMIT = 12;
 
     private final AuthActionTokenRepository authActionTokenRepository;
 
@@ -27,7 +33,9 @@ public class AuthTokenService {
         token.setUserId(user.getId());
         token.setEmail(user.getEmail());
         token.setType(type);
-        token.setToken(UUID.randomUUID().toString());
+        token.setToken(type == AuthActionType.PASSWORD_RESET
+                ? generateSixDigitOtp()
+                : UUID.randomUUID().toString());
         token.setCreatedAt(Instant.now());
         token.setExpiresAt(Instant.now().plus(ttl));
 
@@ -65,6 +73,17 @@ public class AuthTokenService {
             throw new RuntimeException(message);
         }
 
-        return value;
+        return value.trim();
+    }
+
+    private String generateSixDigitOtp() {
+        for (int attempt = 0; attempt < OTP_RETRY_LIMIT; attempt += 1) {
+            String code = String.format("%0" + OTP_DIGITS + "d", SECURE_RANDOM.nextInt(OTP_MAX_VALUE));
+            if (authActionTokenRepository.findByToken(code).isEmpty()) {
+                return code;
+            }
+        }
+
+        throw new RuntimeException("Khong the tao ma OTP reset password. Vui long thu lai");
     }
 }

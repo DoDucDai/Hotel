@@ -197,7 +197,7 @@ public class AuthService {
     public Map<String, Object> validateResetPasswordToken(String token) {
         AuthActionToken authToken = authTokenService.requireValidToken(token, AuthActionType.PASSWORD_RESET);
         return Map.of(
-                "message", "Token hop le",
+                "message", "Ma OTP hop le",
                 "email", authToken.getEmail(),
                 "expiresAt", authToken.getExpiresAt().toString()
         );

@@ -1,11 +1,15 @@
 package com.example.hotelbooking.dto;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class HotelDTO {
 
     private String name;
     private String address;
     private String city;
     private String imageUrl;
+    private List<String> imageUrls = new ArrayList<>();
 
     public String getName() {
         return name;
@@ -37,5 +41,13 @@ public class HotelDTO {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public List<String> getImageUrls() {
+        return imageUrls;
+    }
+
+    public void setImageUrls(List<String> imageUrls) {
+        this.imageUrls = imageUrls == null ? new ArrayList<>() : new ArrayList<>(imageUrls);
     }
 }

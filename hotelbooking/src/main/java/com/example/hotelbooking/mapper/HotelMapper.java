@@ -13,6 +13,7 @@ public class HotelMapper {
         hotel.setAddress(dto.getAddress());
         hotel.setCity(dto.getCity());
         hotel.setImageUrl(dto.getImageUrl());
+        hotel.setImageUrls(dto.getImageUrls());
 
         return hotel;
     }

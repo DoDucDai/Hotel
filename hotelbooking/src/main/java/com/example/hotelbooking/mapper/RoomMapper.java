@@ -15,6 +15,8 @@ public class RoomMapper {
                 room.getRoomType(),
                 room.getBedType(),
                 room.getDescription(),
+                room.getImageUrl(),
+                room.getImageUrls(),
                 room.getTotalUnits(),
                 room.getAvailableUnits()
         );
