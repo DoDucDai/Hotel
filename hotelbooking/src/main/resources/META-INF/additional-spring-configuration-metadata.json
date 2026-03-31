@@ -1,0 +1,14 @@
+{
+  "properties": [
+    {
+      "name": "app.frontend-url",
+      "type": "java.lang.String",
+      "description": "Frontend base URL used to build links in auth emails."
+    },
+    {
+      "name": "app.mail.from",
+      "type": "java.lang.String",
+      "description": "From address used when sending auth emails."
+    }
+  ]
+}

@@ -38,7 +38,6 @@ import com.example.hotelbooking.service.UploadStorageService;
 
 @RestController
 @RequestMapping("/host")
-@SuppressWarnings("null")
 public class HostController {
 
     private final UserRepository userRepository;
