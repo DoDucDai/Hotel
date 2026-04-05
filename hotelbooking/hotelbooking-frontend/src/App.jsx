@@ -3,13 +3,13 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
 import SessionTimeoutManager from "./components/SessionTimeoutManager";
-import Account from "./pages/Account";
+import AccountEnhanced from "./pages/AccountEnhanced";
 import AdminDashboard from "./pages/AdminDashboard";
 import Booking from "./pages/Booking";
 import Forgot from "./pages/Forgot";
 import Home from "./pages/Home";
-import HotelDetail from "./pages/HotelDetail";
-import Hotels from "./pages/Hotels";
+import HotelDetailEnhanced from "./pages/HotelDetailEnhanced";
+import HotelsEnhanced from "./pages/HotelsEnhanced";
 import HostRooms from "./pages/HostRooms";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -73,8 +73,8 @@ function App() {
  <Route path="/reset-password" element={<ResetPassword />} />
  <Route path="/verify-email" element={<VerifyEmail />} />
 
- <Route path="/hotels" element={<Hotels />} />
- <Route path="/hotels/:id" element={<HotelDetail />} />
+ <Route path="/hotels" element={<HotelsEnhanced />} />
+ <Route path="/hotels/:id" element={<HotelDetailEnhanced />} />
  <Route
  path="/booking"
  element={
@@ -87,7 +87,7 @@ function App() {
  path="/account"
  element={
  <ProtectedRoute>
- <Account />
+ <AccountEnhanced />
  </ProtectedRoute>
  }
  />

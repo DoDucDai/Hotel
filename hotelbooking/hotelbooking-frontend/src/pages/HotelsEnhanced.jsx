@@ -3,98 +3,26 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "../components/ToastProvider";
 import { getHotels } from "../services/hotelService";
 import { getRooms, searchRooms } from "../services/roomService";
-import { getPrimaryImage } from "../utils/imageHelpers";
-import { addToWishlist, getMyWishlist, removeFromWishlist } from "../services/wishlistService";
+import {
+ addToWishlist,
+ getMyWishlist,
+ removeFromWishlist,
+} from "../services/wishlistService";
+import HotelsHeroSection from "../features/hotels/views/HotelsHeroSection";
+import HotelsResultsSection from "../features/hotels/views/HotelsResultsSection";
+import HotelsToolbarSection from "../features/hotels/views/HotelsToolbarSection";
+import {
+ buildInitialHotelFilters,
+ currencyFormatter,
+ FALLBACK_IMAGE,
+ HOTELS_PER_PAGE,
+ normalizeHotels,
+ normalizeRooms,
+ normalizeWishlist,
+ toNonNegativeNumber,
+ toPositiveInt,
+} from "../features/hotels/hotelsPageUtils";
 import "./Hotels.css";
-
-const HOTELS_PER_PAGE = 9;
-
-const FALLBACK_IMAGE = `data:image/svg+xml,${encodeURIComponent(
- `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700">
- <defs>
- <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
- <stop offset="0%" stop-color="#1f4f8d" />
- <stop offset="100%" stop-color="#3ba4d6" />
- </linearGradient>
- </defs>
- <rect width="1200" height="700" fill="url(#bg)" />
- <circle cx="210" cy="140" r="130" fill="rgba(255,255,255,0.12)" />
- <circle cx="1000" cy="130" r="170" fill="rgba(255,255,255,0.08)" />
- <path d="M170 500h860v130H170z" fill="rgba(255,255,255,0.15)" />
- <text x="130" y="400" fill="white" font-size="88" font-family="Segoe UI, Arial, sans-serif" font-weight="700">Hotel Booking</text>
- </svg>`
-)}`;
-
-const currencyFormatter = new Intl.NumberFormat("vi-VN", {
- style: "currency",
- currency: "VND",
- maximumFractionDigits: 0,
-});
-
-function normalizeHotels(payload) {
- if (Array.isArray(payload)) {
- return payload;
- }
-
- if (Array.isArray(payload.content)) {
- return payload.content;
- }
-
- if (Array.isArray(payload.data)) {
- return payload.data;
- }
-
- return [];
-}
-
-function normalizeRooms(payload) {
- if (Array.isArray(payload)) {
- return payload;
- }
-
- if (Array.isArray(payload.content)) {
- return payload.content;
- }
-
- if (Array.isArray(payload.data?.content)) {
- return payload.data.content;
- }
-
- return [];
-}
-
-function normalizeWishlist(payload) {
- if (Array.isArray(payload)) {
- return payload;
- }
-
- if (Array.isArray(payload.data)) {
- return payload.data;
- }
-
- return [];
-}
-
-function toPositiveInt(value, fallback) {
- const numeric = Number(value);
- if (!Number.isFinite(numeric) || numeric < 1) {
- return fallback;
- }
- return Math.floor(numeric);
-}
-
-function toNonNegativeNumber(value) {
- if (value === "") {
- return null;
- }
-
- const numeric = Number(value);
- if (!Number.isFinite(numeric) || numeric < 0) {
- return null;
- }
-
- return numeric;
-}
 
 export default function HotelsEnhanced() {
  const navigate = useNavigate();
@@ -110,20 +38,7 @@ export default function HotelsEnhanced() {
 
  const [filters, setFilters] = useState(() => {
  const prefill = location.state?.prefillFilters || {};
-
- return {
- destination: prefill.destination || "",
- guests: String(toPositiveInt(prefill.guests, 1)),
- roomCount: String(toPositiveInt(prefill.roomCount, 1)),
- checkIn: prefill.checkIn || "",
- checkOut: prefill.checkOut || "",
- priceMin: "",
- priceMax: "",
- minRating: "0",
- minStars: "0",
- amenity: "all",
- wishlistOnly: false,
- };
+ return buildInitialHotelFilters(prefill);
  });
 
  const [roomAvailability, setRoomAvailability] = useState({});
@@ -200,7 +115,7 @@ export default function HotelsEnhanced() {
  const items = normalizeWishlist(res?.data);
 
  if (isMounted) {
- setWishlistIds(items.map((item) => item.hotelId).filter(Boolean));
+ setWishlistIds(items.map((item) => String(item?.hotelId || "")).filter(Boolean));
  }
  } catch (fetchError) {
  console.error("Cannot load wishlist", fetchError);
@@ -230,6 +145,9 @@ export default function HotelsEnhanced() {
  const guests = toPositiveInt(filters.guests, 1);
  const checkIn = filters.checkIn || "";
  const checkOut = filters.checkOut || "";
+ const minPrice = filters.priceMin === "" ? "" : Number(filters.priceMin);
+ const maxPrice = filters.priceMax === "" ? "" : Number(filters.priceMax);
+ const amenity = filters.amenity === "all" ? "" : filters.amenity;
 
  if (checkIn && checkOut && new Date(checkOut) <= new Date(checkIn)) {
  setRoomAvailability({});
@@ -239,7 +157,15 @@ export default function HotelsEnhanced() {
 
  try {
  setAvailabilityLoading(true);
- const res = await searchRooms({ guests, checkIn, checkOut });
+ const res = await searchRooms({
+ guests,
+ checkIn,
+ checkOut,
+ minPrice,
+ maxPrice,
+ amenity,
+ sortBy: "availability_desc",
+ });
  const availableRooms = normalizeRooms(res?.data);
 
  if (isMounted) {
@@ -277,7 +203,15 @@ export default function HotelsEnhanced() {
  return () => {
  isMounted = false;
  };
- }, [filters.checkIn, filters.checkOut, filters.guests, hotels.length]);
+ }, [
+ filters.amenity,
+ filters.checkIn,
+ filters.checkOut,
+ filters.guests,
+ filters.priceMax,
+ filters.priceMin,
+ hotels.length,
+ ]);
 
  const roomStatsByHotel = useMemo(() => {
  return rooms.reduce((acc, room) => {
@@ -299,7 +233,7 @@ export default function HotelsEnhanced() {
 
  const hotelCards = useMemo(() => {
  return hotels.map((hotel, index) => {
- const hotelId = hotel.id || hotel._id || `${hotel.name}-${index}`;
+ const hotelId = String(hotel.id || hotel._id || `${hotel.name}-${index}`);
  const stats = roomStatsByHotel[hotelId] || {
  count: 0,
  minRoomPrice: Number.POSITIVE_INFINITY,
@@ -341,11 +275,12 @@ export default function HotelsEnhanced() {
  const priceMax = toNonNegativeNumber(filters.priceMax);
  const minRating = Number(filters.minRating || 0);
  const minStars = Number(filters.minStars || 0);
+ const freeCancellationOnly = Boolean(filters.freeCancellationOnly);
 
  const matched = hotelCards.filter((hotel) => {
  const name = hotel.name?.toLowerCase() || "";
  const city = hotel.city?.toLowerCase() || "";
- const address = hotel.addresso.toLowerCase() || "";
+ const address = hotel.address?.toLowerCase() || "";
 
  const textMatch =
  !destination ||
@@ -358,6 +293,8 @@ export default function HotelsEnhanced() {
  const starsMatch = hotel.starRating >= minStars;
  const amenityMatch =
  filters.amenity === "all" || hotel.amenities.includes(filters.amenity);
+ const freeCancellationMatch =
+ !freeCancellationOnly || Number(hotel.freeCancellationBeforeDays || 0) > 0;
  const wishlistMatch = !filters.wishlistOnly || hotel.isWishlisted;
  const minPriceMatch = priceMin == null || hotel.minRoomPrice >= priceMin;
  const maxPriceMatch = priceMax == null || hotel.minRoomPrice <= priceMax;
@@ -368,6 +305,7 @@ export default function HotelsEnhanced() {
  ratingMatch &&
  starsMatch &&
  amenityMatch &&
+ freeCancellationMatch &&
  wishlistMatch &&
  minPriceMatch &&
  maxPriceMatch
@@ -457,19 +395,7 @@ export default function HotelsEnhanced() {
  };
 
  const resetFilters = () => {
- setFilters({
- destination: "",
- guests: "1",
- roomCount: "1",
- checkIn: "",
- checkOut: "",
- priceMin: "",
- priceMax: "",
- minRating: "0",
- minStars: "0",
- amenity: "all",
- wishlistOnly: false,
- });
+ setFilters(buildInitialHotelFilters());
  setSortBy("name-asc");
  setCurrentPage(1);
  };
@@ -487,16 +413,17 @@ export default function HotelsEnhanced() {
  return;
  }
 
- const alreadySaved = wishlistIds.includes(hotelId);
+ const normalizedHotelId = String(hotelId || "");
+ const alreadySaved = wishlistIds.includes(normalizedHotelId);
 
  try {
  if (alreadySaved) {
- await removeFromWishlist(hotelId);
- setWishlistIds((prev) => prev.filter((id) => id !== hotelId));
+ await removeFromWishlist(normalizedHotelId);
+ setWishlistIds((prev) => prev.filter((id) => id !== normalizedHotelId));
  toast.success("Da xoa khoi danh sach yeu thich");
  } else {
- await addToWishlist(hotelId);
- setWishlistIds((prev) => [...prev, hotelId]);
+ await addToWishlist(normalizedHotelId);
+ setWishlistIds((prev) => [...prev, normalizedHotelId]);
  toast.success("Da them vao wishlist");
  }
  } catch (wishlistError) {
@@ -505,230 +432,7 @@ export default function HotelsEnhanced() {
  }
  };
 
- return (
- <main className="hotels-page">
- <section className="hotels-container hotels-hero">
- <div className="hotels-hero-content">
- <span className="hotels-badge">Danh sach khach san toan quoc</span>
- <h1>Loc theo gia, rating, sao, tien nghi va luu khach san yeu thich</h1>
- <p>
- Ngoai tim theo dua diem va lich o, ban c? the loc sau hon theo muc gia, diem
- danh gia, hang sao, tien nghi va danh sach wishlist cua rieng minh.
- </p>
-
- <div className="hotels-metrics">
- <article className="metric-card">
- <strong>{totalHotels}+</strong>
- <span>Khach san</span>
- </article>
- <article className="metric-card">
- <strong>{totalCities}+</strong>
- <span>Thonh phi</span>
- </article>
- <article className="metric-card">
- <strong>{topRatedCount}</strong>
- <span>Rating 4.5+</span>
- </article>
- </div>
- </div>
- </section>
-
- <section className="hotels-container hotels-toolbar">
- <div className="toolbar-grid toolbar-grid-main">
- <label className="filter-field">
- <span>O dau</span>
- <input
- name="destination"
- type="text"
- value={filters.destination}
- onChange={handleFilterChange}
- placeholder="Nhap ten khach san, thanh phi hoac dua chi"
- />
- </label>
-
- <label className="filter-field">
- <span>Bao nguoi</span>
- <input
- name="guests"
- type="number"
- min="1"
- value={filters.guests}
- onChange={handleFilterChange}
- />
- </label>
-
- <label className="filter-field">
- <span>May phong</span>
- <input
- name="roomCount"
- type="number"
- min="1"
- value={filters.roomCount}
- onChange={handleFilterChange}
- />
- </label>
- </div>
-
- <div className="toolbar-grid toolbar-grid-sub">
- <label className="filter-field">
- <span>Ng y nhan phong</span>
- <input
- name="checkIn"
- type="date"
- value={filters.checkIn}
- onChange={handleFilterChange}
- />
- </label>
-
- <label className="filter-field">
- <span>Ng y tra phong</span>
- <input
- name="checkOut"
- type="date"
- value={filters.checkOut}
- onChange={handleFilterChange}
- />
- </label>
-
- <label className="filter-field">
- <span>Sap xep</span>
- <select
- value={sortBy}
- onChange={(event) => {
- setSortBy(event.target.value);
- setCurrentPage(1);
- }}
- >
- <option value="name-asc">Ten A - Z</option>
- <option value="name-desc">Ten Z - A</option>
- <option value="city-asc">Thonh phi A - Z</option>
- <option value="city-desc">Thonh phi Z - A</option>
- <option value="price-asc">Gia thap den cao</option>
- <option value="price-desc">Gia cao den thap</option>
- <option value="rating-desc">Rating cao nhat</option>
- </select>
- </label>
- </div>
-
- <div className="toolbar-grid toolbar-grid-advanced">
- <label className="filter-field">
- <span>Gia tu</span>
- <input
- name="priceMin"
- type="number"
- min="0"
- value={filters.priceMin}
- onChange={handleFilterChange}
- placeholder="0"
- />
- </label>
-
- <label className="filter-field">
- <span>Gia den</span>
- <input
- name="priceMax"
- type="number"
- min="0"
- value={filters.priceMax}
- onChange={handleFilterChange}
- placeholder="Khong giai han"
- />
- </label>
-
- <label className="filter-field">
- <span>Rating toi thieu</span>
- <select name="minRating" value={filters.minRating} onChange={handleFilterChange}>
- <option value="0">Tat ca</option>
- <option value="3">Tu 3.0</option>
- <option value="4">Tu 4.0</option>
- <option value="4.5">Tu 4.5</option>
- </select>
- </label>
-
- <label className="filter-field">
- <span>Hang sao</span>
- <select name="minStars" value={filters.minStars} onChange={handleFilterChange}>
- <option value="0">Tat ca</option>
- <option value="3">Tu 3 sao</option>
- <option value="4">Tu 4 sao</option>
- <option value="5">5 sao</option>
- </select>
- </label>
-
- <label className="filter-field">
- <span>Tien nghi</span>
- <select name="amenity" value={filters.amenity} onChange={handleFilterChange}>
- <option value="all">Tat ca tien nghi</option>
- {amenityOptions.map((amenity) => (
- <option key={amenity} value={amenity}>
- {amenity}
- </option>
- ))}
- </select>
- </label>
-
- <label className="wishlist-checkbox">
- <input
- type="checkbox"
- name="wishlistOnly"
- checked={filters.wishlistOnly}
- onChange={handleFilterChange}
- disabled={!isLoggedIn}
- />
- <span>Cho xem wishlist cua toi</span>
- </label>
- </div>
-
- <div className="toolbar-footer">
- <span className="result-pill">
- {availabilityLoading
- ? "Dang cap nhet phong kha dung..."
- : `${filteredHotels.length} khach san phu hop`}
- </span>
- <button type="button" className="reset-btn" onClick={resetFilters}>
- Dat lai bo luc
- </button>
- </div>
-
- {availabilityError && <p className="filter-hint">{availabilityError}</p>}
- </section>
-
- <section className="hotels-container hotels-results">
- {loading ? (
- <div className="hotels-grid skeleton-grid">
- {Array.from({ length: 8 }).map((_, idx) => (
- <div key={idx} className="hotel-card skeleton-card" />
- ))}
- </div>
- ) : error ? (
- <div className="result-state error-state">{error}</div>
- ) : filteredHotels.length === 0 ? (
- <div className="result-state empty-state">
- Khong tim thay khach san nao theo bo luc hien tai.
- </div>
- ) : (
- <>
- <div className="hotels-grid">
- {paginatedHotels.map((hotel) => (
- <article
- key={hotel.hotelId}
- className="hotel-card"
- onClick={() =>
- navigate(`/hotels/${hotel.hotelId}`, {
- state: {
- hotel,
- searchCriteria: {
- ...filters,
- guests: toPositiveInt(filters.guests, 1),
- roomCount: toPositiveInt(filters.roomCount, 1),
- },
- availableRoomCount: hotel.availableRoomCount,
- },
- })
- }
- onKeyDown={(event) => {
- if (event.key === "Enter" || event.key === " ") {
- event.preventDefault();
+ const navigateToDetail = (hotel) => {
  navigate(`/hotels/${hotel.hotelId}`, {
  state: {
  hotel,
@@ -740,114 +444,45 @@ export default function HotelsEnhanced() {
  availableRoomCount: hotel.availableRoomCount,
  },
  });
- }
- }}
- role="button"
- tabIndex={0}
- >
- <div className="hotel-image-wrap">
- <img
- src={getPrimaryImage(hotel, FALLBACK_IMAGE, { includeNameFallback: true })}
- alt={hotel.name || "Hotel image"}
- onError={(event) => {
- event.currentTarget.onerror = null;
- event.currentTarget.src = FALLBACK_IMAGE;
- }}
- />
- <button
- type="button"
- className={`wishlist-btn ${hotel.isWishlisted ? "active" : ""}`}
- onClick={(event) => handleWishlistToggle(hotel.hotelId, event)}
- disabled={wishlistLoading}
- aria-label={hotel.isWishlisted ? "Bo khoi yeu thich" : "Them vao yeu thich"}
- >
- {hotel.isWishlisted ? "a" : "a"}
- </button>
- </div>
+ };
 
- <div className="hotel-body">
- <div className="hotel-title-row">
- <p className="hotel-city">{hotel.city || "Da diem noi bat"}</p>
- <span className="hotel-stars">{hotel.starRating || 3} sao</span>
- </div>
-
- <h3>{hotel.name || "Khach san dang cap nhet"}</h3>
- <p className="hotel-address">
- {hotel.address || "Da chi dang duoc cap nhat"}
- </p>
-
- <div className="hotel-rating-row">
- <strong>{hotel.averageRating ? hotel.averageRating.toFixed(1) : "Moi"}</strong>
- <span>
- {hotel.reviewCount
- ? `${hotel.reviewCount} danh gia`
- : "Cha co danh gia"}
- </span>
- </div>
-
- <div className="hotel-chip-row">
- {hotel.amenities.slice(0, 3).map((amenity) => (
- <span key={amenity} className="hotel-chip">
- {amenity}
- </span>
- ))}
- </div>
-
- <p className="hotel-meta">Phong phu hop: {hotel.availableRoomCount}</p>
- <p className="hotel-price">
- Gia tu{" "}
- <strong>
- {hotel.minRoomPrice ? currencyFormatter.format(hotel.minRoomPrice) : "Lien he"}
- </strong>
- </p>
- <span className="detail-link">Xem chi tiet</span>
- </div>
- </article>
- ))}
- </div>
-
- <div className="hotels-pagination">
- <button
- type="button"
- className="page-btn"
- onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
- disabled={currentPage === 1}
- >
- Truoc
- </button>
-
- <div className="page-list">
- {paginationPages.map((page, index) => {
- const prevPage = paginationPages[index - 1];
- const showGap = prevPage && page - prevPage > 1;
  return (
- <span key={page} className="page-item-wrap">
- {showGap ? <span className="page-gap">...</span> : null}
- <button
- type="button"
- className={`page-btn page-number ${currentPage === page ? "active" : ""}`}
- onClick={() => setCurrentPage(page)}
- >
- {page}
- </button>
- </span>
- );
- })}
- </div>
+ <main className="hotels-page">
+ <HotelsHeroSection
+ totalHotels={totalHotels}
+ totalCities={totalCities}
+ topRatedCount={topRatedCount}
+ />
 
- <button
- type="button"
- className="page-btn"
- onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
- disabled={currentPage >= totalPages}
- >
- Sau
- </button>
- </div>
- </>
- )}
- </section>
+ <HotelsToolbarSection
+ filters={filters}
+ sortBy={sortBy}
+ handleFilterChange={handleFilterChange}
+ setSortBy={setSortBy}
+ setCurrentPage={setCurrentPage}
+ amenityOptions={amenityOptions}
+ isLoggedIn={isLoggedIn}
+ availabilityLoading={availabilityLoading}
+ filteredHotelsCount={filteredHotels.length}
+ resetFilters={resetFilters}
+ availabilityError={availabilityError}
+ />
+
+ <HotelsResultsSection
+ loading={loading}
+ error={error}
+ filteredHotels={filteredHotels}
+ paginatedHotels={paginatedHotels}
+ navigateToDetail={navigateToDetail}
+ FALLBACK_IMAGE={FALLBACK_IMAGE}
+ handleWishlistToggle={handleWishlistToggle}
+ wishlistLoading={wishlistLoading}
+ currencyFormatter={currencyFormatter}
+ currentPage={currentPage}
+ setCurrentPage={setCurrentPage}
+ paginationPages={paginationPages}
+ totalPages={totalPages}
+ />
  </main>
  );
 }
-

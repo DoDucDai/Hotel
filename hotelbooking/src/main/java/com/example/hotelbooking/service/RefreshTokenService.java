@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
+import com.example.hotelbooking.exception.UnauthorizedException;
 import com.example.hotelbooking.model.RefreshToken;
 import com.example.hotelbooking.repository.RefreshTokenRepository;
 
@@ -31,10 +32,10 @@ public class RefreshTokenService {
     public RefreshToken verify(String token) {
 
         RefreshToken refreshToken = repository.findByToken(token)
-                .orElseThrow(() -> new RuntimeException("Invalid refresh token"));
+                .orElseThrow(() -> new UnauthorizedException("Invalid refresh token"));
 
         if (refreshToken.getExpiryDate().isBefore(Instant.now())) {
-            throw new RuntimeException("Refresh token expired");
+            throw new UnauthorizedException("Refresh token expired");
         }
 
         return refreshToken;

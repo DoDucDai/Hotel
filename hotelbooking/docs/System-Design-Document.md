@@ -8,23 +8,29 @@ He thong duoc thiet ke theo mo hinh 3 tang:
 
 ## 2. Kien truc logic backend
 ### 2.1 Controller layer
-- `AuthController`: register, login, refresh, create-admin.
-- `UserController`: CRUD user (admin), thong tin tai khoan hien tai.
-- `HotelController`: danh sach/chi tiet/search hotel, CRUD hotel, upload image.
+- `AuthController`: register, login, refresh token, verify email, reset password.
+- `UserController`: profile user hien tai va quan tri user (admin).
+- `HotelController`: danh sach/chi tiet/search hotel, CRUD hotel (admin), upload image.
 - `RoomController`: danh sach/chi tiet/search room, CRUD room.
-- `BookingController`: tao/xoa booking, booking theo room, booking cua toi, revenue.
-- `HostController`: quan ly hotel/room theo owner.
-- `AdminController`: dashboard thong ke.
+- `BookingController`: tao/huy/doi lich booking, cap nhat status thanh toan va luu tru.
+- `HostHotelController`: quan ly hotel theo owner.
+- `HostRoomController`: quan ly room theo owner.
+- `HostInventoryController`: block/unblock ton kho room theo ngay.
+- `HostDashboardController`: thong ke dashboard cho host.
+- `AdminController`: dashboard, duyet hotel, quan ly dispute, audit logs.
 
 ### 2.2 Service layer
-- `UserService`: logic tai khoan, normalize email, hash password.
-- `BookingService`: validate lich dat, tinh tong tien.
-- `RoomService`: tim phong trong theo khoang ngay.
-- `RefreshTokenService`: tao va verify refresh token.
-- `HotelService`: ho tro pagination/search hotel (duoc duy tri cho service-level logic).
+- `HotelCatalogService`: xu ly hotel public + hotel CRUD/admin.
+- `BookingService`: nghiep vu booking (pricing, coupon, refund, status transitions).
+- `HostHotelService`: nghiep vu hotel cua host.
+- `HostRoomService`: nghiep vu room cua host.
+- `HostInventoryService`: nghiep vu inventory block cua host.
+- `HostDashboardService`: tong hop dashboard host.
+- `HostAccessService`: helper quyen truy cap va owner check.
+- `HostManagementService`: facade compatibility de tranh vo wiring cu.
 
 ### 2.3 Repository layer
-- MongoRepository cho tung aggregate:
+MongoRepository theo aggregate:
 - `UserRepository`, `HotelRepository`, `RoomRepository`, `BookingRepository`, `RefreshTokenRepository`.
 
 ## 3. Kien truc frontend
@@ -34,7 +40,7 @@ He thong duoc thiet ke theo mo hinh 3 tang:
 - Admin route: `/admin` (yeu cau role `ADMIN`).
 
 ### 3.2 State va auth client-side
-- Token duoc luu localStorage (`accessToken`, `refreshToken`, `role`).
+- Token luu localStorage (`accessToken`, `refreshToken`, `role`).
 - `axiosClient` tu dong gan Authorization header.
 - Khi 401: xoa token va chuyen huong ve `/login`.
 - `SessionTimeoutManager`: tu dang xuat neu 10 phut khong hoat dong.
@@ -47,20 +53,9 @@ He thong duoc thiet ke theo mo hinh 3 tang:
 - Method security (`@PreAuthorize`) ket hop voi URL security.
 
 ### 4.2 Matrix phan quyen (rut gon)
-- Public:
-- `/auth/**`
-- `/uploads/**`
-- `GET /hotels/**`
-- `GET /rooms/**`
-- User/Admin:
-- `/users/me/**`
-- `/host/**`
-- `/bookings/**`
-- Admin:
-- `/admin/**`
-- `/users/**`
-- Non-GET `/rooms/**`
-- Một so endpoint hotel CRUD duoc chan boi `@PreAuthorize("hasRole('ADMIN')")`.
+- Public: `/auth/**`, `/uploads/**`, `GET /hotels/**`, `GET /rooms/**`, `GET /reviews/**`.
+- User/Admin: `/users/me/**`, `/host/**`, `/bookings/**`, `/wishlist/**`, `/notifications/**`.
+- Admin: `/admin/**`, `/users/**`, non-GET `/rooms/**`, mutating `/coupons/**`.
 
 ## 5. Luong nghiep vu chinh
 ### 5.1 Dang nhap
@@ -90,14 +85,15 @@ He thong duoc thiet ke theo mo hinh 3 tang:
 - Input: multipart file.
 - Validate content-type phai la `image/*`.
 - Luu file tai `uploads/` trong root project.
-- WebConfig map static resource qua `/uploads/**`.
+- `WebConfig` map static resource qua `/uploads/**`.
 
 ## 7. Error handling
-- `GlobalExceptionHandler` bat `RuntimeException` va tra:
+- Dung custom exception theo domain (`BadRequestException`, `UnauthorizedException`, `ForbiddenException`, `NotFoundException`).
+- `GlobalExceptionHandler` tra JSON thong nhat:
 ```json
-{ "error": "message" }
+{ "error": "message", "message": "message", "status": 400, "timestamp": "..." }
 ```
-- HTTP status cho RuntimeException: `400 Bad Request`.
+- HTTP status duoc map theo loai exception (400/401/403/404/500).
 
 ## 8. Deployment view (local)
 - Backend: Spring Boot tai `http://localhost:8080`.
@@ -107,10 +103,9 @@ He thong duoc thiet ke theo mo hinh 3 tang:
 
 ## 9. Diem can can nhac khi mo rong
 - Tach role `HOST` rieng neu can kiem soat quyen chat hon.
-- Bo sung soft delete va audit log cho booking/hotel/room.
-- Thay `RuntimeException` bang custom exception + ma loi chuan hoa.
+- Bo sung soft delete va audit log day du cho booking/hotel/room.
+- Bo sung business-flow integration test cho host + booking + admin.
 - Bo sung rate limit va secret management an toan hon (env/secret vault).
 
 ## 10. So do Mermaid
-- Xem file so do ERD va sequence tai:
-- `docs/Architecture-Diagrams.md`
+- Xem file so do ERD va sequence tai `docs/Architecture-Diagrams.md`.

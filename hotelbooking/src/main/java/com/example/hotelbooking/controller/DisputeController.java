@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.hotelbooking.dto.CreateDisputeRequest;
 import com.example.hotelbooking.dto.UpdateDisputeStatusRequest;
 import com.example.hotelbooking.model.Dispute;
+import com.example.hotelbooking.security.AuthenticationEmailResolver;
 import com.example.hotelbooking.service.DisputeService;
 
 @RestController
@@ -22,27 +23,31 @@ import com.example.hotelbooking.service.DisputeService;
 public class DisputeController {
 
     private final DisputeService disputeService;
+    private final AuthenticationEmailResolver authenticationEmailResolver;
 
-    public DisputeController(DisputeService disputeService) {
+    public DisputeController(
+            DisputeService disputeService,
+            AuthenticationEmailResolver authenticationEmailResolver) {
         this.disputeService = disputeService;
+        this.authenticationEmailResolver = authenticationEmailResolver;
     }
 
     @PostMapping
     public Dispute createDispute(
             @RequestBody CreateDisputeRequest request,
             Authentication authentication) {
-        return disputeService.createDispute(requireEmail(authentication), request);
+        return disputeService.createDispute(authenticationEmailResolver.requireEmail(authentication), request);
     }
 
     @GetMapping("/my")
     public List<Dispute> getMyDisputes(Authentication authentication) {
-        return disputeService.getMyDisputes(requireEmail(authentication));
+        return disputeService.getMyDisputes(authenticationEmailResolver.requireEmail(authentication));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public List<Dispute> getAllDisputes(Authentication authentication) {
-        return disputeService.getAllDisputes(requireEmail(authentication));
+        return disputeService.getAllDisputes(authenticationEmailResolver.requireEmail(authentication));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -51,14 +56,9 @@ public class DisputeController {
             @PathVariable String id,
             @RequestBody UpdateDisputeStatusRequest request,
             Authentication authentication) {
-        return disputeService.updateDisputeStatus(id, requireEmail(authentication), request);
-    }
-
-    private String requireEmail(Authentication authentication) {
-        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
-            throw new RuntimeException("Unauthorized");
-        }
-
-        return authentication.getName();
+        return disputeService.updateDisputeStatus(
+                id,
+                authenticationEmailResolver.requireEmail(authentication),
+                request);
     }
 }

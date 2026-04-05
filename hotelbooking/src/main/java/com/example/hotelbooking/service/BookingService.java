@@ -13,6 +13,10 @@ import com.example.hotelbooking.dto.CreateBookingRequest;
 import com.example.hotelbooking.dto.RescheduleBookingRequest;
 import com.example.hotelbooking.dto.UpdateBookingStatusRequest;
 import com.example.hotelbooking.dto.UpdatePaymentStatusRequest;
+import com.example.hotelbooking.exception.BadRequestException;
+import com.example.hotelbooking.exception.ForbiddenException;
+import com.example.hotelbooking.exception.NotFoundException;
+import com.example.hotelbooking.exception.UnauthorizedException;
 import com.example.hotelbooking.model.Booking;
 import com.example.hotelbooking.model.BookingStatus;
 import com.example.hotelbooking.model.Coupon;
@@ -36,7 +40,9 @@ public class BookingService {
     private final CouponService couponService;
     private final HotelRepository hotelRepository;
     private final RoomInventoryService roomInventoryService;
+    private final RoomBookingLockService roomBookingLockService;
     private final AuditLogService auditLogService;
+    private final NotificationService notificationService;
 
     public BookingService(
             BookingRepository bookingRepository,
@@ -45,14 +51,18 @@ public class BookingService {
             CouponService couponService,
             HotelRepository hotelRepository,
             RoomInventoryService roomInventoryService,
-            AuditLogService auditLogService) {
+            RoomBookingLockService roomBookingLockService,
+            AuditLogService auditLogService,
+            NotificationService notificationService) {
         this.bookingRepository = bookingRepository;
         this.roomRepository = roomRepository;
         this.userRepository = userRepository;
         this.couponService = couponService;
         this.hotelRepository = hotelRepository;
         this.roomInventoryService = roomInventoryService;
+        this.roomBookingLockService = roomBookingLockService;
         this.auditLogService = auditLogService;
+        this.notificationService = notificationService;
     }
 
     public Booking createBooking(CreateBookingRequest request, String email) {
@@ -60,7 +70,7 @@ public class BookingService {
         User user = getCurrentUser(email);
 
         Room room = roomRepository.findById(requireNonBlank(safeRequest.getRoomId(), "roomId is required"))
-                .orElseThrow(() -> new RuntimeException("Room not found"));
+                .orElseThrow(() -> new NotFoundException("Room not found"));
 
         LocalDate checkInDate = safeRequest.getCheckInDate();
         LocalDate checkOutDate = safeRequest.getCheckOutDate();
@@ -68,57 +78,73 @@ public class BookingService {
 
         int guestCount = safeRequest.getGuestCount() > 0 ? safeRequest.getGuestCount() : 1;
         if (guestCount > room.getCapacity()) {
-            throw new RuntimeException("So khach vuot qua suc chua cua phong");
+            throw new BadRequestException("So khach vuot qua suc chua cua phong");
         }
-
-        int availableUnits = roomInventoryService.getMinimumAvailableUnits(room, checkInDate, checkOutDate, null);
-        if (availableUnits <= 0) {
-            throw new RuntimeException("Khong con phong trong khoang thoi gian nay");
-        }
-
-        long days = ChronoUnit.DAYS.between(checkInDate, checkOutDate);
-        double originalPrice = room.getPrice() * days;
-        Coupon coupon = couponService.validateCoupon(safeRequest.getCouponCode(), originalPrice);
-        double discountAmount = couponService.calculateDiscount(originalPrice, coupon);
-        double finalPrice = Math.max(originalPrice - discountAmount, 0);
 
         PaymentMethod paymentMethod = safeRequest.getPaymentMethod() == null
                 ? PaymentMethod.PAY_AT_HOTEL
                 : safeRequest.getPaymentMethod();
 
-        Booking booking = new Booking();
-        booking.setUserId(user.getId());
-        booking.setRoomId(room.getId());
-        booking.setCheckInDate(checkInDate);
-        booking.setCheckOutDate(checkOutDate);
-        booking.setGuestCount(guestCount);
-        booking.setNote(trimToNull(safeRequest.getNote()));
-        booking.setStatus(BookingStatus.CONFIRMED);
-        booking.setPaymentMethod(paymentMethod);
-        booking.setPaymentStatus(
-                paymentMethod == PaymentMethod.PAY_AT_HOTEL
-                        ? PaymentStatus.PENDING
-                        : PaymentStatus.PAID
-        );
-        booking.setCouponCode(coupon != null ? coupon.getCode() : null);
-        booking.setOriginalPrice(originalPrice);
-        booking.setDiscountAmount(discountAmount);
-        booking.setFinalPrice(finalPrice);
-        booking.setTotalPrice(finalPrice);
-        booking.setCreatedAt(LocalDateTime.now());
-        booking.setUpdatedAt(LocalDateTime.now());
+        Booking savedBooking = roomBookingLockService.executeWithLock(room.getId(), () -> {
+            int availableUnits = roomInventoryService.getMinimumAvailableUnits(room, checkInDate, checkOutDate, null);
+            if (availableUnits <= 0) {
+                throw new BadRequestException("Khong con phong trong khoang thoi gian nay");
+            }
 
-        if (booking.getPaymentStatus() == PaymentStatus.PAID) {
-            booking.setPaidAt(LocalDateTime.now());
-        }
+            long days = ChronoUnit.DAYS.between(checkInDate, checkOutDate);
+            double originalPrice = room.getPrice() * days;
+            Coupon coupon = couponService.validateCoupon(safeRequest.getCouponCode(), originalPrice);
+            double discountAmount = couponService.calculateDiscount(originalPrice, coupon);
+            double finalPrice = Math.max(originalPrice - discountAmount, 0);
 
-        Booking savedBooking = bookingRepository.save(booking);
+            Booking booking = new Booking();
+            booking.setUserId(user.getId());
+            booking.setRoomId(room.getId());
+            booking.setCheckInDate(checkInDate);
+            booking.setCheckOutDate(checkOutDate);
+            booking.setGuestCount(guestCount);
+            booking.setNote(trimToNull(safeRequest.getNote()));
+            booking.setStatus(BookingStatus.CONFIRMED);
+            booking.setPaymentMethod(paymentMethod);
+            // Online payments stay pending until payment webhook confirms.
+            booking.setPaymentStatus(PaymentStatus.PENDING);
+            booking.setCouponCode(coupon != null ? coupon.getCode() : null);
+            booking.setOriginalPrice(originalPrice);
+            booking.setDiscountAmount(discountAmount);
+            booking.setFinalPrice(finalPrice);
+            booking.setTotalPrice(finalPrice);
+            booking.setCreatedAt(LocalDateTime.now());
+            booking.setUpdatedAt(LocalDateTime.now());
+            booking.setPaidAt(null);
+
+            return bookingRepository.save(booking);
+        });
         auditLogService.record(
                 "CREATE_BOOKING",
                 "BOOKING",
                 savedBooking.getId(),
                 user,
                 "Tao booking moi cho room " + room.getId());
+
+        notificationService.createForUser(
+                user.getId(),
+                "BOOKING",
+                "Dat phong thanh cong",
+                "Booking " + savedBooking.getId() + " da duoc tao va xac nhan.",
+                "BOOKING",
+                savedBooking.getId(),
+                true);
+
+        if (room.getOwnerId() != null && !room.getOwnerId().equals(user.getId())) {
+            notificationService.createForUser(
+                    room.getOwnerId(),
+                    "HOST_BOOKING",
+                    "Co booking moi",
+                    "Room " + room.getName() + " vua co booking moi: " + savedBooking.getId(),
+                    "BOOKING",
+                    savedBooking.getId(),
+                    false);
+        }
         return savedBooking;
     }
 
@@ -128,32 +154,46 @@ public class BookingService {
         assertBookingOwner(user, booking);
 
         if (booking.getStatus() == BookingStatus.CANCELLED) {
-            throw new RuntimeException("Booking nay da duoc huy truoc do");
+            throw new BadRequestException("Booking nay da duoc huy truoc do");
         }
 
         if (booking.getCheckInDate() == null || !LocalDate.now().isBefore(booking.getCheckInDate())) {
-            throw new RuntimeException("Chi co the huy booking truoc ngay nhan phong");
+            throw new BadRequestException("Chi co the huy booking truoc ngay nhan phong");
         }
 
-        Hotel hotel = getHotelByRoomId(requireNonBlank(booking.getRoomId(), "Room id is required"));
-        double refundAmount = calculateRefundAmount(booking, hotel);
+        Booking savedBooking = roomBookingLockService.executeWithLock(booking.getRoomId(), () -> {
+            Booking lockedBooking = getBookingById(bookingId);
+            Hotel hotel = getHotelByRoomId(requireNonBlank(lockedBooking.getRoomId(), "Room id is required"));
+            double refundAmount = calculateRefundAmount(lockedBooking, hotel);
 
-        booking.setStatus(BookingStatus.CANCELLED);
-        booking.setCancellationReason(request == null ? null : trimToNull(request.getReason()));
-        booking.setUpdatedAt(LocalDateTime.now());
-        booking.setRefundAmount(refundAmount);
+            lockedBooking.setStatus(BookingStatus.CANCELLED);
+            lockedBooking.setCancellationReason(request == null ? null : trimToNull(request.getReason()));
+            lockedBooking.setUpdatedAt(LocalDateTime.now());
+            lockedBooking.setRefundAmount(refundAmount);
 
-        if (booking.getPaymentStatus() == PaymentStatus.PAID) {
-            booking.setPaymentStatus(PaymentStatus.REFUNDED);
-        }
+            if (lockedBooking.getPaymentStatus() == PaymentStatus.PAID) {
+                lockedBooking.setPaymentStatus(PaymentStatus.REFUNDED);
+            }
 
-        Booking savedBooking = bookingRepository.save(booking);
+            return bookingRepository.save(lockedBooking);
+        });
+
+        double refundAmount = savedBooking.getRefundAmount();
         auditLogService.record(
                 "CANCEL_BOOKING",
                 "BOOKING",
                 savedBooking.getId(),
                 user,
                 "Huy booking va hoan " + refundAmount);
+
+        notificationService.createForUser(
+                savedBooking.getUserId(),
+                "BOOKING",
+                "Booking da duoc huy",
+                "Booking " + savedBooking.getId() + " da duoc huy. So tien hoan: " + refundAmount,
+                "BOOKING",
+                savedBooking.getId(),
+                true);
         return savedBooking;
     }
 
@@ -163,56 +203,70 @@ public class BookingService {
         assertBookingOwner(user, booking);
 
         if (booking.getStatus() == BookingStatus.CANCELLED) {
-            throw new RuntimeException("Khong the doi lich cho booking da huy");
+            throw new BadRequestException("Khong the doi lich cho booking da huy");
         }
 
         if (booking.getCheckInDate() == null || !LocalDate.now().isBefore(booking.getCheckInDate())) {
-            throw new RuntimeException("Chi co the doi lich cho booking sap toi");
+            throw new BadRequestException("Chi co the doi lich cho booking sap toi");
         }
 
         RescheduleBookingRequest safeRequest = Objects.requireNonNull(request, "Reschedule request is required");
         validateDateRange(safeRequest.getCheckInDate(), safeRequest.getCheckOutDate());
 
-        Room room = roomRepository.findById(booking.getRoomId())
-                .orElseThrow(() -> new RuntimeException("Room not found"));
-        int availableUnits = roomInventoryService.getMinimumAvailableUnits(
-                room,
-                safeRequest.getCheckInDate(),
-                safeRequest.getCheckOutDate(),
-                booking.getId());
-        if (availableUnits <= 0) {
-            throw new RuntimeException("Khong con phong trong khoang thoi gian nay");
-        }
+        Booking savedBooking = roomBookingLockService.executeWithLock(booking.getRoomId(), () -> {
+            Booking lockedBooking = getBookingById(bookingId);
+            Room room = roomRepository.findById(lockedBooking.getRoomId())
+                    .orElseThrow(() -> new NotFoundException("Room not found"));
+            int availableUnits = roomInventoryService.getMinimumAvailableUnits(
+                    room,
+                    safeRequest.getCheckInDate(),
+                    safeRequest.getCheckOutDate(),
+                    lockedBooking.getId());
+            if (availableUnits <= 0) {
+                throw new BadRequestException("Khong con phong trong khoang thoi gian nay");
+            }
 
-        long days = ChronoUnit.DAYS.between(safeRequest.getCheckInDate(), safeRequest.getCheckOutDate());
-        double originalPrice = room.getPrice() * days;
-        Coupon coupon = couponService.getCouponForExistingBooking(booking.getCouponCode());
-        double discountAmount = couponService.calculateDiscount(originalPrice, coupon);
-        double finalPrice = Math.max(originalPrice - discountAmount, 0);
+            long days = ChronoUnit.DAYS.between(safeRequest.getCheckInDate(), safeRequest.getCheckOutDate());
+            double originalPrice = room.getPrice() * days;
+            Coupon coupon = couponService.getCouponForExistingBooking(lockedBooking.getCouponCode());
+            double discountAmount = couponService.calculateDiscount(originalPrice, coupon);
+            double finalPrice = Math.max(originalPrice - discountAmount, 0);
 
-        booking.setCheckInDate(safeRequest.getCheckInDate());
-        booking.setCheckOutDate(safeRequest.getCheckOutDate());
-        booking.setOriginalPrice(originalPrice);
-        booking.setDiscountAmount(discountAmount);
-        booking.setFinalPrice(finalPrice);
-        booking.setTotalPrice(finalPrice);
-        booking.setUpdatedAt(LocalDateTime.now());
-        booking.setLastRescheduledAt(LocalDateTime.now());
+            lockedBooking.setCheckInDate(safeRequest.getCheckInDate());
+            lockedBooking.setCheckOutDate(safeRequest.getCheckOutDate());
+            lockedBooking.setOriginalPrice(originalPrice);
+            lockedBooking.setDiscountAmount(discountAmount);
+            lockedBooking.setFinalPrice(finalPrice);
+            lockedBooking.setTotalPrice(finalPrice);
+            lockedBooking.setUpdatedAt(LocalDateTime.now());
+            lockedBooking.setLastRescheduledAt(LocalDateTime.now());
 
-        Booking savedBooking = bookingRepository.save(booking);
+            return bookingRepository.save(lockedBooking);
+        });
         auditLogService.record(
                 "RESCHEDULE_BOOKING",
                 "BOOKING",
                 savedBooking.getId(),
                 user,
                 "Doi lich booking sang " + safeRequest.getCheckInDate() + " - " + safeRequest.getCheckOutDate());
+
+        notificationService.createForUser(
+                savedBooking.getUserId(),
+                "BOOKING",
+                "Booking da duoc doi lich",
+                "Booking " + savedBooking.getId()
+                        + " duoc doi lich sang " + safeRequest.getCheckInDate()
+                        + " - " + safeRequest.getCheckOutDate(),
+                "BOOKING",
+                savedBooking.getId(),
+                true);
         return savedBooking;
     }
 
     public Booking updatePaymentStatus(String bookingId, String email, UpdatePaymentStatusRequest request) {
         User user = getCurrentUser(email);
         if (user.getRole() != Role.ADMIN) {
-            throw new RuntimeException("Ban khong co quyen cap nhat payment status");
+            throw new ForbiddenException("Ban khong co quyen cap nhat payment status");
         }
 
         UpdatePaymentStatusRequest safeRequest =
@@ -239,13 +293,22 @@ public class BookingService {
                 savedBooking.getId(),
                 user,
                 "Cap nhat payment status sang " + nextStatus.name());
+
+        notificationService.createForUser(
+                savedBooking.getUserId(),
+                "BOOKING_PAYMENT",
+                "Cap nhat thanh toan booking",
+                "Booking " + savedBooking.getId() + " da cap nhat trang thai thanh toan: " + nextStatus.name(),
+                "BOOKING",
+                savedBooking.getId(),
+                true);
         return savedBooking;
     }
 
     public Booking updateBookingStatus(String bookingId, String email, UpdateBookingStatusRequest request) {
         User user = getCurrentUser(email);
         if (user.getRole() != Role.ADMIN) {
-            throw new RuntimeException("Ban khong co quyen cap nhat trang thai luu tru");
+            throw new ForbiddenException("Ban khong co quyen cap nhat trang thai luu tru");
         }
 
         UpdateBookingStatusRequest safeRequest = Objects.requireNonNull(request, "Booking status request is required");
@@ -253,7 +316,7 @@ public class BookingService {
         Booking booking = getBookingById(bookingId);
 
         if (booking.getStatus() == BookingStatus.CANCELLED && nextStatus != BookingStatus.CANCELLED) {
-            throw new RuntimeException("Khong the doi booking da huy sang trang thai khac");
+            throw new BadRequestException("Khong the doi booking da huy sang trang thai khac");
         }
 
         booking.setStatus(nextStatus);
@@ -281,10 +344,22 @@ public class BookingService {
                 savedBooking.getId(),
                 user,
                 "Cap nhat booking sang " + nextStatus.name());
+
+        notificationService.createForUser(
+                savedBooking.getUserId(),
+                "BOOKING_STATUS",
+                "Cap nhat trang thai luu tru",
+                "Booking " + savedBooking.getId() + " da chuyen sang trang thai " + nextStatus.name(),
+                "BOOKING",
+                savedBooking.getId(),
+                true);
         return savedBooking;
     }
 
-    public void deleteBooking(String id) {
+    public void deleteBooking(String id, String email) {
+        Booking booking = getBookingById(id);
+        User user = getCurrentUser(email);
+        assertBookingOwner(user, booking);
         bookingRepository.deleteById(requireNonBlank(id, "Booking id is required"));
     }
 
@@ -294,6 +369,20 @@ public class BookingService {
 
     public List<Booking> getAllBookings() {
         return bookingRepository.findAll();
+    }
+
+    public List<Booking> getVisibleBookings(String email) {
+        User user = getCurrentUser(email);
+        if (user.getRole() == Role.ADMIN) {
+            return bookingRepository.findAll();
+        }
+
+        return bookingRepository.findByUserId(user.getId());
+    }
+
+    public List<Booking> getMyBookings(String email) {
+        User user = getCurrentUser(email);
+        return bookingRepository.findByUserId(user.getId());
     }
 
     public double getTotalRevenue() {
@@ -309,7 +398,7 @@ public class BookingService {
         }
 
         if (checkInDate.isBefore(LocalDate.now())) {
-            throw new RuntimeException("Ngay nhan phong khong hop le");
+            throw new BadRequestException("Ngay nhan phong khong hop le");
         }
 
         if (!checkOutDate.isAfter(checkInDate)) {
@@ -319,12 +408,12 @@ public class BookingService {
 
     private User getCurrentUser(String email) {
         return userRepository.findByEmail(requireNonBlank(email, "Unauthorized"))
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     private Booking getBookingById(String bookingId) {
         return bookingRepository.findById(requireNonBlank(bookingId, "Booking id is required"))
-                .orElseThrow(() -> new RuntimeException("Booking not found"));
+                .orElseThrow(() -> new NotFoundException("Booking not found"));
     }
 
     private void assertBookingOwner(User user, Booking booking) {
@@ -333,7 +422,7 @@ public class BookingService {
         }
 
         if (!Objects.equals(user.getId(), booking.getUserId())) {
-            throw new RuntimeException("Ban khong co quyen thao tac booking nay");
+            throw new ForbiddenException("Ban khong co quyen thao tac booking nay");
         }
     }
 
@@ -398,7 +487,11 @@ public class BookingService {
 
     private String requireNonBlank(String value, String message) {
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(message);
+            if ("Unauthorized".equalsIgnoreCase(message)) {
+                throw new UnauthorizedException(message);
+            }
+
+            throw new BadRequestException(message);
         }
 
         return value;

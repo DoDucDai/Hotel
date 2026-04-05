@@ -1,4 +1,6 @@
-export const API_BASE_URL = "http://localhost:8080";
+import { API_BASE_URL } from "./apiConfig.js";
+
+export { API_BASE_URL };
 
 function hasText(value) {
  return typeof value === "string" && value.trim().length > 0;

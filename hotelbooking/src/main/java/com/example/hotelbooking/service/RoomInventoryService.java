@@ -7,6 +7,8 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.example.hotelbooking.dto.RoomInventoryDayDTO;
+import com.example.hotelbooking.exception.BadRequestException;
+import com.example.hotelbooking.exception.NotFoundException;
 import com.example.hotelbooking.model.Booking;
 import com.example.hotelbooking.model.BookingStatus;
 import com.example.hotelbooking.model.Room;
@@ -39,7 +41,7 @@ public class RoomInventoryService {
 
         Room safeRoom = requireRoom(room);
         if (startDate == null || endDate == null || endDate.isBefore(startDate)) {
-            throw new RuntimeException("Khoang ngay ton kho khong hop le");
+            throw new BadRequestException("Khoang ngay ton kho khong hop le");
         }
 
         List<Booking> bookings = bookingRepository.findByRoomId(safeRoom.getId());
@@ -75,7 +77,7 @@ public class RoomInventoryService {
             String excludedBookingId) {
 
         if (checkInDate == null || checkOutDate == null || !checkOutDate.isAfter(checkInDate)) {
-            throw new RuntimeException("Ngay nhan va ngay tra phong khong hop le");
+            throw new BadRequestException("Ngay nhan va ngay tra phong khong hop le");
         }
 
         LocalDate lastNight = checkOutDate.minusDays(1);
@@ -116,7 +118,7 @@ public class RoomInventoryService {
 
     public RoomInventoryBlock getBlockById(String blockId) {
         return roomInventoryBlockRepository.findById(requireNonBlank(blockId, "Block id is required"))
-                .orElseThrow(() -> new RuntimeException("Khong tim thay block ton kho"));
+                .orElseThrow(() -> new NotFoundException("Khong tim thay block ton kho"));
     }
 
     public void deleteBlock(String blockId) {
@@ -129,7 +131,7 @@ public class RoomInventoryService {
 
     private Room requireRoom(Room room) {
         if (room == null || room.getId() == null || room.getId().isBlank()) {
-            throw new RuntimeException("Room khong hop le");
+            throw new BadRequestException("Room khong hop le");
         }
 
         return room;
@@ -160,7 +162,7 @@ public class RoomInventoryService {
 
     private String requireNonBlank(String value, String message) {
         if (value == null || value.isBlank()) {
-            throw new RuntimeException(message);
+            throw new BadRequestException(message);
         }
 
         return value;

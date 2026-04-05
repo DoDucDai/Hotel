@@ -165,6 +165,7 @@
  align-items: center;
  gap: 8px;
  cursor: pointer;
+ position: relative;
 }
 
 .nav-profile-avatar {
@@ -204,6 +205,22 @@
 
 .nav-profile-caret.open {
  transform: rotate(180deg);
+}
+
+.nav-notify-badge {
+ position: absolute;
+ top: -7px;
+ right: -7px;
+ min-width: 20px;
+ height: 20px;
+ border-radius: 999px;
+ background: #ff6d2e;
+ color: #ffffff;
+ font-size: 0.67rem;
+ font-weight: 700;
+ display: grid;
+ place-items: center;
+ padding: 0 5px;
 }
 
 .nav-profile-menu {

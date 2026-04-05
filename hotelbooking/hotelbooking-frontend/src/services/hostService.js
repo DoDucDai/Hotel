@@ -12,6 +12,10 @@ export const getMyHostHotels = () => {
  return axiosClient.get("/host/hotels/my");
 };
 
+export const getHostDashboard = () => {
+ return axiosClient.get("/host/dashboard");
+};
+
 export const createHostHotel = (data) => {
  return axiosClient.post("/host/hotels", data);
 };

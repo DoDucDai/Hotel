@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.hotelbooking.dto.CreateReviewRequest;
 import com.example.hotelbooking.model.Review;
+import com.example.hotelbooking.security.AuthenticationEmailResolver;
 import com.example.hotelbooking.service.ReviewService;
 
 @RestController
@@ -19,9 +20,13 @@ import com.example.hotelbooking.service.ReviewService;
 public class ReviewController {
 
     private final ReviewService reviewService;
+    private final AuthenticationEmailResolver authenticationEmailResolver;
 
-    public ReviewController(ReviewService reviewService) {
+    public ReviewController(
+            ReviewService reviewService,
+            AuthenticationEmailResolver authenticationEmailResolver) {
         this.reviewService = reviewService;
+        this.authenticationEmailResolver = authenticationEmailResolver;
     }
 
     @GetMapping
@@ -33,11 +38,6 @@ public class ReviewController {
     public Review createReview(
             @RequestBody CreateReviewRequest request,
             Authentication authentication) {
-
-        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
-            throw new RuntimeException("Unauthorized");
-        }
-
-        return reviewService.createReview(authentication.getName(), request);
+        return reviewService.createReview(authenticationEmailResolver.requireEmail(authentication), request);
     }
 }

@@ -1,17 +1,19 @@
 package com.example.hotelbooking.service;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import com.example.hotelbooking.dto.RoomInventoryDayDTO;
 import com.example.hotelbooking.dto.RoomDTO;
+import com.example.hotelbooking.dto.RoomInventoryDayDTO;
+import com.example.hotelbooking.exception.BadRequestException;
+import com.example.hotelbooking.exception.NotFoundException;
 import com.example.hotelbooking.mapper.RoomMapper;
 import com.example.hotelbooking.model.Room;
 import com.example.hotelbooking.repository.RoomRepository;
@@ -19,15 +21,17 @@ import com.example.hotelbooking.repository.RoomRepository;
 @Service
 public class RoomService {
 
-    @Autowired
-    private RoomRepository roomRepository;
+    private final RoomRepository roomRepository;
+    private final RoomInventoryService roomInventoryService;
 
-    @Autowired
-    private RoomInventoryService roomInventoryService;
+    public RoomService(RoomRepository roomRepository, RoomInventoryService roomInventoryService) {
+        this.roomRepository = roomRepository;
+        this.roomInventoryService = roomInventoryService;
+    }
 
     private String requireNonBlank(String value, String message) {
         if (value == null || value.isBlank()) {
-            throw new RuntimeException(message);
+            throw new BadRequestException(message);
         }
 
         return value;
@@ -47,7 +51,7 @@ public class RoomService {
     public Room getRoomById(String id) {
         String roomId = requireNonBlank(id, "Room id is required");
         Room room = roomRepository.findById(Objects.requireNonNull(roomId))
-                .orElseThrow(() -> new RuntimeException("Room not found"));
+                .orElseThrow(() -> new NotFoundException("Room not found"));
         room.setAvailableUnits(Math.max(room.getTotalUnits(), 1));
         return room;
     }
@@ -80,26 +84,40 @@ public class RoomService {
     }
 
     public List<Room> findAvailableRooms(LocalDate checkIn, LocalDate checkOut) {
-        List<Room> allRooms = roomRepository.findAll();
-        return allRooms.stream()
-                .peek((room) -> roomInventoryService.applyInventorySnapshot(room, checkIn, checkOut))
-                .filter((room) -> room.getAvailableUnits() > 0)
-                .toList();
+        return searchRooms(checkIn, checkOut, 1, null, null, null, "availability_desc");
     }
 
-    public List<Room> searchRooms(LocalDate checkIn, LocalDate checkOut, int guests) {
-        List<Room> rooms = roomRepository.findByCapacityGreaterThanEqual(guests);
-        return rooms.stream()
+    public List<Room> searchRooms(
+            LocalDate checkIn,
+            LocalDate checkOut,
+            int guests,
+            Double minPrice,
+            Double maxPrice,
+            String amenity,
+            String sortBy) {
+
+        int safeGuests = Math.max(guests, 1);
+        List<Room> rooms = roomRepository.findByCapacityGreaterThanEqual(safeGuests);
+
+        List<Room> filtered = rooms.stream()
                 .peek((room) -> roomInventoryService.applyInventorySnapshot(room, checkIn, checkOut))
                 .filter((room) -> room.getAvailableUnits() > 0)
+                .filter((room) -> matchesPrice(room, minPrice, maxPrice))
+                .filter((room) -> matchesAmenity(room, amenity))
+                .sorted(resolveSort(sortBy))
                 .toList();
+
+        if (checkIn == null || checkOut == null || !checkOut.isAfter(checkIn)) {
+            return filtered.stream()
+                    .peek((room) -> room.setAvailableUnits(Math.max(room.getTotalUnits(), 1)))
+                    .toList();
+        }
+
+        return filtered;
     }
 
     public List<Room> getRoomsByGuestCount(int guests) {
-        return roomRepository.findByCapacityGreaterThanEqual(guests)
-                .stream()
-                .peek((room) -> room.setAvailableUnits(Math.max(room.getTotalUnits(), 1)))
-                .collect(Collectors.toList());
+        return searchRooms(null, null, guests, null, null, null, "price_asc");
     }
 
     public List<RoomInventoryDayDTO> getInventoryCalendar(String roomId, LocalDate startDate, LocalDate endDate) {
@@ -120,6 +138,53 @@ public class RoomService {
                 .toList());
     }
 
+    private Comparator<Room> resolveSort(String sortBy) {
+        String normalizedSort = sortBy == null ? "price_asc" : sortBy.trim().toLowerCase();
+
+        if ("price_desc".equals(normalizedSort)) {
+            return Comparator.comparingDouble(Room::getPrice).reversed();
+        }
+
+        if ("capacity_desc".equals(normalizedSort)) {
+            return Comparator.comparingInt(Room::getCapacity).reversed();
+        }
+
+        if ("availability_desc".equals(normalizedSort)) {
+            return Comparator.comparingInt(Room::getAvailableUnits).reversed()
+                    .thenComparingDouble(Room::getPrice);
+        }
+
+        return Comparator.comparingDouble(Room::getPrice);
+    }
+
+    private boolean matchesPrice(Room room, Double minPrice, Double maxPrice) {
+        double price = Math.max(room.getPrice(), 0);
+
+        if (minPrice != null && Double.isFinite(minPrice) && price < Math.max(minPrice, 0)) {
+            return false;
+        }
+
+        if (maxPrice != null && Double.isFinite(maxPrice) && price > Math.max(maxPrice, 0)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean matchesAmenity(Room room, String amenity) {
+        String normalizedAmenity = trimToNull(amenity);
+        if (normalizedAmenity == null || "all".equalsIgnoreCase(normalizedAmenity)) {
+            return true;
+        }
+
+        String keyword = normalizedAmenity.toLowerCase();
+        return room.getAmenities().stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .map(String::toLowerCase)
+                .anyMatch((value) -> value.equals(keyword));
+    }
+
     private String trimToNull(String value) {
         if (value == null) {
             return null;
@@ -129,4 +194,3 @@ public class RoomService {
         return normalized.isEmpty() ? null : normalized;
     }
 }
-

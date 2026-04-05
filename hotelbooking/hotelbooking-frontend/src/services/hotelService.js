@@ -1,21 +1,25 @@
 import axiosClient from "../utils/axiosClient";
 
-// lay danh sach hotel (pagination)
-export const getHotels = (page = 0, size = 10) => {
- return axiosClient.get(`/hotels?page=${page}&size=${size}`);
+export const getHotels = (pageOrParams = 0, size = 200, extraParams = {}) => {
+ let params;
+
+ if (typeof pageOrParams === "object" && pageOrParams !== null) {
+ params = { page: 0, size: 200, ...pageOrParams };
+ } else {
+ params = { page: pageOrParams, size, ...extraParams };
+ }
+
+ return axiosClient.get("/hotels", { params });
 };
 
-// lay ch? tiet hotel
 export const getHotelById = (id) => {
  return axiosClient.get(`/hotels/${id}`);
 };
 
-// tao hotel
 export const createHotel = (data) => {
  return axiosClient.post("/hotels", data);
 };
 
-// upload anh
 export const uploadHotelImage = (id, file) => {
  const formData = new FormData();
  formData.append("file", file);
@@ -26,4 +30,3 @@ export const uploadHotelImage = (id, file) => {
 export const getHotelRecommendations = (id, limit = 4) => {
  return axiosClient.get(`/hotels/${id}/recommendations?limit=${limit}`);
 };
-

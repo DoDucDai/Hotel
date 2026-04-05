@@ -7,6 +7,9 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
+import com.example.hotelbooking.exception.BadRequestException;
+import com.example.hotelbooking.exception.InternalServerException;
+import com.example.hotelbooking.exception.UnauthorizedException;
 import com.example.hotelbooking.model.AuthActionToken;
 import com.example.hotelbooking.model.AuthActionType;
 import com.example.hotelbooking.model.User;
@@ -46,15 +49,15 @@ public class AuthTokenService {
         String tokenValue = requireNonBlank(rawToken, "Token is required");
 
         AuthActionToken token = authActionTokenRepository.findByToken(tokenValue)
-                .orElseThrow(() -> new RuntimeException("Token khong hop le hoac da het han"));
+                .orElseThrow(() -> new UnauthorizedException("Token khong hop le hoac da het han"));
 
         if (token.getType() != expectedType) {
-            throw new RuntimeException("Token khong dung muc dich xac thuc");
+            throw new UnauthorizedException("Token khong dung muc dich xac thuc");
         }
 
         if (token.getExpiresAt() == null || token.getExpiresAt().isBefore(Instant.now())) {
             authActionTokenRepository.deleteById(token.getId());
-            throw new RuntimeException("Token da het han. Vui long tao yeu cau moi");
+            throw new UnauthorizedException("Token da het han. Vui long tao yeu cau moi");
         }
 
         return token;
@@ -70,7 +73,7 @@ public class AuthTokenService {
 
     private String requireNonBlank(String value, String message) {
         if (value == null || value.isBlank()) {
-            throw new RuntimeException(message);
+            throw new BadRequestException(message);
         }
 
         return value.trim();
@@ -84,6 +87,6 @@ public class AuthTokenService {
             }
         }
 
-        throw new RuntimeException("Khong the tao ma OTP reset password. Vui long thu lai");
+        throw new InternalServerException("Khong the tao ma OTP reset password. Vui long thu lai");
     }
 }

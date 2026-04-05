@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getHotels } from "../api/hotelApi";
+import { getHotels } from "../services/hotelService";
 import { getPrimaryImage } from "../utils/imageHelpers";
 import "./Home.css";
 

@@ -19,7 +19,15 @@ export const getRoomInventory = (roomId, startDate, endDate) => {
  return axiosClient.get(`/rooms/${roomId}/inventory?${params.toString()}`);
 };
 
-export const searchRooms = ({ guests = 1, checkIn = "", checkOut = "" }) => {
+export const searchRooms = ({
+ guests = 1,
+ checkIn = "",
+ checkOut = "",
+ minPrice = "",
+ maxPrice = "",
+ amenity = "",
+ sortBy = "price_asc",
+}) => {
  const params = new URLSearchParams();
  params.append("guests", String(guests || 1));
 
@@ -29,6 +37,22 @@ export const searchRooms = ({ guests = 1, checkIn = "", checkOut = "" }) => {
 
  if (checkOut) {
  params.append("checkOut", checkOut);
+ }
+
+ if (minPrice !== "" && minPrice !== null && minPrice !== undefined) {
+ params.append("minPrice", String(minPrice));
+ }
+
+ if (maxPrice !== "" && maxPrice !== null && maxPrice !== undefined) {
+ params.append("maxPrice", String(maxPrice));
+ }
+
+ if (amenity) {
+ params.append("amenity", amenity);
+ }
+
+ if (sortBy) {
+ params.append("sortBy", sortBy);
  }
 
  return axiosClient.get(`/rooms/search?${params.toString()}`);

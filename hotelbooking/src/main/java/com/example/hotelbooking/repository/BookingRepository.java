@@ -11,6 +11,8 @@ public interface BookingRepository extends MongoRepository<Booking, String> {
 
     List<Booking> findByRoomId(String roomId);
 
+    List<Booking> findByRoomIdIn(List<String> roomIds);
+
     List<Booking> findByCheckInDateLessThanEqualAndCheckOutDateGreaterThanEqual(
             LocalDate checkOut,
             LocalDate checkIn

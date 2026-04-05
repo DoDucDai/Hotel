@@ -3,7 +3,6 @@ package com.example.hotelbooking.controller;
 import java.time.LocalDate;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,8 +25,11 @@ import com.example.hotelbooking.service.RoomService;
 @RequestMapping("/rooms")
 public class RoomController {
 
-    @Autowired
-    private RoomService roomService;
+    private final RoomService roomService;
+
+    public RoomController(RoomService roomService) {
+        this.roomService = roomService;
+    }
 
     @GetMapping
     public Page<RoomDTO> getAllRooms(
@@ -74,16 +76,16 @@ public class RoomController {
     public List<Room> searchRooms(
             @RequestParam(required = false) String checkIn,
             @RequestParam(required = false) String checkOut,
-            @RequestParam(defaultValue = "1") int guests) {
+            @RequestParam(defaultValue = "1") int guests,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) String amenity,
+            @RequestParam(required = false, defaultValue = "price_asc") String sortBy) {
 
-        if (checkIn == null || checkOut == null || checkIn.isBlank() || checkOut.isBlank()) {
-            return roomService.getRoomsByGuestCount(guests);
-        }
+        LocalDate checkInDate = (checkIn == null || checkIn.isBlank()) ? null : LocalDate.parse(checkIn);
+        LocalDate checkOutDate = (checkOut == null || checkOut.isBlank()) ? null : LocalDate.parse(checkOut);
 
-        LocalDate checkInDate = LocalDate.parse(checkIn);
-        LocalDate checkOutDate = LocalDate.parse(checkOut);
-
-        return roomService.searchRooms(checkInDate, checkOutDate, guests);
+        return roomService.searchRooms(checkInDate, checkOutDate, guests, minPrice, maxPrice, amenity, sortBy);
     }
 
     @GetMapping("/hotel/{hotelId}")
@@ -98,5 +100,4 @@ public class RoomController {
             @RequestParam String endDate) {
         return roomService.getInventoryCalendar(id, LocalDate.parse(startDate), LocalDate.parse(endDate));
     }
-    
 }

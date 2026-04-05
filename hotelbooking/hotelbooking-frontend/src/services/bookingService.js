@@ -4,6 +4,10 @@ export const createBooking = (data) => {
  return axiosClient.post("/bookings", data);
 };
 
+export const createPaymentCheckout = (bookingId) => {
+ return axiosClient.post(`/payments/checkout/${bookingId}`);
+};
+
 export const getMyBookings = () => {
  return axiosClient.get("/bookings/my");
 };

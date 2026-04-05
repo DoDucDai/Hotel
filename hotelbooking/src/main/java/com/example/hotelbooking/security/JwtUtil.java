@@ -1,5 +1,6 @@
 package com.example.hotelbooking.security;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 
@@ -10,10 +11,11 @@ import io.jsonwebtoken.security.Keys;
 
 public class JwtUtil {
 
-    private static final String SECRET =
-            "mysecretkeymysecretkeymysecretkeymysecretkeymysecretkey123456";
+    private static final String JWT_SECRET_ENV = "JWT_SECRET";
+    private static final int MIN_SECRET_BYTES = 48; // HS384 requires at least 384 bits
 
-    private static final Key KEY = Keys.hmacShaKeyFor(SECRET.getBytes());
+    private static final String SECRET = resolveSecret();
+    private static final Key KEY = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
 
     private static final long EXPIRATION = 86400000;
 
@@ -24,7 +26,6 @@ public class JwtUtil {
                 .claim("role", role)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION))
-                // 🔥 FIX CHÍNH Ở ĐÂY
                 .signWith(KEY, SignatureAlgorithm.HS384)
                 .compact();
     }
@@ -53,5 +54,22 @@ public class JwtUtil {
             System.out.println("JWT VALIDATE ERROR: " + e.getMessage());
             return false;
         }
+    }
+
+    private static String resolveSecret() {
+        String secret = System.getenv(JWT_SECRET_ENV);
+
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException(
+                    "Missing JWT secret. Set environment variable JWT_SECRET and rotate it regularly.");
+        }
+
+        byte[] secretBytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (secretBytes.length < MIN_SECRET_BYTES) {
+            throw new IllegalStateException(
+                    "JWT_SECRET is too short for HS384. It must be at least 48 bytes.");
+        }
+
+        return secret;
     }
 }

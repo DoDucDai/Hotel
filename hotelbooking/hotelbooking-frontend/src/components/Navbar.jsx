@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { getUnreadNotificationCount } from "../services/notificationService";
 import "./Navbar.css";
 
 function getAvatarText(role) {
@@ -14,6 +15,7 @@ export default function Navbar() {
  const [open, setOpen] = useState(false);
  const [scrolled, setScrolled] = useState(false);
  const [profileOpen, setProfileOpen] = useState(false);
+ const [unreadNotifications, setUnreadNotifications] = useState(0);
 
  const isLoggedIn = Boolean(localStorage.getItem("accessToken"));
  const role = localStorage.getItem("role");
@@ -45,6 +47,34 @@ export default function Navbar() {
  window.addEventListener("scroll", handleScroll);
  return () => window.removeEventListener("scroll", handleScroll);
  }, []);
+
+ useEffect(() => {
+ let isMounted = true;
+
+ const fetchUnreadCount = async () => {
+ if (!isLoggedIn) {
+ setUnreadNotifications(0);
+ return;
+ }
+
+ try {
+ const res = await getUnreadNotificationCount();
+ if (isMounted) {
+ setUnreadNotifications(Number(res?.data?.unread || 0));
+ }
+ } catch {
+ if (isMounted) {
+ setUnreadNotifications(0);
+ }
+ }
+ };
+
+ fetchUnreadCount();
+
+ return () => {
+ isMounted = false;
+ };
+ }, [isLoggedIn, location.pathname]);
 
  useEffect(() => {
  const onDocClick = (event) => {
@@ -159,10 +189,23 @@ export default function Navbar() {
  <small>{role === "ADMIN" ? "Quan tri he thong" : "Ngi dung"}</small>
  </span>
  <span className={`nav-profile-caret ${profileOpen ? "open" : ""}`}>v</span>
+ {unreadNotifications > 0 && (
+ <span className="nav-notify-badge">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>
+ )}
  </button>
 
  {profileOpen && (
  <div className="nav-profile-menu">
+ <button
+ type="button"
+ onClick={() =>
+ navigate("/account", {
+ state: { focus: "history" },
+ })
+ }
+ >
+ Thong bao {unreadNotifications > 0 ? `(${unreadNotifications})` : ""}
+ </button>
  <button type="button" onClick={openProfile}>
  {role === "ADMIN" ? "Profile quan tri" : "Profile cua toi"}
  </button>

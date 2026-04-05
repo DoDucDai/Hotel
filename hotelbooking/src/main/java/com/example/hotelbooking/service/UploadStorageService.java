@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.hotelbooking.exception.BadRequestException;
+
 @Service
 public class UploadStorageService {
 
@@ -28,7 +30,7 @@ public class UploadStorageService {
 
     public List<String> storeImages(List<MultipartFile> files) throws IOException {
         if (files == null || files.isEmpty()) {
-            throw new RuntimeException("Files are required");
+            throw new BadRequestException("Files are required");
         }
 
         Files.createDirectories(uploadRoot);
@@ -60,7 +62,7 @@ public class UploadStorageService {
         }
 
         if (storedUrls.isEmpty()) {
-            throw new RuntimeException("File is empty");
+            throw new BadRequestException("File is empty");
         }
 
         return storedUrls;
@@ -69,7 +71,7 @@ public class UploadStorageService {
     private void validateImage(MultipartFile file) {
         String contentType = file.getContentType();
         if (contentType == null || !contentType.startsWith("image/")) {
-            throw new RuntimeException("Only image allowed");
+            throw new BadRequestException("Only image allowed");
         }
     }
 }

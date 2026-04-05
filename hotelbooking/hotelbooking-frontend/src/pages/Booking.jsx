@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "../components/ToastProvider";
 import { getMyAccount } from "../services/accountService";
-import { createBooking } from "../services/bookingService";
+import { createBooking, createPaymentCheckout } from "../services/bookingService";
 import { getActiveCoupons } from "../services/couponService";
+import { resolveBookingContext } from "../features/booking/bookingPageUtils";
 import "./Booking.css";
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN", {
@@ -21,12 +22,12 @@ const paymentOptions = [
  {
  value: "BANK_TRANSFER",
  label: "Chuyen khoan",
- note: "Thanh toan online mo phong, booking se duoc danh dau da thanh toan.",
+ note: "Thanh toan qua cong thanh toan sandbox, booking cap nhat qua webhook.",
  },
  {
  value: "E_WALLET",
  label: "Vi dien tu",
- note: "Thanh toan online mo phong voi xac nhan ngay lap tuc.",
+ note: "Thanh toan online sandbox, ket qua tra ve theo callback.",
  },
 ];
 
@@ -111,12 +112,12 @@ function Booking() {
 
  const pendingBooking = useMemo(() => readPendingBooking(), []);
  const bookingContext = useMemo(
- () => location.state || pendingBooking || null,
+ () => resolveBookingContext(location.state, pendingBooking),
  [location.state, pendingBooking]
  );
- const selectedHotel = bookingContext.hotel || null;
- const selectedRoom = bookingContext.room || null;
- const searchCriteria = bookingContext.searchCriteria || {};
+ const selectedHotel = bookingContext.hotel;
+ const selectedRoom = bookingContext.room;
+ const searchCriteria = bookingContext.searchCriteria;
 
  const [account, setAccount] = useState(null);
  const [loadingAccount, setLoadingAccount] = useState(true);
@@ -151,7 +152,7 @@ function Booking() {
  state: {
  from: location.pathname,
  redirectTo: "/booking",
- redirectState: bookingContext || null,
+ redirectState: bookingContext.raw || null,
  },
  });
  return;
@@ -275,14 +276,16 @@ function Booking() {
  couponCode: normalizedCouponCode || null,
  };
 
- await createBooking(payload);
+ const bookingRes = await createBooking(payload);
+ const createdBooking = bookingRes?.data;
  clearPendingBooking();
+ if (!createdBooking?.id) {
+ throw new Error("Booking response is invalid");
+ }
+
+ if (paymentMethod === "PAY_AT_HOTEL") {
  setRedirecting(true);
- toast.success(
- paymentMethod === "PAY_AT_HOTEL"
- ? "Dt phong th nh cong. Booking da duoc tao."
- : "Dt phong va thanh toan online mo phong th nh cong."
- );
+ toast.success("Dt phong th nh cong. Booking da duoc tao.");
 
  if (redirectTimerRef.current) {
  clearTimeout(redirectTimerRef.current);
@@ -291,6 +294,16 @@ function Booking() {
  redirectTimerRef.current = setTimeout(() => {
  navigate("/account", { replace: true, state: { focus: "history" } });
  }, 1600);
+ return;
+ }
+
+ const checkoutRes = await createPaymentCheckout(createdBooking.id);
+ const checkoutUrl = checkoutRes?.data?.checkoutUrl;
+ if (!checkoutUrl) {
+ throw new Error("Khong tao duoc link thanh toan");
+ }
+ toast.success("Dang chuyen den cong thanh toan sandbox...");
+ window.location.assign(checkoutUrl);
  } catch (submitError) {
  console.error("Cannot create booking", submitError);
  const message =
@@ -340,7 +353,7 @@ function Booking() {
  <form className="booking-form" onSubmit={handleSubmit}>
  <label>
  <span>Khach san</span>
- <input value={selectedHotel.name || "-"} readOnly />
+ <input value={selectedHotel?.name || "-"} readOnly />
  </label>
 
  <label>
@@ -489,15 +502,15 @@ function Booking() {
  <ul>
  <li>
  <span>Khach hang</span>
- <strong>{account.name || "-"}</strong>
+ <strong>{account?.name || "-"}</strong>
  </li>
  <li>
  <span>Email</span>
- <strong>{account.email || "-"}</strong>
+ <strong>{account?.email || "-"}</strong>
  </li>
  <li>
  <span>Khach san</span>
- <strong>{selectedHotel.name || "-"}</strong>
+ <strong>{selectedHotel?.name || "-"}</strong>
  </li>
  <li>
  <span>Phong</span>

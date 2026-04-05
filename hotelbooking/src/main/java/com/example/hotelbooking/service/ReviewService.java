@@ -7,6 +7,10 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.example.hotelbooking.dto.CreateReviewRequest;
+import com.example.hotelbooking.exception.BadRequestException;
+import com.example.hotelbooking.exception.ForbiddenException;
+import com.example.hotelbooking.exception.NotFoundException;
+import com.example.hotelbooking.exception.UnauthorizedException;
 import com.example.hotelbooking.model.Booking;
 import com.example.hotelbooking.model.BookingStatus;
 import com.example.hotelbooking.model.Hotel;
@@ -51,35 +55,35 @@ public class ReviewService {
 
         String bookingId = requireNonBlank(safeRequest.getBookingId(), "bookingId is required");
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new RuntimeException("Booking khong ton tai"));
+                .orElseThrow(() -> new NotFoundException("Booking khong ton tai"));
 
         if (!user.getId().equals(booking.getUserId())) {
-            throw new RuntimeException("Ban khong the danh gia booking nay");
+            throw new ForbiddenException("Ban khong the danh gia booking nay");
         }
 
         if (booking.getStatus() == BookingStatus.CANCELLED) {
-            throw new RuntimeException("Khong the danh gia booking da bi huy");
+            throw new BadRequestException("Khong the danh gia booking da bi huy");
         }
 
         LocalDate checkOutDate = booking.getCheckOutDate();
         if (checkOutDate == null || LocalDate.now().isBefore(checkOutDate)) {
-            throw new RuntimeException("Chi co the danh gia sau khi ket thuc luu tru");
+            throw new BadRequestException("Chi co the danh gia sau khi ket thuc luu tru");
         }
 
         if (reviewRepository.existsByBookingId(bookingId)) {
-            throw new RuntimeException("Booking nay da duoc danh gia");
+            throw new BadRequestException("Booking nay da duoc danh gia");
         }
 
         int rating = safeRequest.getRating();
         if (rating < 1 || rating > 5) {
-            throw new RuntimeException("Danh gia phai tu 1 den 5 sao");
+            throw new BadRequestException("Danh gia phai tu 1 den 5 sao");
         }
 
         Room room = roomRepository.findById(requireNonBlank(booking.getRoomId(), "Room id is required"))
-                .orElseThrow(() -> new RuntimeException("Room khong ton tai"));
+                .orElseThrow(() -> new NotFoundException("Room khong ton tai"));
 
         Hotel hotel = hotelRepository.findById(requireNonBlank(room.getHotelId(), "Hotel id is required"))
-                .orElseThrow(() -> new RuntimeException("Hotel khong ton tai"));
+                .orElseThrow(() -> new NotFoundException("Hotel khong ton tai"));
 
         Review review = new Review();
         review.setHotelId(hotel.getId());
@@ -97,7 +101,7 @@ public class ReviewService {
 
     private void refreshHotelRating(String hotelId) {
         Hotel hotel = hotelRepository.findById(hotelId)
-                .orElseThrow(() -> new RuntimeException("Hotel khong ton tai"));
+                .orElseThrow(() -> new NotFoundException("Hotel khong ton tai"));
 
         List<Review> reviews = reviewRepository.findByHotelIdOrderByCreatedAtDesc(hotelId);
         double averageRating = reviews.stream()
@@ -113,7 +117,7 @@ public class ReviewService {
     private User getCurrentUser(String email) {
         String normalizedEmail = requireNonBlank(email, "Unauthorized");
         return userRepository.findByEmail(normalizedEmail)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
     }
 
     private String resolveDisplayName(User user) {
@@ -141,7 +145,11 @@ public class ReviewService {
 
     private String requireNonBlank(String value, String message) {
         if (value == null || value.isBlank()) {
-            throw new RuntimeException(message);
+            if ("Unauthorized".equalsIgnoreCase(message)) {
+                throw new UnauthorizedException(message);
+            }
+
+            throw new BadRequestException(message);
         }
 
         return value;

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.hotelbooking.dto.WishlistItemResponse;
+import com.example.hotelbooking.security.AuthenticationEmailResolver;
 import com.example.hotelbooking.service.WishlistService;
 
 @RestController
@@ -19,14 +20,18 @@ import com.example.hotelbooking.service.WishlistService;
 public class WishlistController {
 
     private final WishlistService wishlistService;
+    private final AuthenticationEmailResolver authenticationEmailResolver;
 
-    public WishlistController(WishlistService wishlistService) {
+    public WishlistController(
+            WishlistService wishlistService,
+            AuthenticationEmailResolver authenticationEmailResolver) {
         this.wishlistService = wishlistService;
+        this.authenticationEmailResolver = authenticationEmailResolver;
     }
 
     @GetMapping
     public List<WishlistItemResponse> getMyWishlist(Authentication authentication) {
-        return wishlistService.getMyWishlist(requireEmail(authentication));
+        return wishlistService.getMyWishlist(authenticationEmailResolver.requireEmail(authentication));
     }
 
     @PostMapping("/{hotelId}")
@@ -34,7 +39,7 @@ public class WishlistController {
             @PathVariable String hotelId,
             Authentication authentication) {
 
-        wishlistService.addToWishlist(requireEmail(authentication), hotelId);
+        wishlistService.addToWishlist(authenticationEmailResolver.requireEmail(authentication), hotelId);
         return Map.of("message", "Added to wishlist");
     }
 
@@ -43,15 +48,7 @@ public class WishlistController {
             @PathVariable String hotelId,
             Authentication authentication) {
 
-        wishlistService.removeFromWishlist(requireEmail(authentication), hotelId);
+        wishlistService.removeFromWishlist(authenticationEmailResolver.requireEmail(authentication), hotelId);
         return Map.of("message", "Removed from wishlist");
-    }
-
-    private String requireEmail(Authentication authentication) {
-        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
-            throw new RuntimeException("Unauthorized");
-        }
-
-        return authentication.getName();
     }
 }

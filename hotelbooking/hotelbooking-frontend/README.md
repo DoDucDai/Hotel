@@ -1,16 +1,49 @@
-# React + Vite
+# Hotel Booking Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite frontend for the Hotel Booking system.
 
-Currently, two official plugins are available:
+## Stack
+- React 18
+- React Router
+- Axios
+- CSS modules by page/component
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Folder Overview
+- `src/pages`: feature screens (`Home`, `Hotels`, `HotelDetail`, `Booking`, `Account`, `HostRooms`, `AdminDashboard`)
+- `src/components`: reusable UI blocks
+- `src/services`: API layer (preferred import path)
+- `src/api`: legacy compatibility wrappers (do not add new code here)
+- `src/utils`: helper utilities
 
-## React Compiler
+## Run
+```powershell
+npm install
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Build & Lint
+```powershell
+npm run build
+npm run lint
+```
 
-## Expanding the ESLint configuration
+## Test
+```powershell
+npm run test
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## API Base URL
+Configured by env var `VITE_API_BASE_URL` (with fallback in `src/utils/apiConfig.js`).
+
+Default backend URL:
+- `http://localhost:8080`
+
+Local setup:
+- Copy `.env.example` -> `.env`
+- Set `VITE_API_BASE_URL=http://localhost:8080`
+- `.env` is git-ignored
+
+## Conventions
+- Put new API calls in `src/services/*`.
+- Keep pages thin; extract reusable logic/components when file size grows.
+- Avoid adding new direct calls in page files if a service already exists.

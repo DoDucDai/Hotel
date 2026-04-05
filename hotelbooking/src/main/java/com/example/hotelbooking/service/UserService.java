@@ -8,6 +8,9 @@ import org.springframework.stereotype.Service;
 
 import com.example.hotelbooking.dto.UpdateProfileRequest;
 import com.example.hotelbooking.dto.UserAccountResponse;
+import com.example.hotelbooking.exception.BadRequestException;
+import com.example.hotelbooking.exception.NotFoundException;
+import com.example.hotelbooking.exception.UnauthorizedException;
 import com.example.hotelbooking.model.User;
 import com.example.hotelbooking.repository.UserRepository;
 
@@ -25,7 +28,7 @@ public class UserService {
 
     private String requireNonBlank(String value, String message) {
         if (value == null || value.isBlank()) {
-            throw new RuntimeException(message);
+            throw new BadRequestException(message);
         }
 
         return value;
@@ -40,7 +43,7 @@ public class UserService {
     public User getUserById(String id) {
         String userId = requireNonBlank(id, "User id is required");
         return userRepository.findById(Objects.requireNonNull(userId))
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     // CREATE USER
@@ -48,11 +51,11 @@ public class UserService {
         User userToCreate = Objects.requireNonNull(user, "User is required");
         String normalizedEmail = normalizeEmail(userToCreate.getEmail());
         if (normalizedEmail == null) {
-            throw new RuntimeException("Email is required");
+            throw new BadRequestException("Email is required");
         }
 
         if (userRepository.findByEmail(normalizedEmail).isPresent()) {
-            throw new RuntimeException("Email already exists");
+            throw new BadRequestException("Email already exists");
         }
 
         String rawPassword = requireNonBlank(userToCreate.getPassword(), "Password is required");
@@ -72,7 +75,7 @@ public class UserService {
         String newEmail = normalizeEmail(payload.getEmail());
         if (newEmail != null && !user.getEmail().equalsIgnoreCase(newEmail)) {
             if (userRepository.findByEmail(newEmail).isPresent()) {
-                throw new RuntimeException("Email already exists");
+                throw new BadRequestException("Email already exists");
             }
 
             user.setEmail(newEmail);
@@ -107,11 +110,11 @@ public class UserService {
     public User getCurrentUser(String email) {
         String normalizedEmail = normalizeEmail(email);
         if (normalizedEmail == null) {
-            throw new RuntimeException("Email is required");
+            throw new UnauthorizedException("Email is required");
         }
 
         return userRepository.findByEmail(normalizedEmail)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
     }
 
     public UserAccountResponse getCurrentUserAccount(String email) {
@@ -150,7 +153,7 @@ public class UserService {
 
         String newEmail = normalizeEmail(newEmailRaw);
         if (newEmail == null) {
-            throw new RuntimeException("Email is required");
+            throw new BadRequestException("Email is required");
         }
 
         if (newEmail.equalsIgnoreCase(user.getEmail())) {
@@ -158,7 +161,7 @@ public class UserService {
         }
 
         if (userRepository.findByEmail(newEmail).isPresent()) {
-            throw new RuntimeException("Email already exists");
+            throw new BadRequestException("Email already exists");
         }
 
         user.setEmail(newEmail);

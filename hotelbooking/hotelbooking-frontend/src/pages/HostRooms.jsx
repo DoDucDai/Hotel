@@ -9,6 +9,7 @@ import {
  deleteHostHotel,
  deleteHostInventoryBlock,
  deleteHostRoom,
+ getHostDashboard,
  getHostInventoryBlocks,
  getHostRoomInventory,
  getMyHostHotels,
@@ -16,117 +17,43 @@ import {
  updateHostHotel,
  updateHostRoom,
 } from "../services/hostService";
+import HostDashboardSection from "../features/host/views/HostDashboardSection";
+import HostHotelsSection from "../features/host/views/HostHotelsSection";
+import HostInventorySection from "../features/host/views/HostInventorySection";
+import HostRoomsSection from "../features/host/views/HostRoomsSection";
+import {
+ addDays,
+ approvalMeta,
+ currencyFormatter,
+ formatDate,
+ formatDateTime,
+ initialHotelForm,
+ initialRoomForm,
+ normalizeList,
+ parseCommaList,
+ todayString,
+} from "../features/host/hostRoomsUtils";
 import "./HostRooms.css";
-
-const initialHotelForm = {
- name: "",
- address: "",
- city: "",
- starRating: 3,
- amenities: "",
- freeCancellationBeforeDays: 3,
- lateCancellationRefundRate: 50,
-};
-
-const initialRoomForm = {
- hotelId: "",
- name: "",
- capacity: 1,
- price: 0,
- roomType: "STANDARD",
- bedType: "",
- description: "",
- totalUnits: 1,
- amenities: "",
-};
-
-const currencyFormatter = new Intl.NumberFormat("vi-VN", {
- style: "currency",
- currency: "VND",
- maximumFractionDigits: 0,
-});
-
-function todayString() {
- return new Date().toISOString().slice(0, 10);
-}
-
-function addDays(value, amount) {
- const date = new Date(value);
- if (Number.isNaN(date.getTime())) {
- return value;
- }
-
- date.setDate(date.getDate() + amount);
- return date.toISOString().slice(0, 10);
-}
-
-function normalizeList(payload) {
- if (Array.isArray(payload)) {
- return payload;
- }
-
- if (Array.isArray(payload?.content)) {
- return payload.content;
- }
-
- if (Array.isArray(payload?.data)) {
- return payload.data;
- }
-
- return [];
-}
-
-function parseCommaList(value) {
- return String(value || "")
- .split(",")
- .map((item) => item.trim())
- .filter(Boolean);
-}
-
-function formatDate(value) {
- if (!value) {
- return "-";
- }
-
- const date = new Date(value);
- if (Number.isNaN(date.getTime())) {
- return value;
- }
-
- return date.toLocaleDateString("vi-VN");
-}
-
-function formatDateTime(value) {
- if (!value) {
- return "-";
- }
-
- const date = new Date(value);
- if (Number.isNaN(date.getTime())) {
- return "-";
- }
-
- return date.toLocaleString("vi-VN");
-}
-
-function approvalMeta(status) {
- switch (status) {
- case "APPROVED":
- return { label: "Da duyet", className: "success" };
- case "REJECTED":
- return { label: "Bi tu choi", className: "danger" };
- default:
- return { label: "Cho duyet", className: "pending" };
- }
-}
 
 function HostRooms() {
  const navigate = useNavigate();
  const toast = useToast();
 
  const [loading, setLoading] = useState(true);
+ const [dashboardLoading, setDashboardLoading] = useState(true);
  const [hotels, setHotels] = useState([]);
  const [rooms, setRooms] = useState([]);
+ const [hostDashboard, setHostDashboard] = useState({
+ totalHotels: 0,
+ totalRooms: 0,
+ totalBookings: 0,
+ upcomingBookings: 0,
+ activeBookings: 0,
+ completedBookings: 0,
+ cancelledBookings: 0,
+ totalRevenue: 0,
+ recentBookings: [],
+ });
 
  const [hotelForm, setHotelForm] = useState(initialHotelForm);
  const [roomForm, setRoomForm] = useState(initialRoomForm);
@@ -170,12 +97,31 @@ function HostRooms() {
  const loadHostData = async () => {
  try {
  setLoading(true);
- const [hotelsRes, roomsRes] = await Promise.all([getMyHostHotels(), getMyHostRooms()]);
+ setDashboardLoading(true);
+ const [hotelsRes, roomsRes, dashboardRes] = await Promise.all([
+ getMyHostHotels(),
+ getMyHostRooms(),
+ getHostDashboard(),
+ ]);
  const hotelList = normalizeList(hotelsRes?.data);
  const roomList = normalizeList(roomsRes?.data);
+ const dashboard = dashboardRes?.data || {};
 
  setHotels(hotelList);
  setRooms(roomList);
+ setHostDashboard({
+ totalHotels: Number(dashboard.totalHotels || 0),
+ totalRooms: Number(dashboard.totalRooms || 0),
+ totalBookings: Number(dashboard.totalBookings || 0),
+ upcomingBookings: Number(dashboard.upcomingBookings || 0),
+ activeBookings: Number(dashboard.activeBookings || 0),
+ completedBookings: Number(dashboard.completedBookings || 0),
+ cancelledBookings: Number(dashboard.cancelledBookings || 0),
+ totalRevenue: Number(dashboard.totalRevenue || 0),
+ recentBookings: Array.isArray(dashboard.recentBookings)
+ ? dashboard.recentBookings
+ : [],
+ });
 
  if (!editingRoomId && hotelList.length && !roomForm.hotelId) {
  setRoomForm((prev) => ({
@@ -195,6 +141,7 @@ function HostRooms() {
  toast.error("Khong the tai du lieu dang phong");
  } finally {
  setLoading(false);
+ setDashboardLoading(false);
  }
  };
 
@@ -595,558 +542,69 @@ function HostRooms() {
  </button>
  </header>
 
+ <HostDashboardSection
+ dashboardLoading={dashboardLoading}
+ hostDashboard={hostDashboard}
+ currencyFormatter={currencyFormatter}
+ formatDate={formatDate}
+ formatDateTime={formatDateTime}
+ />
+
  {loading ? (
  <div className="host-state">dang tai du lieu dang phong...</div>
  ) : (
  <>
  <div className="host-grid">
- <section className="host-card">
- <div className="card-head">
- <h2>{editingHotelId ? "Chinh sua khach san" : "Tao khach san moi"}</h2>
- {editingHotelId && (
- <button type="button" className="ghost-btn" onClick={resetHotelForm}>
- Huy sua
- </button>
- )}
- </div>
-
- <form className="host-form" onSubmit={handleSubmitHotel}>
- <label>
- <span>Ten khach san</span>
- <input
- name="name"
- value={hotelForm.name}
- onChange={handleHotelChange}
- placeholder="Vi du: Happy Stay"
- required
+ <HostHotelsSection
+ editingHotelId={editingHotelId}
+ resetHotelForm={resetHotelForm}
+ handleSubmitHotel={handleSubmitHotel}
+ savingHotel={savingHotel}
+ hotelForm={hotelForm}
+ handleHotelChange={handleHotelChange}
+ hotels={hotels}
+ approvalMeta={approvalMeta}
+ formatDateTime={formatDateTime}
+ handleEditHotel={handleEditHotel}
+ handleDeleteHotelRequest={handleDeleteHotelRequest}
  />
- </label>
 
- <label>
- <span>Dia chi</span>
- <input
- name="address"
- value={hotelForm.address}
- onChange={handleHotelChange}
- placeholder="So nha, duong, phuong"
- required
+ <HostRoomsSection
+ editingRoomId={editingRoomId}
+ resetRoomForm={resetRoomForm}
+ handleSubmitRoom={handleSubmitRoom}
+ savingRoom={savingRoom}
+ hotels={hotels}
+ roomForm={roomForm}
+ handleRoomChange={handleRoomChange}
+ rooms={rooms}
+ hotelsById={hotelsById}
+ inventoryRoomId={inventoryRoomId}
+ currencyFormatter={currencyFormatter}
+ handleEditRoom={handleEditRoom}
+ setInventoryRoomId={setInventoryRoomId}
+ handleDeleteRoomRequest={handleDeleteRoomRequest}
  />
- </label>
+ </div>
 
- <label>
- <span>Thanh pho</span>
- <input
- name="city"
- value={hotelForm.city}
- onChange={handleHotelChange}
- placeholder="Ha Noi, Da Nang..."
- required
+ <HostInventorySection
+ rooms={rooms}
+ inventoryRoomId={inventoryRoomId}
+ setInventoryRoomId={setInventoryRoomId}
+ hotelsById={hotelsById}
+ selectedInventoryRoom={selectedInventoryRoom}
+ inventoryRange={inventoryRange}
+ handleInventoryRangeChange={handleInventoryRangeChange}
+ handleSubmitInventoryBlock={handleSubmitInventoryBlock}
+ inventoryForm={inventoryForm}
+ handleInventoryFormChange={handleInventoryFormChange}
+ inventorySaving={inventorySaving}
+ inventoryLoading={inventoryLoading}
+ inventoryCalendar={inventoryCalendar}
+ formatDate={formatDate}
+ inventoryBlocks={inventoryBlocks}
+ handleDeleteInventoryBlockRequest={handleDeleteInventoryBlockRequest}
  />
- </label>
-
- <div className="field-row">
- <label>
- <span>So sao</span>
- <input
- name="starRating"
- type="number"
- min="1"
- max="5"
- value={hotelForm.starRating}
- onChange={handleHotelChange}
- required
- />
- </label>
-
- <label>
- <span>Tien nghi</span>
- <input
- name="amenities"
- value={hotelForm.amenities}
- onChange={handleHotelChange}
- placeholder="Wifi, Bai do xe, Le tan 24/7"
- />
- </label>
- </div>
-
- <div className="field-row">
- <label>
- <span>Huy mien phi truoc (ngay)</span>
- <input
- name="freeCancellationBeforeDays"
- type="number"
- min="0"
- value={hotelForm.freeCancellationBeforeDays}
- onChange={handleHotelChange}
- />
- </label>
-
- <label>
- <span>Hoan tien tre (%)</span>
- <input
- name="lateCancellationRefundRate"
- type="number"
- min="0"
- max="100"
- value={hotelForm.lateCancellationRefundRate}
- onChange={handleHotelChange}
- />
- </label>
- </div>
-
- <button type="submit" disabled={savingHotel}>
- {savingHotel
- ? "dang luu..."
- : editingHotelId
- ? "Lu khach san"
- : "Tao khach san"}
- </button>
- </form>
-
- <div className="host-list">
- <h3>Khach san cua ban</h3>
- {hotels.length === 0 ? (
- <p className="inline-note">Ban chua tao khach san nao.</p>
- ) : (
- hotels.map((hotel) => {
- const meta = approvalMeta(hotel.approvalStatus);
-
- return (
- <article key={hotel.id} className="list-item list-item-stack">
- <div className="list-item-main">
- <div className="list-item-top">
- <strong>{hotel.name}</strong>
- <span className={`status-chip ${meta.className}`}>{meta.label}</span>
- </div>
- <p>{hotel.address}</p>
- <small>
- {hotel.city} - {hotel.starRating || 3} sao
- {Array.isArray(hotel.amenities) && hotel.amenities.length
- ? ` - ${hotel.amenities.join(", ")}`
- : ""}
- </small>
- <div className="list-item-meta">
- <span>
- Huy mien phi truoc {hotel.freeCancellationBeforeDays ?? 0} ngay
- </span>
- <span>
- Hoan tien muon {hotel.lateCancellationRefundRate ?? 0}%
- </span>
- <span>
- Duyet luc {hotel.approvedAt ? formatDateTime(hotel.approvedAt) : "-"}
- </span>
- </div>
- {hotel.approvalNote ? (
- <p className="approval-note">Ghi chu admin: {hotel.approvalNote}</p>
- ) : null}
- </div>
- <div className="item-actions">
- <button type="button" onClick={() => handleEditHotel(hotel)}>
- Sua
- </button>
- <button
- type="button"
- className="danger"
- onClick={() => handleDeleteHotelRequest(hotel)}
- >
- Xoa
- </button>
- </div>
- </article>
- );
- })
- )}
- </div>
- </section>
-
- <section className="host-card">
- <div className="card-head">
- <h2>{editingRoomId ? "Chinh sua loai phong" : "Tao loai phong moi"}</h2>
- {editingRoomId && (
- <button type="button" className="ghost-btn" onClick={resetRoomForm}>
- Huy sua
- </button>
- )}
- </div>
-
- <form className="host-form" onSubmit={handleSubmitRoom}>
- <label>
- <span>Chon khach san</span>
- <select
- name="hotelId"
- value={roomForm.hotelId}
- onChange={handleRoomChange}
- required
- disabled={!hotels.length}
- >
- {!hotels.length ? (
- <option value="">Can tao khach san truoc</option>
- ) : null}
- {hotels.map((hotel) => (
- <option key={hotel.id} value={hotel.id}>
- {hotel.name} - {hotel.city}
- </option>
- ))}
- </select>
- </label>
-
- <label>
- <span>Ten phong</span>
- <input
- name="name"
- value={roomForm.name}
- onChange={handleRoomChange}
- placeholder="Phong Deluxe, Phong doi..."
- required
- />
- </label>
-
- <div className="field-row">
- <label>
- <span>Loai phong</span>
- <input
- name="roomType"
- value={roomForm.roomType}
- onChange={handleRoomChange}
- placeholder="STANDARD, DELUXE, SUITE..."
- />
- </label>
-
- <label>
- <span>Loai giuong</span>
- <input
- name="bedType"
- value={roomForm.bedType}
- onChange={handleRoomChange}
- placeholder="1 king bed, 2 queen..."
- />
- </label>
- </div>
-
- <div className="field-row">
- <label>
- <span>Suc chua</span>
- <input
- name="capacity"
- type="number"
- min="1"
- value={roomForm.capacity}
- onChange={handleRoomChange}
- required
- />
- </label>
-
- <label>
- <span>Gia / dem (VND)</span>
- <input
- name="price"
- type="number"
- min="0"
- step="10000"
- value={roomForm.price}
- onChange={handleRoomChange}
- required
- />
- </label>
- </div>
-
- <div className="field-row">
- <label>
- <span>Tong so phong</span>
- <input
- name="totalUnits"
- type="number"
- min="1"
- value={roomForm.totalUnits}
- onChange={handleRoomChange}
- required
- />
- </label>
-
- <label>
- <span>Tien nghi phong</span>
- <input
- name="amenities"
- value={roomForm.amenities}
- onChange={handleRoomChange}
- placeholder="May lanh, Ban cong, Bon tam..."
- />
- </label>
- </div>
-
- <label>
- <span>Mo ta ngan</span>
- <textarea
- name="description"
- value={roomForm.description}
- onChange={handleRoomChange}
- placeholder="Mo ta diem khac biet cua loai phong nay"
- />
- </label>
-
- <button type="submit" disabled={savingRoom || !hotels.length}>
- {savingRoom
- ? "dang luu..."
- : editingRoomId
- ? "Lu loai phong"
- : "Tao loai phong"}
- </button>
- </form>
-
- <div className="host-list">
- <h3>Danh sach loai phong da dang</h3>
- {rooms.length === 0 ? (
- <p className="inline-note">Cha co phong nao duoc dang.</p>
- ) : (
- rooms.map((room) => {
- const hotel = hotelsById[room.hotelId];
- const activeInventory = inventoryRoomId === room.id;
- return (
- <article key={room.id} className="list-item list-item-stack">
- <div className="list-item-main">
- <div className="list-item-top">
- <strong>{room.name}</strong>
- <span className={`status-chip ${activeInventory ? "info" : "neutral"}`}>
- {room.roomType || "STANDARD"}
- </span>
- </div>
- <p>{hotel?.name || "Khach san khong ton tai"}</p>
- <small>
- {room.capacity} khach -{" "}
- {Number.isFinite(Number(room.price))
- ? currencyFormatter.format(Number(room.price))
- : "-"}
- </small>
- <div className="list-item-meta">
- <span>Tong so phong: {room.totalUnits || 1}</span>
- <span>Con trong: {room.availableUnits ?? room.totalUnits ?? 1}</span>
- <span>{room.bedType || "Cha khai bao loai giuong"}</span>
- </div>
- {room.description ? (
- <p className="approval-note">{room.description}</p>
- ) : null}
- </div>
- <div className="item-actions item-actions-stack">
- <button type="button" onClick={() => handleEditRoom(room)}>
- Sua
- </button>
- <button
- type="button"
- className={activeInventory ? "active" : ""}
- onClick={() => setInventoryRoomId(room.id)}
- >
- Ton kho
- </button>
- <button
- type="button"
- className="danger"
- onClick={() => handleDeleteRoomRequest(room)}
- >
- Xoa
- </button>
- </div>
- </article>
- );
- })
- )}
- </div>
- </section>
- </div>
-
- <section className="host-card host-card-wide">
- <div className="card-head">
- <div>
- <h2>Lich phong theo ngay va quan ly ton kho</h2>
- <p className="inline-note">
- Block phong bao tri, khoa phong dip le va xem ton kho con trong theo tung ngay.
- </p>
- </div>
-
- <label className="inventory-room-picker">
- <span>Loai phong dang xem</span>
- <select
- value={inventoryRoomId}
- onChange={(event) => setInventoryRoomId(event.target.value)}
- disabled={!rooms.length}
- >
- {!rooms.length ? <option value="">Cha co loai phong</option> : null}
- {rooms.map((room) => (
- <option key={room.id} value={room.id}>
- {room.name} - {hotelsById[room.hotelId]?.name || "Khach san"}
- </option>
- ))}
- </select>
- </label>
- </div>
-
- {!selectedInventoryRoom ? (
- <p className="inline-note">Tao it nhat 1 loai phong de bat dau quan ly ton kho.</p>
- ) : (
- <>
- <div className="inventory-toolbar">
- <div className="inventory-summary">
- <strong>{selectedInventoryRoom.name}</strong>
- <span>{selectedInventoryRoom.roomType || "STANDARD"}</span>
- <p>
- Tong {selectedInventoryRoom.totalUnits || 1} phong tai{" "}
- {hotelsById[selectedInventoryRoom.hotelId]?.name || "-"}
- </p>
- </div>
-
- <div className="inventory-range">
- <label>
- <span>Tu ngay</span>
- <input
- type="date"
- name="startDate"
- value={inventoryRange.startDate}
- onChange={handleInventoryRangeChange}
- />
- </label>
- <label>
- <span>Den ngay</span>
- <input
- type="date"
- name="endDate"
- value={inventoryRange.endDate}
- onChange={handleInventoryRangeChange}
- />
- </label>
- </div>
- </div>
-
- <div className="inventory-grid">
- <form className="host-form inventory-form" onSubmit={handleSubmitInventoryBlock}>
- <h3>Tao block ton kho</h3>
-
- <div className="field-row">
- <label>
- <span>Bat dau</span>
- <input
- type="date"
- name="startDate"
- value={inventoryForm.startDate}
- onChange={handleInventoryFormChange}
- />
- </label>
-
- <label>
- <span>Ket thuc</span>
- <input
- type="date"
- name="endDate"
- value={inventoryForm.endDate}
- onChange={handleInventoryFormChange}
- />
- </label>
- </div>
-
- <label>
- <span>So phong block</span>
- <input
- type="number"
- min="1"
- max={selectedInventoryRoom.totalUnits || 1}
- name="blockedUnits"
- value={inventoryForm.blockedUnits}
- onChange={handleInventoryFormChange}
- />
- </label>
-
- <label>
- <span>Ly do</span>
- <textarea
- name="reason"
- value={inventoryForm.reason}
- onChange={handleInventoryFormChange}
- placeholder="Vi du: bao tri phong, khoa ban dip le, su kien noi bo"
- />
- </label>
-
- <button type="submit" disabled={inventorySaving}>
- {inventorySaving ? "dang block..." : "Them block ton kho"}
- </button>
- </form>
-
- <div className="inventory-side">
- <div className="inventory-table-wrap">
- <div className="table-section-head">
- <h3>Lich ton kho</h3>
- <span>{inventoryCalendar.length} ngay</span>
- </div>
-
- {inventoryLoading ? (
- <p className="inline-note">dang tai lich ton kho...</p>
- ) : inventoryCalendar.length === 0 ? (
- <p className="inline-note">Cha co du lieu ton kho trong khoang ngay nay.</p>
- ) : (
- <table className="inventory-table">
- <thead>
- <tr>
- <th>Ngay</th>
- <th>Tong</th>
- <th>Da dat</th>
- <th>Block</th>
- <th>Con trong</th>
- </tr>
- </thead>
- <tbody>
- {inventoryCalendar.map((day) => (
- <tr key={day.date}>
- <td>{formatDate(day.date)}</td>
- <td>{day.totalUnits}</td>
- <td>{day.bookedUnits}</td>
- <td>{day.blockedUnits}</td>
- <td>
- <span
- className={`status-chip ${
- Number(day.availableUnits) > 0 ? "success" : "danger"
- }`}
- >
- {day.availableUnits}
- </span>
- </td>
- </tr>
- ))}
- </tbody>
- </table>
- )}
- </div>
-
- <div className="inventory-block-list">
- <div className="table-section-head">
- <h3>Danh sach block</h3>
- <span>{inventoryBlocks.length} muc</span>
- </div>
-
- {inventoryBlocks.length === 0 ? (
- <p className="inline-note">Cha co block ton kho nao cho loai phong nay.</p>
- ) : (
- inventoryBlocks.map((block) => (
- <article key={block.id} className="inventory-block-item">
- <div>
- <strong>
- {formatDate(block.startDate)} - {formatDate(block.endDate)}
- </strong>
- <p>Block {block.blockedUnits} phong</p>
- <small>{block.reason || "Khong co ghi chu"}</small>
- </div>
- <button
- type="button"
- className="ghost-btn danger"
- onClick={() => handleDeleteInventoryBlockRequest(block)}
- >
- Go block
- </button>
- </article>
- ))
- )}
- </div>
- </div>
- </div>
- </>
- )}
- </section>
  </>
  )}
  </section>

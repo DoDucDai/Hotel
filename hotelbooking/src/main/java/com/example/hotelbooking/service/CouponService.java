@@ -7,6 +7,8 @@ import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 
+import com.example.hotelbooking.exception.BadRequestException;
+import com.example.hotelbooking.exception.NotFoundException;
 import com.example.hotelbooking.model.Coupon;
 import com.example.hotelbooking.model.DiscountType;
 import com.example.hotelbooking.repository.CouponRepository;
@@ -61,7 +63,7 @@ public class CouponService {
         ensureDefaultCoupons();
 
         Coupon coupon = couponRepository.findById(requireNonBlank(id, "Coupon id is required"))
-                .orElseThrow(() -> new RuntimeException("Coupon khong ton tai"));
+                .orElseThrow(() -> new NotFoundException("Coupon khong ton tai"));
 
         applyCouponChanges(coupon, payload);
         return couponRepository.save(coupon);
@@ -69,7 +71,7 @@ public class CouponService {
 
     public void deleteCoupon(String id) {
         Coupon coupon = couponRepository.findById(requireNonBlank(id, "Coupon id is required"))
-                .orElseThrow(() -> new RuntimeException("Coupon khong ton tai"));
+                .orElseThrow(() -> new NotFoundException("Coupon khong ton tai"));
 
         couponRepository.delete(coupon);
     }
@@ -83,7 +85,7 @@ public class CouponService {
         ensureDefaultCoupons();
 
         Coupon coupon = couponRepository.findByCodeIgnoreCase(normalizedCode)
-                .orElseThrow(() -> new RuntimeException("Ma giam gia khong ton tai"));
+                .orElseThrow(() -> new NotFoundException("Ma giam gia khong ton tai"));
 
         assertCouponUsable(coupon, orderAmount);
         return coupon;
@@ -122,7 +124,7 @@ public class CouponService {
         couponRepository.findByCodeIgnoreCase(normalizedCode)
                 .ifPresent(existing -> {
                     if (coupon.getId() == null || !coupon.getId().equals(existing.getId())) {
-                        throw new RuntimeException("Ma giam gia da ton tai");
+                        throw new BadRequestException("Ma giam gia da ton tai");
                     }
                 });
 
@@ -132,11 +134,11 @@ public class CouponService {
 
         double discountValue = safePayload.getDiscountValue();
         if (!Double.isFinite(discountValue) || discountValue <= 0) {
-            throw new RuntimeException("Gia tri giam gia phai lon hon 0");
+            throw new BadRequestException("Gia tri giam gia phai lon hon 0");
         }
 
         if (discountType == DiscountType.PERCENT && discountValue > 100) {
-            throw new RuntimeException("Ma phan tram khong duoc vuot qua 100%");
+            throw new BadRequestException("Ma phan tram khong duoc vuot qua 100%");
         }
 
         String description = trimToNull(safePayload.getDescription());
@@ -151,16 +153,16 @@ public class CouponService {
 
     private void assertCouponUsable(Coupon coupon, double orderAmount) {
         if (!coupon.isActive()) {
-            throw new RuntimeException("Ma giam gia da bi vo hieu hoa");
+            throw new BadRequestException("Ma giam gia da bi vo hieu hoa");
         }
 
         LocalDate expiresAt = coupon.getExpiresAt();
         if (expiresAt != null && expiresAt.isBefore(LocalDate.now())) {
-            throw new RuntimeException("Ma giam gia da het han");
+            throw new BadRequestException("Ma giam gia da het han");
         }
 
         if (orderAmount < coupon.getMinOrderAmount()) {
-            throw new RuntimeException(
+            throw new BadRequestException(
                     "Don hang can toi thieu "
                             + Math.round(coupon.getMinOrderAmount())
                             + " de ap dung ma nay");

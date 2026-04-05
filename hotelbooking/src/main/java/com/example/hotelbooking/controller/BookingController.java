@@ -19,47 +19,33 @@ import com.example.hotelbooking.dto.RescheduleBookingRequest;
 import com.example.hotelbooking.dto.UpdateBookingStatusRequest;
 import com.example.hotelbooking.dto.UpdatePaymentStatusRequest;
 import com.example.hotelbooking.model.Booking;
-import com.example.hotelbooking.model.User;
-import com.example.hotelbooking.repository.BookingRepository;
-import com.example.hotelbooking.repository.UserRepository;
+import com.example.hotelbooking.security.AuthenticationEmailResolver;
 import com.example.hotelbooking.service.BookingService;
 
 @RestController
 @RequestMapping("/bookings")
 public class BookingController {
 
-    private final BookingRepository bookingRepository;
     private final BookingService bookingService;
-    private final UserRepository userRepository;
+    private final AuthenticationEmailResolver authenticationEmailResolver;
 
     public BookingController(
-            BookingRepository bookingRepository,
             BookingService bookingService,
-            UserRepository userRepository) {
-
-        this.bookingRepository = bookingRepository;
+            AuthenticationEmailResolver authenticationEmailResolver) {
         this.bookingService = bookingService;
-        this.userRepository = userRepository;
-    }
-
-    private String requireNonBlank(String value, String message) {
-        if (value == null || value.isBlank()) {
-            throw new RuntimeException(message);
-        }
-
-        return value;
+        this.authenticationEmailResolver = authenticationEmailResolver;
     }
 
     @GetMapping
-    public List<Booking> getBookings() {
-        return bookingRepository.findAll();
+    public List<Booking> getBookings(Authentication authentication) {
+        return bookingService.getVisibleBookings(authenticationEmailResolver.requireEmail(authentication));
     }
 
     @PostMapping
     public Booking createBooking(
             @RequestBody CreateBookingRequest request,
             Authentication authentication) {
-        return bookingService.createBooking(request, requireNonBlank(authentication.getName(), "Unauthorized"));
+        return bookingService.createBooking(request, authenticationEmailResolver.requireEmail(authentication));
     }
 
     @PutMapping("/{id}/cancel")
@@ -67,7 +53,7 @@ public class BookingController {
             @PathVariable String id,
             @RequestBody(required = false) CancelBookingRequest request,
             Authentication authentication) {
-        return bookingService.cancelBooking(id, requireNonBlank(authentication.getName(), "Unauthorized"), request);
+        return bookingService.cancelBooking(id, authenticationEmailResolver.requireEmail(authentication), request);
     }
 
     @PutMapping("/{id}/reschedule")
@@ -75,7 +61,7 @@ public class BookingController {
             @PathVariable String id,
             @RequestBody RescheduleBookingRequest request,
             Authentication authentication) {
-        return bookingService.rescheduleBooking(id, requireNonBlank(authentication.getName(), "Unauthorized"), request);
+        return bookingService.rescheduleBooking(id, authenticationEmailResolver.requireEmail(authentication), request);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -86,7 +72,7 @@ public class BookingController {
             Authentication authentication) {
         return bookingService.updatePaymentStatus(
                 id,
-                requireNonBlank(authentication.getName(), "Unauthorized"),
+                authenticationEmailResolver.requireEmail(authentication),
                 request);
     }
 
@@ -98,20 +84,18 @@ public class BookingController {
             Authentication authentication) {
         return bookingService.updateBookingStatus(
                 id,
-                requireNonBlank(authentication.getName(), "Unauthorized"),
+                authenticationEmailResolver.requireEmail(authentication),
                 request);
     }
 
     @DeleteMapping("/{id}")
-    public void deleteBooking(@PathVariable String id) {
-        String bookingId = requireNonBlank(id, "Booking id is required");
-        bookingService.deleteBooking(bookingId);
+    public void deleteBooking(@PathVariable String id, Authentication authentication) {
+        bookingService.deleteBooking(id, authenticationEmailResolver.requireEmail(authentication));
     }
 
     @GetMapping("/room/{roomId}")
     public List<Booking> getBookingsByRoom(@PathVariable String roomId) {
-        String normalizedRoomId = requireNonBlank(roomId, "Room id is required");
-        return bookingService.getBookingsByRoom(normalizedRoomId);
+        return bookingService.getBookingsByRoom(roomId);
     }
 
     @GetMapping("/revenue")
@@ -121,12 +105,6 @@ public class BookingController {
 
     @GetMapping("/my")
     public List<Booking> getMyBookings(Authentication authentication) {
-
-        String email = requireNonBlank(authentication.getName(), "Unauthorized");
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        return bookingRepository.findByUserId(user.getId());
+        return bookingService.getMyBookings(authenticationEmailResolver.requireEmail(authentication));
     }
 }

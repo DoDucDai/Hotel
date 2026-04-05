@@ -8,6 +8,9 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 import com.example.hotelbooking.dto.WishlistItemResponse;
+import com.example.hotelbooking.exception.BadRequestException;
+import com.example.hotelbooking.exception.NotFoundException;
+import com.example.hotelbooking.exception.UnauthorizedException;
 import com.example.hotelbooking.model.Hotel;
 import com.example.hotelbooking.model.User;
 import com.example.hotelbooking.model.Wishlist;
@@ -56,7 +59,7 @@ public class WishlistService {
         String normalizedHotelId = requireNonBlank(hotelId, "Hotel id is required");
 
         hotelRepository.findById(normalizedHotelId)
-                .orElseThrow(() -> new RuntimeException("Hotel khong ton tai"));
+                .orElseThrow(() -> new NotFoundException("Hotel khong ton tai"));
 
         if (wishlistRepository.existsByUserIdAndHotelId(user.getId(), normalizedHotelId)) {
             return;
@@ -76,12 +79,16 @@ public class WishlistService {
 
     private User getCurrentUser(String email) {
         return userRepository.findByEmail(requireNonBlank(email, "Unauthorized"))
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
     }
 
     private String requireNonBlank(String value, String message) {
         if (value == null || value.isBlank()) {
-            throw new RuntimeException(message);
+            if ("Unauthorized".equalsIgnoreCase(message)) {
+                throw new UnauthorizedException(message);
+            }
+
+            throw new BadRequestException(message);
         }
 
         return value;

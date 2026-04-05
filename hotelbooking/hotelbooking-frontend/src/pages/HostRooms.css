@@ -611,3 +611,21 @@
  flex-wrap: wrap;
  }
 }
+
+.host-list-meta-grid {
+ display: grid;
+ grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+ gap: 12px;
+ margin-bottom: 16px;
+}
+
+.host-list-meta-grid .list-item {
+ display: flex;
+ flex-direction: column;
+ align-items: flex-start;
+ gap: 6px;
+}
+
+.host-list-meta-grid .list-item strong {
+ font-size: 1.15rem;
+}

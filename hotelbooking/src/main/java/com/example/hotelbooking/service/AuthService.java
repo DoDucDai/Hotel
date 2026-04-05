@@ -11,6 +11,9 @@ import org.springframework.stereotype.Service;
 import com.example.hotelbooking.dto.EmailRequest;
 import com.example.hotelbooking.dto.LoginRequest;
 import com.example.hotelbooking.dto.ResetPasswordRequest;
+import com.example.hotelbooking.exception.BadRequestException;
+import com.example.hotelbooking.exception.NotFoundException;
+import com.example.hotelbooking.exception.UnauthorizedException;
 import com.example.hotelbooking.model.AuthActionToken;
 import com.example.hotelbooking.model.AuthActionType;
 import com.example.hotelbooking.model.RefreshToken;
@@ -50,7 +53,7 @@ public class AuthService {
         String rawPassword = requirePassword(request.getPassword());
 
         if (userRepository.findByEmail(email).isPresent()) {
-            throw new RuntimeException("Email da ton tai");
+            throw new BadRequestException("Email da ton tai");
         }
 
         User user = new User();
@@ -80,10 +83,10 @@ public class AuthService {
         String password = requireNonBlank(request.getPassword(), "Password is required");
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UnauthorizedException("Invalid username or password"));
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new RuntimeException("Invalid username or password");
+            throw new UnauthorizedException("Invalid username or password");
         }
 
         String accessToken = JwtUtil.generateToken(
@@ -107,7 +110,7 @@ public class AuthService {
         String userId = requireNonBlank(token.getUserId(), "Token does not contain user id");
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
 
         String accessToken = JwtUtil.generateToken(
                 user.getEmail(),
@@ -123,7 +126,7 @@ public class AuthService {
         String rawPassword = requirePassword(request.getPassword());
 
         if (userRepository.findByEmail(email).isPresent()) {
-            throw new RuntimeException("Email da ton tai");
+            throw new BadRequestException("Email da ton tai");
         }
 
         request.setEmail(email);
@@ -144,7 +147,7 @@ public class AuthService {
         EmailRequest safeRequest = Objects.requireNonNull(request, "Email request is required");
         String email = normalizeEmail(safeRequest.getEmail());
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Khong tim thay tai khoan voi email nay"));
+                .orElseThrow(() -> new NotFoundException("Khong tim thay tai khoan voi email nay"));
 
         if (Boolean.TRUE.equals(user.getEmailVerified())) {
             return Map.of("message", "Email nay da duoc xac nhan truoc do");
@@ -162,7 +165,7 @@ public class AuthService {
     public Map<String, Object> verifyEmail(String token) {
         AuthActionToken authToken = authTokenService.requireValidToken(token, AuthActionType.EMAIL_VERIFICATION);
         User user = userRepository.findById(authToken.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
         user.setEmailVerified(Boolean.TRUE);
         user.setEmailVerifiedAt(Instant.now().toString());
@@ -211,7 +214,7 @@ public class AuthService {
         String newPassword = requirePassword(safeRequest.getPassword());
 
         User user = userRepository.findById(authToken.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
@@ -222,7 +225,7 @@ public class AuthService {
 
     private String requireNonBlank(String value, String message) {
         if (value == null || value.isBlank()) {
-            throw new RuntimeException(message);
+            throw new BadRequestException(message);
         }
 
         return value;
@@ -231,7 +234,7 @@ public class AuthService {
     private String requirePassword(String password) {
         String normalizedPassword = requireNonBlank(password, "Password is required").trim();
         if (normalizedPassword.length() < 6) {
-            throw new RuntimeException("Mat khau phai co it nhat 6 ky tu");
+            throw new BadRequestException("Mat khau phai co it nhat 6 ky tu");
         }
 
         return normalizedPassword;
@@ -240,7 +243,7 @@ public class AuthService {
     private String normalizeEmail(String email) {
         String normalizedEmail = requireNonBlank(email, "Email is required").trim().toLowerCase();
         if (normalizedEmail.isEmpty()) {
-            throw new RuntimeException("Email is required");
+            throw new BadRequestException("Email is required");
         }
 
         return normalizedEmail;

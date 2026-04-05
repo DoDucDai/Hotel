@@ -8,6 +8,10 @@ import org.springframework.stereotype.Service;
 
 import com.example.hotelbooking.dto.CreateDisputeRequest;
 import com.example.hotelbooking.dto.UpdateDisputeStatusRequest;
+import com.example.hotelbooking.exception.BadRequestException;
+import com.example.hotelbooking.exception.ForbiddenException;
+import com.example.hotelbooking.exception.NotFoundException;
+import com.example.hotelbooking.exception.UnauthorizedException;
 import com.example.hotelbooking.model.Booking;
 import com.example.hotelbooking.model.Dispute;
 import com.example.hotelbooking.model.DisputeStatus;
@@ -27,18 +31,21 @@ public class DisputeService {
     private final UserRepository userRepository;
     private final RoomRepository roomRepository;
     private final AuditLogService auditLogService;
+    private final NotificationService notificationService;
 
     public DisputeService(
             DisputeRepository disputeRepository,
             BookingRepository bookingRepository,
             UserRepository userRepository,
             RoomRepository roomRepository,
-            AuditLogService auditLogService) {
+            AuditLogService auditLogService,
+            NotificationService notificationService) {
         this.disputeRepository = disputeRepository;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.roomRepository = roomRepository;
         this.auditLogService = auditLogService;
+        this.notificationService = notificationService;
     }
 
     public Dispute createDispute(String email, CreateDisputeRequest request) {
@@ -47,14 +54,14 @@ public class DisputeService {
         String bookingId = requireNonBlank(safeRequest.getBookingId(), "Booking id is required");
 
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new RuntimeException("Booking khong ton tai"));
+                .orElseThrow(() -> new NotFoundException("Booking khong ton tai"));
 
         if (!Objects.equals(user.getId(), booking.getUserId()) && user.getRole() != Role.ADMIN) {
-            throw new RuntimeException("Ban khong co quyen gui tranh chap cho booking nay");
+            throw new ForbiddenException("Ban khong co quyen gui tranh chap cho booking nay");
         }
 
         if (disputeRepository.existsByBookingIdAndUserId(bookingId, user.getId())) {
-            throw new RuntimeException("Booking nay da co tranh chap dang xu ly");
+            throw new BadRequestException("Booking nay da co tranh chap dang xu ly");
         }
 
         Room room = roomRepository.findById(requireNonBlank(booking.getRoomId(), "Room id is required"))
@@ -78,6 +85,23 @@ public class DisputeService {
                 savedDispute.getId(),
                 user,
                 "Nguoi dung tao tranh chap cho booking " + bookingId);
+
+        notificationService.createForAllAdmins(
+                "DISPUTE",
+                "Co tranh chap moi",
+                "Nguoi dung da tao tranh chap moi cho booking " + bookingId,
+                "DISPUTE",
+                savedDispute.getId(),
+                true);
+
+        notificationService.createForUser(
+                user.getId(),
+                "DISPUTE",
+                "Da tiep nhan tranh chap",
+                "Yeu cau tranh chap " + savedDispute.getId() + " cua ban da duoc tiep nhan.",
+                "DISPUTE",
+                savedDispute.getId(),
+                false);
         return savedDispute;
     }
 
@@ -89,7 +113,7 @@ public class DisputeService {
     public List<Dispute> getAllDisputes(String email) {
         User user = getCurrentUser(email);
         if (user.getRole() != Role.ADMIN) {
-            throw new RuntimeException("Ban khong co quyen xem tranh chap");
+            throw new ForbiddenException("Ban khong co quyen xem tranh chap");
         }
 
         return disputeRepository.findAllByOrderByCreatedAtDesc();
@@ -98,12 +122,12 @@ public class DisputeService {
     public Dispute updateDisputeStatus(String disputeId, String email, UpdateDisputeStatusRequest request) {
         User user = getCurrentUser(email);
         if (user.getRole() != Role.ADMIN) {
-            throw new RuntimeException("Ban khong co quyen xu ly tranh chap");
+            throw new ForbiddenException("Ban khong co quyen xu ly tranh chap");
         }
 
         UpdateDisputeStatusRequest safeRequest = Objects.requireNonNull(request, "Dispute status request is required");
         Dispute dispute = disputeRepository.findById(requireNonBlank(disputeId, "Dispute id is required"))
-                .orElseThrow(() -> new RuntimeException("Khong tim thay tranh chap"));
+                .orElseThrow(() -> new NotFoundException("Khong tim thay tranh chap"));
 
         dispute.setStatus(Objects.requireNonNull(safeRequest.getStatus(), "Trang thai tranh chap la bat buoc"));
         dispute.setResolutionNote(trimToNull(safeRequest.getResolutionNote()));
@@ -116,12 +140,21 @@ public class DisputeService {
                 savedDispute.getId(),
                 user,
                 "Admin cap nhat tranh chap sang " + savedDispute.getStatus().name());
+
+        notificationService.createForUser(
+                savedDispute.getUserId(),
+                "DISPUTE",
+                "Cap nhat trang thai tranh chap",
+                "Tranh chap " + savedDispute.getId() + " da duoc cap nhat: " + savedDispute.getStatus().name(),
+                "DISPUTE",
+                savedDispute.getId(),
+                true);
         return savedDispute;
     }
 
     private User getCurrentUser(String email) {
         return userRepository.findByEmail(requireNonBlank(email, "Unauthorized"))
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
     }
 
     private String trimToNull(String value) {
@@ -135,7 +168,11 @@ public class DisputeService {
 
     private String requireNonBlank(String value, String message) {
         if (value == null || value.isBlank()) {
-            throw new RuntimeException(message);
+            if ("Unauthorized".equalsIgnoreCase(message)) {
+                throw new UnauthorizedException(message);
+            }
+
+            throw new BadRequestException(message);
         }
 
         return value;
