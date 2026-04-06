@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
  FaArrowRight,
@@ -65,12 +65,12 @@ function Login() {
  localStorage.setItem("role", role);
 
  if (role === "ADMIN") {
- toast.success("Dang nhap th nh cong");
+ toast.success("Đăng nhập thành công");
  navigate("/admin", { replace: true });
  return;
  }
 
- toast.success("Dang nhap th nh cong");
+ toast.success("Đăng nhập thành công");
  const pendingBooking = redirectTo === "/booking" ? readPendingBooking() : null;
  const nextState = redirectState || pendingBooking || undefined;
 
@@ -81,7 +81,7 @@ function Login() {
  }
  } catch (loginError) {
  console.error("Login failed", loginError);
- toast.error(readAuthError(loginError, "Sai email hoac mat khau"));
+ toast.error(readAuthError(loginError, "Sai email hoac mật khẩu"));
  } finally {
  setLoading(false);
  }
@@ -90,18 +90,18 @@ function Login() {
  const handleResendVerification = async () => {
  const targetEmail = (resendEmail || email).trim();
  if (!targetEmail) {
- toast.info("Nhap email dang ky de gui lai email xac nhan");
+  toast.info("Nhập email đăng ký để gửi lại email xác nhận");
  return;
  }
 
  setResendLoading(true);
  try {
  const res = await resendVerificationEmail(targetEmail);
- toast.success(res?.data?.message || "Da gui lai email xac nhan");
+  toast.success(res?.data?.message || "Đã gửi lại email xác nhận");
  setResendEmail(targetEmail);
  } catch (error) {
  console.error("Cannot resend verification email", error);
- toast.error(readAuthError(error, "Khong the gui lai email xac nhan"));
+  toast.error(readAuthError(error, "Không thể gửi lại email xác nhận"));
  } finally {
  setResendLoading(false);
  }
@@ -113,10 +113,10 @@ function Login() {
  <article className="login-hero">
  <div className="login-brand">Hotel Booking</div>
  <div className="login-hero-copy">
- <p className="login-eyebrow">Dang nhap de tiep tuc</p>
- <h1>San sang quay lai voi ky nghi tiep theo?</h1>
+  <p className="login-eyebrow">Đăng nhập để tiếp tục</p>
+  <h1>Sẵn sàng quay lại với kỳ nghỉ tiếp theo?</h1>
  <p className="login-description">
- Quan ly booking, luu wishlist va tiep tuc dat phong dang do ngay sau khi dang nhap.
+  Quản lý booking, lưu wishlist và tiếp tục đặt phòng đang dở ngay sau khi đăng nhập.
  </p>
  </div>
 
@@ -125,24 +125,24 @@ function Login() {
  <span className="login-stat-icon">
  <FaBed />
  </span>
- <strong>Phong phu</strong>
- <p>Tim khach san, phong va uu dai nhanh hon trong mot dashboard gon gang.</p>
+  <strong>Phong phú</strong>
+  <p>Tìm khách sạn, phòng và ưu đãi nhanh hơn trong một dashboard gọn gàng.</p>
  </article>
 
  <article className="login-stat-card">
  <span className="login-stat-icon">
  <FaSuitcase />
  </span>
- <strong>Booking lien mach</strong>
- <p>Dang nhap xong la quay lai dung buoc dang dat phong neu ban dang thao tac do.</p>
+  <strong>Booking liền mạch</strong>
+  <p>Đăng nhập xong là quay lại đúng bước đang đặt phòng nếu bạn đang thao tác dở.</p>
  </article>
 
  <article className="login-stat-card">
  <span className="login-stat-icon">
  <FaShieldAlt />
  </span>
- <strong>An toan va ro rang</strong>
- <p>Lu token dang nhap va dieu huong dung role cho admin, user va host.</p>
+  <strong>An toàn và rõ ràng</strong>
+  <p>Lưu token đăng nhập và điều hướng đúng role cho admin, user và host.</p>
  </article>
  </div>
  </article>
@@ -150,11 +150,11 @@ function Login() {
  <article className="login-card">
  <div className="login-card-top">
  <p className="login-form-tag">Welcome back</p>
- <h2>Dang nhap t i khoan</h2>
+  <h2>Đăng nhập tài khoản</h2>
  <p className="login-form-note">
  {returnToBooking
- ? "Dang nhap xong ban se duoc dua tro lai buoc dat phong dang thuc hien."
- : "Nhap email va mat khau de tiep tuc vao he thong."}
+  ? "Đăng nhập xong bạn sẽ được đưa trở lại bước đặt phòng đang thực hiện."
+  : "Nhập email và mật khẩu để tiếp tục vào hệ thống."}
  </p>
  </div>
 
@@ -162,11 +162,11 @@ function Login() {
  <div className="login-verification-box">
  <div className="login-verification-head">
  <FaCheckCircle />
- <strong>Kiem tra email xac nhan</strong>
+  <strong>Kiểm tra email xác nhận</strong>
  </div>
  <p>
- T i khoan moi cua ban da duoc tao cho <strong>{registeredEmail}</strong>. Neu
- chua thay the, ban c? the gui lai email xac nhan ngay tai day.
+  Tài khoản mới của bạn đã được tạo cho <strong>{registeredEmail}</strong>. Nếu
+  chưa thấy thư, bạn có thể gửi lại email xác nhận ngay tại đây.
  </p>
  <div className="login-inline-actions">
  <button
@@ -175,7 +175,7 @@ function Login() {
  onClick={handleResendVerification}
  disabled={resendLoading}
  >
- {resendLoading ? "Dang gui..." : "Gui lai email xac nhan"}
+  {resendLoading ? "Đang gửi..." : "Gửi lại email xác nhận"}
  </button>
  </div>
  </div>
@@ -198,12 +198,12 @@ function Login() {
  </label>
 
  <label className="login-field">
- <span>Mat khau</span>
+ <span>Mật khẩu</span>
  <div className="login-input-shell">
  <FaLock />
  <input
  type={showPass ? "text" : "password"}
- placeholder="Nhap mat khau"
+ placeholder="Nhập mật khẩu"
  value={password}
  onChange={(event) => setPassword(event.target.value)}
  autoComplete="current-password"
@@ -213,7 +213,7 @@ function Login() {
  type="button"
  className="login-visibility-btn"
  onClick={() => setShowPass((prev) => !prev)}
- aria-label={showPass ? "An mat khau" : "Hien mat khau"}
+  aria-label={showPass ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
  >
  {showPass ? <FaEyeSlash /> : <FaEye />}
  </button>
@@ -221,7 +221,7 @@ function Login() {
  </label>
 
  <button type="submit" className="login-submit-btn" disabled={loading}>
- <span>{loading ? "Dang dang nhap..." : "Dang nhap"}</span>
+  <span>{loading ? "Đang đăng nhập..." : "Đăng nhập"}</span>
  <FaArrowRight />
  </button>
  </form>
@@ -240,18 +240,18 @@ function Login() {
  })
  }
  >
- Tao t i khoan moi
+ Tạo tài khoản mới
  </button>
  <button
  type="button"
  className="login-link-btn subtle"
  onClick={() => navigate("/forgot-password")}
  >
- Quen mat khau?
+ Quen mật khẩu?
  </button>
  </div>
  <span className="login-muted-link">
- He thong da ho tro gui email xac nhan va dat lai mat khau bang link token.
+ Hệ thống đã hỗ trợ gửi email xác nhận và đặt lại mật khẩu bằng link token.
  </span>
  </div>
  </article>
@@ -261,4 +261,6 @@ function Login() {
 }
 
 export default Login;
+
+
 

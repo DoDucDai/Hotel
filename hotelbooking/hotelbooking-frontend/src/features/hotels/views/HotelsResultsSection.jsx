@@ -1,4 +1,4 @@
-import { getPrimaryImage } from "../../../utils/imageHelpers";
+﻿import { getPrimaryImage } from "../../../utils/imageHelpers";
 
 export default function HotelsResultsSection({
  loading,
@@ -27,7 +27,7 @@ export default function HotelsResultsSection({
  <div className="result-state error-state">{error}</div>
  ) : filteredHotels.length === 0 ? (
  <div className="result-state empty-state">
- Khong tim thay khach san nao theo bo luc hien tai.
+ Không tìm thấy khách sạn nào theo bộ lọc hiện tại.
  </div>
  ) : (
  <>
@@ -60,25 +60,25 @@ export default function HotelsResultsSection({
  className={`wishlist-btn ${hotel.isWishlisted ? "active" : ""}`}
  onClick={(event) => handleWishlistToggle(hotel.hotelId, event)}
  disabled={wishlistLoading}
- aria-label={hotel.isWishlisted ? "Bo khoi yeu thich" : "Them vao yeu thich"}
+ aria-label={hotel.isWishlisted ? "Bỏ khỏi yêu thích" : "Thêm vào yêu thích"}
  >
- {hotel.isWishlisted ? "Saved" : "Save"}
+ {hotel.isWishlisted ? "Đã lưu" : "Lưu"}
  </button>
  </div>
 
  <div className="hotel-body">
  <div className="hotel-title-row">
- <p className="hotel-city">{hotel.city || "Da diem noi bat"}</p>
+ <p className="hotel-city">{hotel.city || "Địa điểm nổi bật"}</p>
  <span className="hotel-stars">{hotel.starRating || 3} sao</span>
  </div>
 
- <h3>{hotel.name || "Khach san dang cap nhet"}</h3>
- <p className="hotel-address">{hotel.address || "Da chi dang duoc cap nhat"}</p>
+ <h3>{hotel.name || "Khách sạn đang cập nhật"}</h3>
+ <p className="hotel-address">{hotel.address || "Địa chỉ đang được cập nhật"}</p>
 
  <div className="hotel-rating-row">
- <strong>{hotel.averageRating ? hotel.averageRating.toFixed(1) : "Moi"}</strong>
+ <strong>{hotel.averageRating ? hotel.averageRating.toFixed(1) : "Mới"}</strong>
  <span>
- {hotel.reviewCount ? `${hotel.reviewCount} danh gia` : "Cha co danh gia"}
+ {hotel.reviewCount ? `${hotel.reviewCount} đánh giá` : "Chưa có đánh giá"}
  </span>
  </div>
 
@@ -90,14 +90,14 @@ export default function HotelsResultsSection({
  ))}
  </div>
 
- <p className="hotel-meta">Phong phu hop: {hotel.availableRoomCount}</p>
+ <p className="hotel-meta">Phòng phù hợp: {hotel.availableRoomCount}</p>
  <p className="hotel-price">
- Gia tu{" "}
+ Giá từ{" "}
  <strong>
- {hotel.minRoomPrice ? currencyFormatter.format(hotel.minRoomPrice) : "Lien he"}
+ {hotel.minRoomPrice ? currencyFormatter.format(hotel.minRoomPrice) : "Liên hệ"}
  </strong>
  </p>
- <span className="detail-link">Xem chi tiet</span>
+ <span className="detail-link">Xem chi tiết</span>
  </div>
  </article>
  ))}
@@ -110,7 +110,7 @@ export default function HotelsResultsSection({
  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
  disabled={currentPage === 1}
  >
- Truoc
+ Trước
  </button>
 
  <div className="page-list">

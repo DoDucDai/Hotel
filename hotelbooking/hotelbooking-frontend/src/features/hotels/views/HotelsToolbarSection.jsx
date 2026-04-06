@@ -1,4 +1,4 @@
-export default function HotelsToolbarSection({
+﻿export default function HotelsToolbarSection({
  filters,
  sortBy,
  handleFilterChange,
@@ -15,18 +15,18 @@ export default function HotelsToolbarSection({
  <section className="hotels-container hotels-toolbar">
  <div className="toolbar-grid toolbar-grid-main">
  <label className="filter-field">
- <span>O dau</span>
+ <span>Ở đâu</span>
  <input
  name="destination"
  type="text"
  value={filters.destination}
  onChange={handleFilterChange}
- placeholder="Nhap ten khach san, thanh phi hoac dua chi"
+ placeholder="Nhập tên khách sạn, thành phố hoặc địa chỉ"
  />
  </label>
 
  <label className="filter-field">
- <span>Bao nguoi</span>
+ <span>Bao nhiêu người</span>
  <input
  name="guests"
  type="number"
@@ -37,7 +37,7 @@ export default function HotelsToolbarSection({
  </label>
 
  <label className="filter-field">
- <span>May phong</span>
+ <span>Mấy phòng</span>
  <input
  name="roomCount"
  type="number"
@@ -50,7 +50,7 @@ export default function HotelsToolbarSection({
 
  <div className="toolbar-grid toolbar-grid-sub">
  <label className="filter-field">
- <span>Ng y nhan phong</span>
+ <span>Ngày nhận phòng</span>
  <input
  name="checkIn"
  type="date"
@@ -60,7 +60,7 @@ export default function HotelsToolbarSection({
  </label>
 
  <label className="filter-field">
- <span>Ng y tra phong</span>
+ <span>Ngày trả phòng</span>
  <input
  name="checkOut"
  type="date"
@@ -70,7 +70,7 @@ export default function HotelsToolbarSection({
  </label>
 
  <label className="filter-field">
- <span>Sap xep</span>
+ <span>Sắp xếp</span>
  <select
  value={sortBy}
  onChange={(event) => {
@@ -78,20 +78,20 @@ export default function HotelsToolbarSection({
  setCurrentPage(1);
  }}
  >
- <option value="name-asc">Ten A - Z</option>
- <option value="name-desc">Ten Z - A</option>
- <option value="city-asc">Thonh phi A - Z</option>
- <option value="city-desc">Thonh phi Z - A</option>
- <option value="price-asc">Gia thap den cao</option>
- <option value="price-desc">Gia cao den thap</option>
- <option value="rating-desc">Rating cao nhat</option>
+ <option value="name-asc">Tên A - Z</option>
+ <option value="name-desc">Tên Z - A</option>
+ <option value="city-asc">Thành phố A - Z</option>
+ <option value="city-desc">Thành phố Z - A</option>
+ <option value="price-asc">Giá thấp đến cao</option>
+ <option value="price-desc">Giá cao đến thấp</option>
+ <option value="rating-desc">Rating cao nhất</option>
  </select>
  </label>
  </div>
 
  <div className="toolbar-grid toolbar-grid-advanced">
  <label className="filter-field">
- <span>Gia tu</span>
+ <span>Giá từ</span>
  <input
  name="priceMin"
  type="number"
@@ -103,41 +103,41 @@ export default function HotelsToolbarSection({
  </label>
 
  <label className="filter-field">
- <span>Gia den</span>
+ <span>Giá đến</span>
  <input
  name="priceMax"
  type="number"
  min="0"
  value={filters.priceMax}
  onChange={handleFilterChange}
- placeholder="Khong giai han"
+ placeholder="Không giới hạn"
  />
  </label>
 
  <label className="filter-field">
- <span>Rating toi thieu</span>
+ <span>Rating tối thiểu</span>
  <select name="minRating" value={filters.minRating} onChange={handleFilterChange}>
- <option value="0">Tat ca</option>
- <option value="3">Tu 3.0</option>
- <option value="4">Tu 4.0</option>
- <option value="4.5">Tu 4.5</option>
+ <option value="0">Tất cả</option>
+ <option value="3">Từ 3.0</option>
+ <option value="4">Từ 4.0</option>
+ <option value="4.5">Từ 4.5</option>
  </select>
  </label>
 
  <label className="filter-field">
- <span>Hang sao</span>
+ <span>Hạng sao</span>
  <select name="minStars" value={filters.minStars} onChange={handleFilterChange}>
- <option value="0">Tat ca</option>
- <option value="3">Tu 3 sao</option>
- <option value="4">Tu 4 sao</option>
+ <option value="0">Tất cả</option>
+ <option value="3">Từ 3 sao</option>
+ <option value="4">Từ 4 sao</option>
  <option value="5">5 sao</option>
  </select>
  </label>
 
  <label className="filter-field">
- <span>Tien nghi</span>
+ <span>Tiện nghi</span>
  <select name="amenity" value={filters.amenity} onChange={handleFilterChange}>
- <option value="all">Tat ca tien nghi</option>
+ <option value="all">Tất cả tiện nghi</option>
  {amenityOptions.map((amenity) => (
  <option key={amenity} value={amenity}>
  {amenity}
@@ -153,7 +153,7 @@ export default function HotelsToolbarSection({
  checked={filters.freeCancellationOnly}
  onChange={handleFilterChange}
  />
- <span>Co huy mien phi</span>
+ <span>Có hủy miễn phí</span>
  </label>
 
  <label className="wishlist-checkbox">
@@ -164,18 +164,18 @@ export default function HotelsToolbarSection({
  onChange={handleFilterChange}
  disabled={!isLoggedIn}
  />
- <span>Cho xem wishlist cua toi</span>
+ <span>Chỉ xem wishlist của tôi</span>
  </label>
  </div>
 
  <div className="toolbar-footer">
  <span className="result-pill">
  {availabilityLoading
- ? "Dang cap nhet phong kha dung..."
- : `${filteredHotelsCount} khach san phu hop`}
+ ? "Đang cập nhật phòng khả dụng..."
+ : `${filteredHotelsCount} khách sạn phù hợp`}
  </span>
  <button type="button" className="reset-btn" onClick={resetFilters}>
- Dat lai bo luc
+ Đặt lại bộ lọc
  </button>
  </div>
 

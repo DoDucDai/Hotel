@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FaArrowRight, FaCheckCircle, FaEye, FaEyeSlash, FaLock } from "react-icons/fa";
 import {
@@ -19,7 +19,7 @@ function ResetPassword() {
  const [showPassword, setShowPassword] = useState(false);
  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
  const [status, setStatus] = useState("loading");
- const [message, setMessage] = useState("Dang kiem tra link dat lai mat khau...");
+ const [message, setMessage] = useState("Đang kiểm tra link đặt lại mật khẩu...");
  const [email, setEmail] = useState("");
  const [saving, setSaving] = useState(false);
 
@@ -36,7 +36,7 @@ function ResetPassword() {
  const validateToken = async () => {
  if (!token) {
  setStatus("error");
- setMessage("Link dat lai mat khau khong hop le hoac thieu token.");
+ setMessage("Link đặt lại mật khẩu không hợp lệ hoặc thiếu token.");
  return;
  }
 
@@ -48,7 +48,7 @@ function ResetPassword() {
 
  setStatus("ready");
  setEmail(res?.data?.email || "");
- setMessage("Token hop le. Ban c? the tao mat khau moi.");
+ setMessage("Token hợp lệ. Bạn có thể tạo mật khẩu mới.");
  } catch (error) {
  if (!active) {
  return;
@@ -56,7 +56,7 @@ function ResetPassword() {
 
  console.error("Cannot validate reset token", error);
  setStatus("error");
- setMessage(readAuthError(error, "Link dat lai mat khau da het han hoac khong hop le."));
+ setMessage(readAuthError(error, "Link đặt lại mật khẩu đã hết hạn hoặc không hợp lệ."));
  }
  };
 
@@ -70,18 +70,18 @@ function ResetPassword() {
  event.preventDefault();
 
  if (passwordMismatch) {
- toast.error("Mat khau va xac nhan mat khau khong khop");
+ toast.error("Mật khẩu và xác nhận mật khẩu không khớp");
  return;
  }
 
  setSaving(true);
  try {
  const res = await resetPassword(token, password);
- toast.success(res?.data?.message || "Dat lai mat khau th nh cong");
+ toast.success(res?.data?.message || "Đặt lại mật khẩu thành công");
  navigate("/login", { replace: true });
  } catch (error) {
  console.error("Cannot reset password", error);
- toast.error(readAuthError(error, "Khong the dat lai mat khau"));
+ toast.error(readAuthError(error, "Không thể đặt lại mật khẩu"));
  } finally {
  setSaving(false);
  }
@@ -92,11 +92,11 @@ function ResetPassword() {
  <section className="auth-assist-shell compact">
  <article className="auth-assist-card">
  <p className="auth-assist-card-tag">Reset password</p>
- <h2>Dat lai mat khau</h2>
+ <h2>Đặt lại mật khẩu</h2>
  <p className="auth-assist-note">{message}</p>
 
  {status === "loading" ? (
- <div className="auth-assist-feedback">Dang xac thuc token...</div>
+ <div className="auth-assist-feedback">Đang xác thực token...</div>
  ) : null}
 
  {status === "error" ? (
@@ -108,7 +108,7 @@ function ResetPassword() {
  className="auth-assist-link"
  onClick={() => navigate("/forgot-password")}
  >
- Gui lai yeu cau moi
+ Gửi lại yêu cầu mới
  </button>
  </div>
  </div>
@@ -118,20 +118,20 @@ function ResetPassword() {
  <>
  {email ? (
  <div className="auth-assist-feedback">
- Dang dat lai mat khau cho <strong>{email}</strong>
+ Đang đặt lại mật khẩu cho <strong>{email}</strong>
  </div>
  ) : null}
 
  <form className="auth-assist-form" onSubmit={handleSubmit}>
  <label className="auth-assist-field">
- <span>Mat khau moi</span>
+ <span>Mật khẩu mới</span>
  <div className="auth-assist-input">
  <FaLock />
  <input
  type={showPassword ? "text" : "password"}
  value={password}
  onChange={(event) => setPassword(event.target.value)}
- placeholder="Toi thieu 6 ky tu"
+ placeholder="Tối thiểu 6 ký tự"
  autoComplete="new-password"
  required
  />
@@ -139,7 +139,7 @@ function ResetPassword() {
  type="button"
  className="auth-assist-toggle"
  onClick={() => setShowPassword((prev) => !prev)}
- aria-label={showPassword ? "An mat khau" : "Hien mat khau"}
+ aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
  >
  {showPassword ? <FaEyeSlash /> : <FaEye />}
  </button>
@@ -147,14 +147,14 @@ function ResetPassword() {
  </label>
 
  <label className="auth-assist-field">
- <span>Xac nhan mat khau</span>
+ <span>Xác nhận mật khẩu</span>
  <div className="auth-assist-input">
  <FaLock />
  <input
  type={showConfirmPassword ? "text" : "password"}
  value={confirmPassword}
  onChange={(event) => setConfirmPassword(event.target.value)}
- placeholder="Nhap lai mat khau moi"
+ placeholder="Nhập lại mật khẩu mới"
  autoComplete="new-password"
  required
  />
@@ -163,7 +163,7 @@ function ResetPassword() {
  className="auth-assist-toggle"
  onClick={() => setShowConfirmPassword((prev) => !prev)}
  aria-label={
- showConfirmPassword ? "An mat khau xac nhan" : "Hien mat khau xac nhan"
+ showConfirmPassword ? "Ẩn mật khẩu xác nhận" : "Hiện mật khẩu xác nhận"
  }
  >
  {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
@@ -173,12 +173,12 @@ function ResetPassword() {
 
  <p className={`auth-assist-helper ${passwordMismatch ? "error" : ""}`}>
  {passwordMismatch
- ? "Mat khau va xac nhan mat khau chua khop."
- : "Hay dat mat khau moi co it nhat 6 ky tu."}
+ ? "Mật khẩu và xác nhận mật khẩu chưa khớp."
+ : "Hãy đặt mật khẩu mới có ít nhất 6 ký tự."}
  </p>
 
  <button type="submit" className="auth-assist-submit" disabled={saving}>
- <span>{saving ? "Dang cap nhet..." : "Lu mat khau moi"}</span>
+ <span>{saving ? "Đang cập nhật..." : "Lưu mật khẩu mới"}</span>
  <FaArrowRight />
  </button>
  </form>
@@ -191,27 +191,27 @@ function ResetPassword() {
  className="auth-assist-link subtle"
  onClick={() => navigate("/login")}
  >
- Quay lai dang nhap
+ Quay lại đăng nhập
  </button>
  </div>
  </article>
 
  <article className="auth-assist-copy muted">
- <p className="auth-assist-tag">Bao mat</p>
- <h1>Tao mat khau moi an toan de tiep tuc so dung t i khoan.</h1>
+ <p className="auth-assist-tag">Bảo mật</p>
+ <h1>Tạo mật khẩu mới an toàn để tiếp tục sử dụng tài khoản.</h1>
  <div className="auth-assist-points">
  <article>
  <FaCheckCircle />
  <div>
- <strong>Link co thoi han</strong>
- <p>Neu token het han, ban chi can tao lai yeu cau reset tu dau.</p>
+ <strong>Link có thời hạn</strong>
+ <p>Nếu token hết hạn, bạn chỉ cần tạo lại yêu cầu reset từ đầu.</p>
  </div>
  </article>
  <article>
  <FaLock />
  <div>
- <strong>Thong tin duoc bao v?</strong>
- <p>Mat khau moi se duoc ma hoa truoc khi luu trong he thong.</p>
+ <strong>Thông tin được bảo vệ</strong>
+ <p>Mật khẩu mới sẽ được mã hóa trước khi lưu trong hệ thống.</p>
  </div>
  </article>
  </div>
@@ -222,4 +222,6 @@ function ResetPassword() {
 }
 
 export default ResetPassword;
+
+
 

@@ -1,4 +1,4 @@
-export default function HotelsView({
+﻿export default function HotelsView({
   hotelCardPage,
   hotelCardTotalPages,
   filteredHotelCards,
@@ -29,8 +29,8 @@ export default function HotelsView({
       <article className="panel">
         <div className="panel-head">
           <div>
-            <p className="panel-tag">Danh sach hotels</p>
-            <h2>Tach rieng tung card de de mo rong</h2>
+            <p className="panel-tag">Danh sách hotels</p>
+            <h2>Tách riêng từng card để dễ mở rộng</h2>
           </div>
           <span className="panel-badge">
             Trang {hotelCardPage}/{hotelCardTotalPages} - {filteredHotelCards.length}/
@@ -40,9 +40,9 @@ export default function HotelsView({
 
         <div className="admin-hotel-filters">
           <label className="admin-filter-field">
-            <span>Thanh pho</span>
+            <span>Thành phố</span>
             <select name="city" value={hotelFilters.city} onChange={handleHotelFilterChange}>
-              <option value="all">Tat ca thanh pho</option>
+              <option value="all">Tất cả thành phố</option>
               {hotelCityOptions.map((city) => (
                 <option key={city} value={city}>
                   {city}
@@ -52,7 +52,7 @@ export default function HotelsView({
           </label>
 
           <label className="admin-filter-field">
-            <span>So phong toi thieu</span>
+            <span>Số phòng tối thiểu</span>
             <input
               type="number"
               min="0"
@@ -63,7 +63,7 @@ export default function HotelsView({
           </label>
 
           <label className="admin-filter-field">
-            <span>Lap day tai thiOu (%)</span>
+            <span>Lấp đầy tối thiểu (%)</span>
             <input
               type="number"
               min="0"
@@ -75,22 +75,22 @@ export default function HotelsView({
           </label>
 
           <button type="button" className="admin-filter-reset" onClick={resetHotelFilters}>
-            Dat lai bo loc
+            Đặt lại bộ lọc
           </button>
         </div>
 
         <div className="admin-summary-grid">
           <div className="type-card">
-            <h3>Phong hoat dong</h3>
-            <p>{numberFormatter.format(rooms.length)} phong trong he thong</p>
+            <h3>Phòng hoạt động</h3>
+            <p>{numberFormatter.format(rooms.length)} phòng trong hệ thống</p>
           </div>
           <div className="type-card">
             <h3>Booking theo hotel</h3>
-            <p>{numberFormatter.format(bookings.length)} luot dat phong</p>
+            <p>{numberFormatter.format(bookings.length)} lượt đặt phòng</p>
           </div>
           <div className="type-card">
-            <h3>Khach san lap day cao</h3>
-            <p>{topFilteredHotel ? `${topFilteredHotel.name} - ${topFilteredHotel.occupancy}%` : "Chua co du lieu"}</p>
+            <h3>Khách sạn lấp đầy cao</h3>
+            <p>{topFilteredHotel ? `${topFilteredHotel.name} - ${topFilteredHotel.occupancy}%` : "Chưa có dữ liệu"}</p>
           </div>
         </div>
 
@@ -110,8 +110,8 @@ export default function HotelsView({
                     <article key={hotel.id} className="admin-hotel-admin-card">
                       <div className="admin-hotel-card-head">
                         <div>
-                          <p className="panel-tag">{hotel.city || "Viet Nam"}</p>
-                          <h3>{hotel.name || "Khach san"}</h3>
+                          <p className="panel-tag">{hotel.city || "Việt Nam"}</p>
+                          <h3>{hotel.name || "Khách sạn"}</h3>
                         </div>
                         <span className={`status-pill ${approvalMetaItem.className}`}>{approvalMetaItem.label}</span>
                       </div>
@@ -120,19 +120,19 @@ export default function HotelsView({
 
                       <div className="admin-hotel-meta">
                         <span>{hotel.starRating || 3} sao</span>
-                        <span>{hotel.totalRooms || 0} loai phong</span>
+                        <span>{hotel.totalRooms || 0} loại phòng</span>
                         <span>{hotel.totalBookings || 0} booking</span>
-                        <span>Lap day {hotel.occupancy || 0}%</span>
+                        <span>Lấp đầy {hotel.occupancy || 0}%</span>
                       </div>
 
                       <div className="admin-hotel-meta">
-                        <span>Huy mien phi: {hotel.freeCancellationBeforeDays ?? 0} ngay</span>
-                        <span>Hoan tien muon: {hotel.lateCancellationRefundRate ?? 0}%</span>
+                        <span>Hủy miễn phí: {hotel.freeCancellationBeforeDays ?? 0} ngày</span>
+                        <span>Hoàn tiền muộn: {hotel.lateCancellationRefundRate ?? 0}%</span>
                       </div>
 
                       <div className="admin-form-stack">
                         <label className="admin-filter-field">
-                          <span>Duyet hotel</span>
+                          <span>Duyệt hotel</span>
                           <select
                             value={selectedStatus}
                             onChange={(event) => handleHotelApprovalDraftChange(hotel.id, event.target.value)}
@@ -147,11 +147,11 @@ export default function HotelsView({
                         </label>
 
                         <label className="admin-filter-field">
-                          <span>Ghi chu admin</span>
+                          <span>Ghi chú admin</span>
                           <textarea
                             value={noteValue}
                             onChange={(event) => handleHotelApprovalNoteChange(hotel.id, event.target.value)}
-                            placeholder="Ly do duyet, tu choi hoac can host bo sung thong tin"
+                            placeholder="Lý do duyệt, từ chối hoặc cần host bổ sung thông tin"
                           />
                         </label>
                       </div>
@@ -166,7 +166,7 @@ export default function HotelsView({
                             })
                           }
                         >
-                          Xem chi tiet
+                          Xem chi tiết
                         </button>
                         <button
                           type="button"
@@ -174,7 +174,7 @@ export default function HotelsView({
                           disabled={!statusDirty || hotelApprovalUpdatingId === hotel.id}
                           onClick={() => handleHotelApprovalUpdate(hotel)}
                         >
-                          {hotelApprovalUpdatingId === hotel.id ? "Dang luu..." : "Lu duyet"}
+                          {hotelApprovalUpdatingId === hotel.id ? "Đang lưu..." : "Lưu duyệt"}
                         </button>
                       </div>
                     </article>
@@ -189,7 +189,7 @@ export default function HotelsView({
                   onClick={() => setHotelCardPage((prev) => Math.max(prev - 1, 1))}
                   disabled={hotelCardPage === 1}
                 >
-                  Truoc
+                  Trước
                 </button>
 
                 <div className="admin-pagination-list">
@@ -222,12 +222,14 @@ export default function HotelsView({
               </div>
             </>
           ) : (
-            <div className="admin-empty-state">Khong co khach san phu hop bo loc hien tai.</div>
+            <div className="admin-empty-state">Không có khách sạn phù hợp bộ lọc hiện tại.</div>
           )
         ) : (
-          <div className="admin-empty-state">Cha co khach san nao trong he thong.</div>
+          <div className="admin-empty-state">Chưa có khách sạn nào trong hệ thống.</div>
         )}
       </article>
     </section>
   );
 }
+
+

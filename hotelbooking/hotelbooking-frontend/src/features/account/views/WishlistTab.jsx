@@ -1,4 +1,4 @@
-export default function WishlistTab({
+﻿export default function WishlistTab({
   wishlistItems,
   wishlistLoading,
   wishlistError,
@@ -8,16 +8,16 @@ export default function WishlistTab({
   return (
     <section className="account-card">
       <div className="history-head">
-        <h2>Khach san yeu thich</h2>
-        <span>{wishlistItems.length} muc</span>
+        <h2>Khách sạn yêu thích</h2>
+        <span>{wishlistItems.length} mục</span>
       </div>
 
       {wishlistLoading ? (
-        <div className="account-state">Dang tai wishlist...</div>
+        <div className="account-state">Đang tải wishlist...</div>
       ) : wishlistError ? (
         <div className="account-state">{wishlistError}</div>
       ) : wishlistItems.length === 0 ? (
-        <div className="account-state">Wishlist cua ban dang trong.</div>
+        <div className="account-state">Wishlist của bạn đang trống.</div>
       ) : (
         <div className="wishlist-grid">
           {wishlistItems.map((item) => {
@@ -28,8 +28,8 @@ export default function WishlistTab({
 
             return (
               <article key={item.hotelId} className="wishlist-card">
-                <p className="wishlist-city">{hotel.city || "Da diem noi bat"}</p>
-                <h3>{hotel.name || "Khach san"}</h3>
+                <p className="wishlist-city">{hotel.city || "Địa điểm nổi bật"}</p>
+                <h3>{hotel.name || "Khách sạn"}</h3>
                 <p>{hotel.address || "-"}</p>
                 <small>
                   {hotel.starRating || 3} sao
@@ -45,14 +45,14 @@ export default function WishlistTab({
                       })
                     }
                   >
-                    Xem chi tiet
+                    Xem chi tiết
                   </button>
                   <button
                     type="button"
                     className="table-action-btn danger"
                     onClick={() => handleRemoveWishlist(item.hotelId)}
                   >
-                    Xoa
+                    Xóa
                   </button>
                 </div>
               </article>
@@ -63,3 +63,5 @@ export default function WishlistTab({
     </section>
   );
 }
+
+

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getHotels } from "../services/hotelService";
 import { getPrimaryImage } from "../utils/imageHelpers";
@@ -70,7 +70,7 @@ export default function Home() {
  console.error("Cannot load hotels:", fetchError);
  if (isMounted) {
  setHotels([]);
- setError("Khong the tai de lieu khach san. Vui long the lai sau.");
+ setError("Không thể tải dữ liệu khách sạn. Vui lòng thử lại sau.");
  }
  } finally {
  if (isMounted) {
@@ -118,9 +118,9 @@ export default function Home() {
 
  const stats = useMemo(
  () => [
- { label: "Khach san", value: `${hotels.length}+` },
- { label: "Thonh phi", value: `${cities.length}+` },
- { label: "Dat nhanh", value: "24/7" },
+ { label: "Khách sạn", value: `${hotels.length}+` },
+ { label: "Thành phố", value: `${cities.length}+` },
+ { label: "Đặt nhanh", value: "24/7" },
  ],
  [hotels.length, cities.length]
  );
@@ -139,9 +139,9 @@ export default function Home() {
  .slice(0, 3)
  .map(([city, hotel], index) => ({
  id: `city-${city}-${index}`,
- tag: "Diem den hot",
- title: `${city}: diem den duoc tim nhieu`,
- summary: `Kham pha ${city} voi nhieu lua chan phong linh hoat va gia phu hop cho nhieu nhu cau.`,
+ tag: "Điểm đến hot",
+ title: `${city}: điểm đến được tìm nhiều`,
+ summary: `Khám phá ${city} với nhiều lựa chọn phòng linh hoạt và giá phù hợp cho nhiều nhu cầu.`,
  destination: city,
  image: getPrimaryImage(hotel, FALLBACK_IMAGE, { includeNameFallback: true }),
  }));
@@ -155,28 +155,28 @@ export default function Home() {
  const editorialStories = [
  {
  id: "deal-early",
- tag: "Uu dai",
- title: "Deal dat som cho mua cao diem",
+ tag: "Ưu đãi",
+ title: "Deal đặt sớm cho mùa cao điểm",
  summary:
- "Len lich truoc de giu gia tot va co nhieu lua chan phong hon vao cuoi tuan va dip le.",
+ "Lên lịch trước để giữ giá tốt và có nhiều lựa chọn phòng hơn vào cuối tuần và dịp lễ.",
  destination: "",
  image: getCover(1),
  },
  {
  id: "family-trend",
- tag: "Xu huong",
- title: "Nhieu gia dinh uu tien can ho mini",
+ tag: "Xu hướng",
+ title: "Nhiều gia đình ưu tiên căn hộ mini",
  summary:
- "Loai phong co bep nho, may giat va khong gian chung dang duoc dat nhieu hon cho nhom 3-5 nguoi.",
+ "Loại phòng có bếp nhỏ, máy giặt và không gian chung đang được đặt nhiều hơn cho nhóm 3-5 người.",
  destination: "",
  image: getCover(2),
  },
  {
  id: "workation",
- tag: "Cam hung",
- title: "Workation: vua lam viec vua nghi duong",
+ tag: "Cảm hứng",
+ title: "Workation: vừa làm việc vừa nghỉ dưỡng",
  summary:
- "Chan khach san co wifi an denh, khong gian yen tinh va tien nghi 24/7 cho lich lam viec linh hoat.",
+ "Chọn khách sạn có wifi ổn định, không gian yên tĩnh và tiện nghi 24/7 cho lịch làm việc linh hoạt.",
  destination: "",
  image: getCover(3),
  },
@@ -225,11 +225,11 @@ export default function Home() {
  <div className="home-page">
  <section className="home-container home-hero">
  <div className="hero-content">
- <span className="hero-chip">Nen tang dat phong toan quoc</span>
- <h1>Dt phong khach san nhanh, gia tot moi ngay</h1>
+ <span className="hero-chip">Nền tảng đặt phòng toàn quốc</span>
+ <h1>Đặt phòng khách sạn nhanh, giá tốt mỗi ngày</h1>
  <p>
- So sanh nhieu lua chan trong vai giay, chan noi luu tru phu hop va
- ho n tat dat phong chi voi vai thao tac.
+ So sánh nhiều lựa chọn trong vài giây, chọn nơi lưu trú phù hợp và
+ hoàn tất đặt phòng chỉ với vài thao tác.
  </p>
 
  <div className="hero-stats">
@@ -243,22 +243,22 @@ export default function Home() {
  </div>
 
  <form className="home-search-panel" onSubmit={(event) => event.preventDefault()}>
- <h2>Tim khach san theo nhu cau</h2>
+ <h2>Tìm khách sạn theo nhu cầu</h2>
 
  <label className="search-field">
- <span>Ten khach san hoac dua diem</span>
+ <span>Tên khách sạn hoặc địa điểm</span>
  <input
  type="text"
  value={keyword}
  onChange={(event) => setKeyword(event.target.value)}
- placeholder="Vi du: Muong Thanh, Ha Noi..."
+ placeholder="Ví dụ: Mường Thanh, Hà Nội..."
  />
  </label>
 
  <label className="search-field">
- <span>Thonh phi</span>
+ <span>Thành phố</span>
  <select value={cityFilter} onChange={(event) => setCityFilter(event.target.value)}>
- <option value="all">Tat ca thanh phi</option>
+ <option value="all">Tất cả thành phố</option>
  {cities.map((city) => (
  <option key={city} value={city}>
  {city}
@@ -269,7 +269,7 @@ export default function Home() {
 
  <div className="search-actions">
  <button className="btn-main" type="button" onClick={handleExploreHotels}>
- Xem tat ca khach san
+ Xem tất cả khách sạn
  </button>
  <button
  className="btn-sub"
@@ -279,7 +279,7 @@ export default function Home() {
  setCityFilter("all");
  }}
  >
- Dat lai bo luc
+ Đặt lại bộ lọc
  </button>
  </div>
  </form>
@@ -288,30 +288,30 @@ export default function Home() {
  <section className="home-container home-highlights">
  <article className="highlight-card">
  <span className="highlight-icon">01</span>
- <h3>Tim kiem tuc thi</h3>
- <p>Loc nhanh theo ten, thanh phi va dua diem noi bat chi trong 1 o.</p>
+ <h3>Tìm kiếm tức thì</h3>
+ <p>Lọc nhanh theo tên, thành phố và địa điểm nổi bật chỉ trong 1 ô.</p>
  </article>
 
  <article className="highlight-card">
  <span className="highlight-icon">02</span>
- <h3>Thong tin minh bach</h3>
- <p>Hien the day ten, dua chi va hinh anh de ban ra quyet dinh de hon.</p>
+ <h3>Thông tin minh bạch</h3>
+ <p>Hiển thị đầy đủ tên, địa chỉ và hình ảnh để bạn ra quyết định dễ hơn.</p>
  </article>
 
  <article className="highlight-card">
  <span className="highlight-icon">03</span>
- <h3>Toi uu mobile</h3>
- <p>Trai nghiem muot tren dien thoai, tablet va desktop voi layout linh hoat.</p>
+ <h3>Tối ưu mobile</h3>
+ <p>Trải nghiệm mượt trên điện thoại, tablet và desktop với layout linh hoạt.</p>
  </article>
  </section>
 
  <section className="home-container home-news">
  <div className="section-header">
  <div>
- <p className="section-label">Tin tuc du lich</p>
- <h2>Cam hung va xu huong dat phong</h2>
+ <p className="section-label">Tin tức du lịch</p>
+ <h2>Cảm hứng và xu hướng đặt phòng</h2>
  </div>
- <span className="result-count">{travelStories.length} bai noi bat</span>
+ <span className="result-count">{travelStories.length} bài nổi bật</span>
  </div>
 
  <div className="news-grid">
@@ -343,10 +343,10 @@ export default function Home() {
  <section className="home-container home-hotels">
  <div className="section-header">
  <div>
- <p className="section-label">Gui y hom nay</p>
- <h2>Khach san noi bat</h2>
+ <p className="section-label">Gợi ý hôm nay</p>
+ <h2>Khách sạn nổi bật</h2>
  </div>
- <span className="result-count">{filteredHotels.length} ket qua</span>
+ <span className="result-count">{filteredHotels.length} kết quả</span>
  </div>
 
  {loading ? (
@@ -359,7 +359,7 @@ export default function Home() {
  <div className="empty-state">{error}</div>
  ) : filteredHotels.length === 0 ? (
  <div className="empty-state">
- Khong tim thay khach san phu hop. Hay the tu khoa khac.
+ Không tìm thấy khách sạn phù hợp. Hãy thử từ khóa khác.
  </div>
  ) : (
  <div className="hotel-grid">
@@ -389,12 +389,12 @@ export default function Home() {
  </div>
 
  <div className="hotel-content">
- <p className="hotel-city">{hotel.city || "Da diem noi bat"}</p>
- <h3>{hotel.name || "Khach san dang cap nhet"}</h3>
+ <p className="hotel-city">{hotel.city || "Địa điểm nổi bật"}</p>
+ <h3>{hotel.name || "Khách sạn đang cập nhật"}</h3>
  <p className="hotel-address">
- {hotel.address || "Da chi se duoc cap nhat som."}
+ {hotel.address || "Địa chỉ sẽ được cập nhật sớm."}
  </p>
- <span className="hotel-link">Xem chi tiet</span>
+ <span className="hotel-link">Xem chi tiết</span>
  </div>
  </article>
  ))}
@@ -404,4 +404,3 @@ export default function Home() {
  </div>
  );
 }
-

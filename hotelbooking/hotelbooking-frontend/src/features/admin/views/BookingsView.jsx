@@ -30,8 +30,8 @@
  <article className="panel">
  <div className="panel-head">
  <div>
- <p className="panel-tag">Tat c? booking</p>
- <h2>Quan sat booking theo tinh trang thuc tu</h2>
+ <p className="panel-tag">Tất cả booking</p>
+ <h2>Quan sát booking theo tình trạng thực tế</h2>
  </div>
  <span className="panel-badge">
  {filteredBookings.length}/{sortedBookings.length} booking
@@ -61,7 +61,7 @@
  name="userQuery"
  value={bookingFilters.userQuery}
  onChange={handleBookingFilterChange}
- placeholder="Ten, email nguoi dat"
+ placeholder="Tên, email người đặt"
  />
  </label>
 
@@ -72,12 +72,12 @@
  name="hotelQuery"
  value={bookingFilters.hotelQuery}
  onChange={handleBookingFilterChange}
- placeholder="Ten hotel hoac phong"
+ placeholder="Tên hotel hoặc phòng"
  />
  </label>
 
  <label className="admin-filter-field">
- <span>Trang thai o</span>
+ <span>Trạng thái ở</span>
  <select
  name="stayStatus"
  value={bookingFilters.stayStatus}
@@ -92,7 +92,7 @@
  </label>
 
  <label className="admin-filter-field">
- <span>Tu ngay</span>
+ <span>Từ ngày</span>
  <input
  type="date"
  name="dateFrom"
@@ -102,7 +102,7 @@
  </label>
 
  <label className="admin-filter-field">
- <span>Den ngay</span>
+ <span>Đến ngày</span>
  <input
  type="date"
  name="dateTo"
@@ -116,7 +116,7 @@
  className="admin-filter-reset"
  onClick={resetBookingFilters}
  >
- Dat lai bo luc
+ Đặt lại bộ lọc
  </button>
  </div>
 
@@ -125,17 +125,17 @@
  <table>
  <thead>
  <tr>
- <th>Ma booking</th>
+ <th>Mã booking</th>
  <th>User</th>
  <th>Hotel</th>
  <th>Room</th>
  <th>Check-in</th>
  <th>Check-out</th>
- <th>Tng tien</th>
- <th>Thanh toan</th>
+ <th>Tổng tiền</th>
+ <th>Thanh toán</th>
  <th>Coupon</th>
- <th>Ghi chu</th>
- <th>Trang thai</th>
+ <th>Ghi chú</th>
+ <th>Trạng thái</th>
  </tr>
  </thead>
  <tbody>
@@ -186,7 +186,7 @@
  disabled={!paymentDirty || paymentUpdatingId === booking.id}
  onClick={() => handlePaymentStatusUpdate(booking)}
  >
- {paymentUpdatingId === booking.id ? "Dang luu..." : "Lu"}
+ {paymentUpdatingId === booking.id ? "Đang lưu..." : "Lưu"}
  </button>
  </div>
  </div>
@@ -204,11 +204,11 @@
  <td>
  <div className="admin-table-stack">
  <span className="admin-note-cell">
- {formatCellText(booking.note, "Khong co ghi chu")}
+ {formatCellText(booking.note, "Không có ghi chú")}
  </span>
  {booking.cancellationReason ? (
  <span className="admin-cell-note">
- Ly do huy: {booking.cancellationReason}
+ Lý do hủy: {booking.cancellationReason}
  </span>
  ) : null}
  </div>
@@ -238,7 +238,7 @@
  disabled={!bookingStatusDirty || bookingStatusUpdatingId === booking.id}
  onClick={() => handleBookingStatusUpdate(booking)}
  >
- {bookingStatusUpdatingId === booking.id ? "Dang luu..." : "Lu"}
+ {bookingStatusUpdatingId === booking.id ? "Đang lưu..." : "Lưu"}
  </button>
  </div>
  <input
@@ -248,7 +248,7 @@
  onChange={(event) =>
  handleBookingStatusNoteChange(booking.id, event.target.value)
  }
- placeholder="Ghi chu check-in/out"
+ placeholder="Ghi chú check-in/out"
  />
  </div>
  </td>
@@ -260,10 +260,11 @@
  </div>
  ) : (
  <div className="admin-empty-state">
- Khong co booking phu hop bo luc payment status hien tai.
+ Không có booking phù hợp bộ lọc payment status hiện tại.
  </div>
  )}
  </article>
  </section>
  );
 }
+

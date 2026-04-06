@@ -36,7 +36,7 @@ MongoRepository theo aggregate:
 ## 3. Kien truc frontend
 ### 3.1 Routing
 - Public routes: `/`, `/hotels`, `/hotels/:id`, `/login`, `/register`.
-- Protected routes: `/booking`, `/account`, `/host`.
+- Protected routes: `/booking`, `/account`, `/host`, `/notifications`.
 - Admin route: `/admin` (yeu cau role `ADMIN`).
 
 ### 3.2 State va auth client-side
@@ -75,7 +75,16 @@ MongoRepository theo aggregate:
 2. Host tao/sua/xoa hotel/room.
 3. Server check ownerId hoac role ADMIN truoc khi cho phep.
 
-### 5.4 Cap nhat email tai khoan
+### 5.4 Admin duyet hotel
+1. Admin xem danh sach hotel trong dashboard `/admin`.
+2. Admin cap nhat `approvalStatus` + `approvalNote` qua `PUT /admin/hotels/{id}/approval`.
+3. He thong tao notification cho host khi trang thai duyet thay doi.
+
+Ghi chu scope:
+- Admin panel UI hien tai tap trung workflow duyet hotel.
+- CRUD hotel/upload image van ton tai o API `/hotels/*` cho nhu cau van hanh ky thuat.
+
+### 5.5 Cap nhat email tai khoan
 1. User goi `PUT /users/me/email`.
 2. Server kiem tra trung email.
 3. Server cap nhat email va phat hanh access token moi.

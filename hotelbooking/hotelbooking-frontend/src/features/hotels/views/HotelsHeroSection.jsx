@@ -1,4 +1,4 @@
-export default function HotelsHeroSection({
+﻿export default function HotelsHeroSection({
  totalHotels,
  totalCities,
  topRatedCount,
@@ -6,21 +6,21 @@ export default function HotelsHeroSection({
  return (
  <section className="hotels-container hotels-hero">
  <div className="hotels-hero-content">
- <span className="hotels-badge">Danh sach khach san toan quoc</span>
- <h1>Loc theo gia, rating, sao, tien nghi va luu khach san yeu thich</h1>
+ <span className="hotels-badge">Danh sách khách sạn toàn quốc</span>
+ <h1>Lọc theo giá, rating, sao, tiện nghi và lưu khách sạn yêu thích</h1>
  <p>
- Ngoai tim theo dua diem va lich o, ban c? the loc sau hon theo muc gia, diem
- danh gia, hang sao, tien nghi va danh sach wishlist cua rieng minh.
+ Ngoài tìm theo địa điểm và lịch ở, bạn có thể lọc sâu hơn theo mức giá, điểm
+ đánh giá, hạng sao, tiện nghi và danh sách wishlist của riêng mình.
  </p>
 
  <div className="hotels-metrics">
  <article className="metric-card">
  <strong>{totalHotels}+</strong>
- <span>Khach san</span>
+ <span>Khách sạn</span>
  </article>
  <article className="metric-card">
  <strong>{totalCities}+</strong>
- <span>Thonh phi</span>
+ <span>Thành phố</span>
  </article>
  <article className="metric-card">
  <strong>{topRatedCount}</strong>

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+﻿import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { useToast } from "../components/ToastProvider";
@@ -48,6 +48,11 @@ function AdminDashboard() {
  couponSaving,
  couponDeletingId,
  couponMessage,
+ userForm,
+ editingUserId,
+ userSaving,
+ userDeletingId,
+ userMessage,
  confirmDialog,
  bookingFilters,
  paymentDrafts,
@@ -106,6 +111,11 @@ function AdminDashboard() {
  handleConfirmDialogAction,
  handleCouponEdit,
  handleCouponSubmit,
+ handleUserFieldChange,
+ resetUserForm,
+ handleUserEdit,
+ handleUserSubmit,
+ handleUserDeleteRequest,
  handlePaymentDraftChange,
  handleBookingStatusDraftChange,
  handleBookingStatusNoteChange,
@@ -137,6 +147,7 @@ function AdminDashboard() {
  formatCellText,
  shortId,
  getAvatarText,
+ adminUserRoleOptions,
  } = useAdminDashboardState({ navigate, toast, profileRef });
 
  const renderOverview = () => (
@@ -268,6 +279,17 @@ function AdminDashboard() {
  users={users}
  userSummary={userSummary}
  shortId={shortId}
+ userForm={userForm}
+ editingUserId={editingUserId}
+ userSaving={userSaving}
+ userDeletingId={userDeletingId}
+ userMessage={userMessage}
+ adminUserRoleOptions={adminUserRoleOptions}
+ handleUserFieldChange={handleUserFieldChange}
+ handleUserSubmit={handleUserSubmit}
+ resetUserForm={resetUserForm}
+ handleUserEdit={handleUserEdit}
+ handleUserDeleteRequest={handleUserDeleteRequest}
  />
  );
  const renderAccount = () => (
@@ -294,7 +316,7 @@ function AdminDashboard() {
  );
  const renderMainContent = () => {
  if (loading) {
- return <div className="admin-loading-state">Dang tai du lieu dashboard...</div>;
+ return <div className="admin-loading-state">Đang tải dữ liệu dashboard...</div>;
  }
 
  if (error) {
@@ -302,7 +324,7 @@ function AdminDashboard() {
  <div className="admin-error-state">
  <p>{error}</p>
  <button type="button" className="btn-action btn-primary" onClick={() => loadDashboardData()}>
- Thu tai lai
+     Thử tải lại
  </button>
  </div>
  );
@@ -346,8 +368,8 @@ function AdminDashboard() {
  open={Boolean(confirmDialog)}
  title={confirmDialog?.title || ""}
  description={confirmDialog?.description || ""}
- confirmLabel={confirmDialog?.confirmLabel || "Xac nhan"}
- loading={Boolean(couponDeletingId)}
+  confirmLabel={confirmDialog?.confirmLabel || "Xác nhận"}
+ loading={Boolean(couponDeletingId || userDeletingId)}
  onClose={closeConfirmDialog}
  onConfirm={handleConfirmDialogAction}
  />
@@ -360,7 +382,7 @@ function AdminDashboard() {
  <span>Admin Control Center</span>
  </div>
  <button type="button" className="sidebar-close" onClick={() => setSidebarOpen(false)}>
- Dang
+   Đóng
  </button>
  </div>
 
@@ -369,7 +391,7 @@ function AdminDashboard() {
  className={`sidebar-overview ${activeView === "overview" ? "active" : ""}`}
  onClick={() => openView("overview")}
  >
- Tong quan
+  Tổng quan
  </button>
 
  <div className="sidebar-section">
@@ -380,7 +402,7 @@ function AdminDashboard() {
  setSectionOpen((prev) => ({ ...prev, management: !prev.management }))
  }
  >
- <span>Quan ly du lieu</span>
+ <span>Quản lý dữ liệu</span>
  <span className={`section-caret ${sectionOpen.management ? "open" : ""}`}>
  v
  </span>
@@ -454,7 +476,7 @@ function AdminDashboard() {
  setSectionOpen((prev) => ({ ...prev, account: !prev.account }))
  }
  >
- <span>Tai khoan</span>
+ <span>Tài khoản</span>
  <span className={`section-caret ${sectionOpen.account ? "open" : ""}`}>v</span>
  </button>
 
@@ -476,13 +498,13 @@ function AdminDashboard() {
  <div className="admin-link-group">
  <p className="admin-link-title">Quick Links</p>
  <button type="button" className="admin-link-btn" onClick={() => navigate("/")}>
- Ve trang chu
+   Về trang chủ
  </button>
  <button type="button" className="admin-link-btn" onClick={() => navigate("/hotels")}>
  Xem website
  </button>
  <button type="button" className="admin-link-btn active" onClick={handleLogout}>
- Dang xuat
+ Đăng xuất
  </button>
  </div>
  </aside>
@@ -510,7 +532,7 @@ function AdminDashboard() {
  onClick={() => loadDashboardData(true)}
  disabled={refreshing}
  >
- {refreshing ? "Dang lam moi..." : "Lam moi du lieu"}
+   {refreshing ? "Đang làm mới..." : "Làm mới dữ liệu"}
  </button>
 
  <button
@@ -518,7 +540,7 @@ function AdminDashboard() {
  className="btn-action btn-primary"
  onClick={() => navigate("/host")}
  >
- Quan ly dang phong
+   Quản lý đăng phòng
  </button>
 
  <div className="profile-box" ref={profileRef}>
@@ -548,16 +570,16 @@ function AdminDashboard() {
  Profile admin
  </button>
  <button type="button" className="dropdown-item" onClick={() => openView("coupons")}>
- Quan ly coupon
+ Quản lý coupon
  </button>
  <button type="button" className="dropdown-item" onClick={() => navigate("/host")}>
- Quan ly dang phong
+   Quản lý đăng phòng
  </button>
  <button type="button" className="dropdown-item" onClick={() => navigate("/")}>
- Ve trang chu
+   Về trang chủ
  </button>
  <button type="button" className="dropdown-item danger" onClick={handleLogout}>
- Dang xuat
+ Đăng xuất
  </button>
  </div>
  )}
@@ -572,6 +594,8 @@ function AdminDashboard() {
 }
 
 export default AdminDashboard;
+
+
 
 
 

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+﻿import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import "./Toast.css";
 
 const ToastContext = createContext(null);
@@ -7,18 +7,18 @@ let toastSeq = 0;
 
 function typeLabel(type) {
  if (type === "success") {
- return "Thanh cong";
+ return "Thành công";
  }
 
  if (type === "error") {
- return "Loi";
+ return "Lỗi";
  }
 
  if (type === "warning") {
- return "Can luu y";
+ return "Cần lưu ý";
  }
 
- return "Thong bao";
+ return "Thông báo";
 }
 
 export function ToastProvider({ children }) {
@@ -76,7 +76,7 @@ export function ToastProvider({ children }) {
  type="button"
  className="toast-close"
  onClick={() => removeToast(toast.id)}
- aria-label="Dang thong bao"
+ aria-label="Đóng thông báo"
  >
  x
  </button>
@@ -95,4 +95,6 @@ export function useToast() {
  }
  return context;
 }
+
+
 

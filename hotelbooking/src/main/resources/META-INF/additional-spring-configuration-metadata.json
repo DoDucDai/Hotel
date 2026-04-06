@@ -6,9 +6,79 @@
       "description": "Frontend base URL used to build links in auth emails."
     },
     {
+      "name": "app.backend-url",
+      "type": "java.lang.String",
+      "description": "Backend base URL used to build sandbox checkout callback links."
+    },
+    {
       "name": "app.mail.from",
       "type": "java.lang.String",
       "description": "From address used when sending auth emails."
+    },
+    {
+      "name": "payment.sandbox.secret",
+      "type": "java.lang.String",
+      "description": "HMAC secret key for signing sandbox checkout and webhook payloads."
+    },
+    {
+      "name": "app.bootstrap-admin.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable automatic creation of the first ADMIN account when no admin exists."
+    },
+    {
+      "name": "app.bootstrap-admin.name",
+      "type": "java.lang.String",
+      "description": "Display name for the bootstrap admin account."
+    },
+    {
+      "name": "app.bootstrap-admin.email",
+      "type": "java.lang.String",
+      "description": "Email for the bootstrap admin account."
+    },
+    {
+      "name": "app.bootstrap-admin.password",
+      "type": "java.lang.String",
+      "description": "Raw password for the bootstrap admin account."
+    },
+    {
+      "name": "app.demo-seed.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable local demo data seed (admin/host/user + sample hotels/rooms/bookings/notifications)."
+    },
+    {
+      "name": "app.demo-seed.password",
+      "type": "java.lang.String",
+      "description": "Raw password used for all demo seed accounts."
+    },
+    {
+      "name": "app.demo-seed.admin-name",
+      "type": "java.lang.String",
+      "description": "Display name for the seeded demo admin account."
+    },
+    {
+      "name": "app.demo-seed.admin-email",
+      "type": "java.lang.String",
+      "description": "Email for the seeded demo admin account."
+    },
+    {
+      "name": "app.demo-seed.host-name",
+      "type": "java.lang.String",
+      "description": "Display name for the seeded demo host account."
+    },
+    {
+      "name": "app.demo-seed.host-email",
+      "type": "java.lang.String",
+      "description": "Email for the seeded demo host account."
+    },
+    {
+      "name": "app.demo-seed.user-name",
+      "type": "java.lang.String",
+      "description": "Display name for the seeded demo user account."
+    },
+    {
+      "name": "app.demo-seed.user-email",
+      "type": "java.lang.String",
+      "description": "Email for the seeded demo user account."
     }
   ]
 }

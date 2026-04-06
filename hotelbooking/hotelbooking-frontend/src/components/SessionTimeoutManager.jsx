@@ -31,7 +31,7 @@ export default function SessionTimeoutManager() {
  }
 
  clearAuthStorage();
- toast.warning("Phien dang nhap da het han do khong hoat dong trong 10 phut");
+ toast.warning("Phiên đăng nhập đã hết hạn do không hoạt động trong 10 phút");
 
  navigate("/login", {
  replace: true,

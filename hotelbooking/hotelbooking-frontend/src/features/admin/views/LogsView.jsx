@@ -1,13 +1,13 @@
-export default function LogsView({ sortedLogs, formatDateTime, shortId }) {
+﻿export default function LogsView({ sortedLogs, formatDateTime, shortId }) {
   return (
     <section className="admin-view-stack">
       <article className="panel">
         <div className="panel-head">
           <div>
             <p className="panel-tag">Audit log</p>
-            <h2>Theo doi nhat ky thay doi trong he thong</h2>
+            <h2>Theo dõi nhật ký thay đổi trong hệ thống</h2>
           </div>
-          <span className="panel-badge">{sortedLogs.length} so kien</span>
+          <span className="panel-badge">{sortedLogs.length} sự kiện</span>
         </div>
 
         {sortedLogs.length ? (
@@ -15,11 +15,11 @@ export default function LogsView({ sortedLogs, formatDateTime, shortId }) {
             <table>
               <thead>
                 <tr>
-                  <th>Thoi gian</th>
-                  <th>Hanh dong</th>
-                  <th>Thuc the</th>
+                  <th>Thời gian</th>
+                  <th>Hành động</th>
+                  <th>Thực thể</th>
                   <th>Actor</th>
-                  <th>Noi dung</th>
+                  <th>Nội dung</th>
                 </tr>
               </thead>
               <tbody>
@@ -36,9 +36,10 @@ export default function LogsView({ sortedLogs, formatDateTime, shortId }) {
             </table>
           </div>
         ) : (
-          <div className="admin-empty-state">Chua co nhat ky hoat dong nao.</div>
+          <div className="admin-empty-state">Chưa có nhật ký hoạt động nào.</div>
         )}
       </article>
     </section>
   );
 }
+

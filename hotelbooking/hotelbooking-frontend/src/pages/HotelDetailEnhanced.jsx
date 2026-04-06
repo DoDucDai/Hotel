@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useToast } from "../components/ToastProvider";
 import { getMyBookings } from "../services/bookingService";
@@ -27,6 +27,7 @@ import {
  getMyWishlist,
  removeFromWishlist,
 } from "../services/wishlistService";
+import { formatDateInputLocal } from "../utils/dateInput";
 import "./HotelDetail.css";
 
 export default function HotelDetailEnhanced() {
@@ -74,7 +75,7 @@ export default function HotelDetailEnhanced() {
  } catch (fetchError) {
  console.error("Cannot load hotel detail", fetchError);
  if (isMounted) {
- setError("Khong the tai thong tin khach san. Vui long the lai.");
+ setError("Không thể tải thông tin khách sạn. Vui lòng thử lại.");
  }
  } finally {
  if (isMounted) {
@@ -104,7 +105,7 @@ export default function HotelDetailEnhanced() {
  console.error("Cannot load recommendations", fetchError);
  if (isMounted) {
  setRecommendations([]);
- setRecommendationsError("Cha tai duoc danh sach gui y luc nay.");
+ setRecommendationsError("Chưa tải được danh sách gợi ý lúc này.");
  }
  }
  };
@@ -131,7 +132,7 @@ export default function HotelDetailEnhanced() {
  console.error("Cannot load rooms", fetchError);
  if (isMounted) {
  setRooms([]);
- setRoomsError("Cha tai duoc de lieu phong. Vui long the lai sau.");
+ setRoomsError("Chưa tải được dữ liệu phòng. Vui lòng thử lại sau.");
  }
  } finally {
  if (isMounted) {
@@ -219,16 +220,16 @@ export default function HotelDetailEnhanced() {
  return hotel.amenities;
  }
 
- return ["Wifi mien phi", "Le tan 24/7", "Bai do xe"];
+ return ["Wifi miễn phí", "Lễ tân 24/7", "Bãi đỗ xe"];
  }, [hotel?.amenities]);
 
  const policyItems = useMemo(() => {
  return [
- `Nhan phong tu 14:00, tra phong truoc 12:00`,
- `Huy mien phi truoc ${hotel?.freeCancellationBeforeDays ?? 0} ngay`,
- `Neu huy muon, muc ho n tien con lai la ${hotel?.lateCancellationRefundRate ?? 0}%`,
- "Can xuat trinh giay to tuy than khi check-in",
- "Ho tro hoa don theo yeu cau",
+ `Nhận phòng từ 14:00, trả phòng trước 12:00`,
+ `Hủy miễn phí trước ${hotel?.freeCancellationBeforeDays ?? 0} ngày`,
+ `Nếu hủy muộn, mức hoàn tiền còn lại là ${hotel?.lateCancellationRefundRate ?? 0}%`,
+ "Cần xuất trình giấy tờ tùy thân khi check-in",
+ "Hỗ trợ hóa đơn theo yêu cầu",
  ];
  }, [hotel?.freeCancellationBeforeDays, hotel?.lateCancellationRefundRate]);
 
@@ -239,7 +240,7 @@ export default function HotelDetailEnhanced() {
 
  const roomIds = new Set(rooms.map((room) => room.id).filter(Boolean));
  const reviewedBookingIds = new Set(reviews.map((review) => review.bookingId).filter(Boolean));
- const today = new Date().toISOString().slice(0, 10);
+ const today = formatDateInputLocal(new Date());
 
  return myBookings.find((booking) => {
  if (!roomIds.has(booking.roomId)) {
@@ -310,15 +311,15 @@ export default function HotelDetailEnhanced() {
  if (isWishlisted) {
  await removeFromWishlist(hotelId);
  setWishlistIds((prev) => prev.filter((item) => item !== hotelId));
- toast.success("Da bo khoi wishlist");
+ toast.success("Đã bỏ khỏi wishlist");
  } else {
  await addToWishlist(hotelId);
  setWishlistIds((prev) => (prev.includes(hotelId) ? prev : [...prev, hotelId]));
- toast.success("Da them vao wishlist");
+ toast.success("Đã thêm vào wishlist");
  }
  } catch (wishlistError) {
  console.error("Cannot update wishlist", wishlistError);
- toast.error("Khong the cap nhat wishlist");
+ toast.error("Không thể cập nhật wishlist");
  }
  };
 
@@ -326,7 +327,7 @@ export default function HotelDetailEnhanced() {
  event.preventDefault();
 
  if (!eligibleBooking?.id) {
- toast.error("Ban can ho n tat it nhat 1 booking de danh gia");
+ toast.error("Bạn cần hoàn tất ít nhất 1 booking để đánh giá");
  return;
  }
 
@@ -347,10 +348,10 @@ export default function HotelDetailEnhanced() {
  setReviews(normalizeReviews(reviewsRes?.data));
  setReviewComment("");
  setSelectedRating("5");
- toast.success("Da gui danh gia th nh cong");
+ toast.success("Đã gửi đánh giá thành công");
  } catch (reviewError) {
  console.error("Cannot create review", reviewError);
- toast.error(reviewError?.response?.data?.error || "Khong the gui danh gia");
+ toast.error(reviewError?.response?.data?.error || "Không thể gửi đánh giá");
  } finally {
  setReviewSubmitting(false);
  }
@@ -360,7 +361,7 @@ export default function HotelDetailEnhanced() {
  return (
  <main className="hotel-detail-page">
  <section className="detail-shell">
- <div className="detail-state">Dang toi thong tin khach san...</div>
+ <div className="detail-state">Đang tải thông tin khách sạn...</div>
  </section>
  </main>
  );
@@ -371,9 +372,9 @@ export default function HotelDetailEnhanced() {
  <main className="hotel-detail-page">
  <section className="detail-shell">
  <div className="detail-state error">
- {error || "Khong tim thay khach san nay."}
+ {error || "Không tìm thấy khách sạn này."}
  <button type="button" onClick={() => navigate("/hotels")}>
- Quay lai danh sach
+ Quay lại danh sách
  </button>
  </div>
  </section>

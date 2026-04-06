@@ -1,4 +1,4 @@
-import { currencyFormatter, formatDate, formatDateTime, getPaymentMeta } from "../accountUtils";
+﻿import { currencyFormatter, formatDate, formatDateTime, getPaymentMeta } from "../accountUtils";
 
 export default function PaymentsTab({
   sortedBookings,
@@ -17,35 +17,35 @@ export default function PaymentsTab({
   return (
     <section className="account-card payments-card">
       <div className="history-head">
-        <h2>Lich so thanh toan va tranh chap</h2>
-        <span>{sortedBookings.length} giao dich</span>
+        <h2>Lịch sử thanh toán và tranh chấp</h2>
+        <span>{sortedBookings.length} giao dịch</span>
       </div>
 
       <div className="payments-grid">
         <section className="payments-panel">
-          <h3>Dang tien booking</h3>
+          <h3>Dòng tiền booking</h3>
           <p className="card-note">
-            Theo doi payment method, thoi diem thanh toan, coupon da dung va so tien hoan lai.
+            Theo dõi payment method, thời điểm thanh toán, coupon đã dùng và số tiền hoàn lại.
           </p>
 
           {bookingsLoading ? (
-            <div className="account-state">Dang tai lich su thanh toan...</div>
+            <div className="account-state">Đang tải lịch sử thanh toán...</div>
           ) : bookingsError ? (
             <div className="account-state">{bookingsError}</div>
           ) : sortedBookings.length === 0 ? (
-            <p className="inline-note">Ban chua co giao dich nao.</p>
+            <p className="inline-note">Bạn chưa có giao dịch nào.</p>
           ) : (
             <div className="history-table-wrap">
               <table className="history-table payments-table">
                 <thead>
                   <tr>
                     <th>Booking</th>
-                    <th>Thanh toan</th>
-                    <th>Phuong thuc</th>
-                    <th>Da tra</th>
-                    <th>Hoan tien</th>
+                    <th>Thanh toán</th>
+                    <th>Phương thức</th>
+                    <th>Đã trả</th>
+                    <th>Hoàn tiền</th>
                     <th>Coupon</th>
-                    <th>Cap nhat</th>
+                    <th>Cập nhật</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -83,10 +83,10 @@ export default function PaymentsTab({
         </section>
 
         <section className="payments-panel">
-          <h3>Gui tranh chap / bao cao</h3>
+          <h3>Gửi tranh chấp / báo cáo</h3>
           <p className="card-note">
-            Khi co van de ve thanh toan, phong khong dung mo ta hoac can admin ho tro, ban co the gui
-            tranh chap tai day.
+            Khi có vấn đề về thanh toán, phòng không đúng mô tả hoặc cần admin hỗ trợ, bạn có thể gửi
+            tranh chấp tại đây.
           </p>
 
           <form className="account-form" onSubmit={handleSubmitDispute}>
@@ -101,7 +101,7 @@ export default function PaymentsTab({
                   }))
                 }
               >
-                <option value="">Chon booking can bao cao</option>
+                <option value="">Chọn booking cần báo cáo</option>
                 {sortedBookings.map((booking) => (
                   <option
                     key={`dispute-option-${booking.id}`}
@@ -109,14 +109,14 @@ export default function PaymentsTab({
                     disabled={Boolean(disputesByBookingId[booking.id])}
                   >
                     {booking.hotel?.name || "-"} - {formatDate(booking.checkInDate)}
-                    {disputesByBookingId[booking.id] ? " (da gui)" : ""}
+                    {disputesByBookingId[booking.id] ? " (đã gửi)" : ""}
                   </option>
                 ))}
               </select>
             </label>
 
             <label>
-              <span>Chu de</span>
+              <span>Chủ đề</span>
               <input
                 value={disputeDraft.subject}
                 onChange={(event) =>
@@ -125,12 +125,12 @@ export default function PaymentsTab({
                     subject: event.target.value,
                   }))
                 }
-                placeholder="Vi du: Hoan tien cham, phong khong dung mo ta"
+                placeholder="Ví dụ: Hoàn tiền chậm, phòng không đúng mô tả"
               />
             </label>
 
             <label>
-              <span>Noi dung</span>
+              <span>Nội dung</span>
               <textarea
                 value={disputeDraft.description}
                 onChange={(event) =>
@@ -139,42 +139,42 @@ export default function PaymentsTab({
                     description: event.target.value,
                   }))
                 }
-                placeholder="Mo ta cu the van de de admin co the xu ly nhanh hon"
+                placeholder="Mô tả cụ thể vấn đề để admin có thể xử lý nhanh hơn"
               />
             </label>
 
             <button type="submit" className="save-btn" disabled={disputeSaving}>
-              {disputeSaving ? "Dang gui..." : "Gui tranh chap"}
+              {disputeSaving ? "Đang gửi..." : "Gửi tranh chấp"}
             </button>
           </form>
 
           <div className="payments-disputes">
             <div className="history-head compact-head">
-              <h3>Tranh chap cua toi</h3>
+              <h3>Tranh chấp của tôi</h3>
               <button type="button" className="table-action-btn" onClick={refreshDisputes}>
-                Tai lai
+                Tải lại
               </button>
             </div>
 
             {disputesLoading ? (
-              <div className="account-state">Dang tai danh sach tranh chap...</div>
+              <div className="account-state">Đang tải danh sách tranh chấp...</div>
             ) : disputesError ? (
               <div className="account-state">{disputesError}</div>
             ) : sortedDisputes.length === 0 ? (
-              <p className="inline-note">Ban chua gui tranh chap nao.</p>
+              <p className="inline-note">Bạn chưa gửi tranh chấp nào.</p>
             ) : (
               <div className="dispute-list">
                 {sortedDisputes.map((dispute) => (
                   <article key={dispute.id} className="dispute-card">
                     <div className="dispute-head">
-                      <strong>{dispute.subject || "Tranh chap booking"}</strong>
+                      <strong>{dispute.subject || "Tranh chấp booking"}</strong>
                       <span className={`booking-status ${String(dispute.status || "").toLowerCase()}`}>
                         {dispute.status || "OPEN"}
                       </span>
                     </div>
                     <p>{dispute.description || "-"}</p>
                     <small>
-                      Booking: {dispute.bookingId || "-"} - Cap nhat:{" "}
+                      Booking: {dispute.bookingId || "-"} - Cập nhật:{" "}
                       {formatDateTime(dispute.updatedAt || dispute.createdAt)}
                     </small>
                     {dispute.resolutionNote ? (
@@ -190,3 +190,5 @@ export default function PaymentsTab({
     </section>
   );
 }
+
+

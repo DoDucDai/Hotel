@@ -21,27 +21,27 @@
  <>
  <section className="kpi-grid">
  <article className="kpi-card">
- <p className="kpi-label">Tng nguoi dung</p>
+ <p className="kpi-label">Tổng người dùng</p>
  <h3>{numberFormatter.format(dashboard.totalUsers || 0)}</h3>
- <p className="kpi-trend up">{userSummary.admins} admin dang quan ly</p>
+ <p className="kpi-trend up">{userSummary.admins} admin đang quản lý</p>
  </article>
  <article className="kpi-card">
- <p className="kpi-label">Tng khach san</p>
+ <p className="kpi-label">Tổng khách sạn</p>
  <h3>{numberFormatter.format(dashboard.totalHotels || 0)}</h3>
- <p className="kpi-trend up">{citySummary.length} thanh phi noi bat</p>
+ <p className="kpi-trend up">{citySummary.length} thành phố nổi bật</p>
  </article>
  <article className="kpi-card">
- <p className="kpi-label">Tng phong</p>
+ <p className="kpi-label">Tổng phòng</p>
  <h3>{numberFormatter.format(dashboard.totalRooms || 0)}</h3>
  <p className="kpi-trend up">
- Gia TB {currencyFormatter.format(averageRoomPrice || 0)}
+ Giá TB {currencyFormatter.format(averageRoomPrice || 0)}
  </p>
  </article>
  <article className="kpi-card">
- <p className="kpi-label">Tng booking</p>
+ <p className="kpi-label">Tổng booking</p>
  <h3>{numberFormatter.format(dashboard.totalBookings || 0)}</h3>
  <p className="kpi-trend down">
- {overviewStatus.upcoming} sap ?en | {overviewStatus.cancelled} da huy
+ {overviewStatus.upcoming} sắp đến | {overviewStatus.cancelled} đã hủy
  </p>
  </article>
  </section>
@@ -50,10 +50,10 @@
  <article className="panel">
  <div className="panel-head">
  <div>
- <p className="panel-tag">Doanh thu 7 thang gan nhat</p>
+ <p className="panel-tag">Doanh thu 7 tháng gần nhất</p>
  <h2>{currencyFormatter.format(dashboard.totalRevenue || 0)}</h2>
  </div>
- <span className="panel-badge">{overviewStatus.active} dang luu tru</span>
+ <span className="panel-badge">{overviewStatus.active} đang lưu trú</span>
  </div>
 
  <div className="revenue-chart">
@@ -77,8 +77,8 @@
  <article className="panel">
  <div className="panel-head">
  <div>
- <p className="panel-tag">Hieu suat lap day</p>
- <h2>Top hotel lap day cao nhat</h2>
+ <p className="panel-tag">Hiệu suất lấp đầy</p>
+ <h2>Top hotel lấp đầy cao nhất</h2>
  </div>
  </div>
 
@@ -87,7 +87,7 @@
  occupancyRows.map((hotel) => (
  <div key={hotel.id} className="occupancy-row">
  <div className="occupancy-title">
- <span>{hotel.name || "Khach san"}</span>
+ <span>{hotel.name || "Khách sạn"}</span>
  <strong>{hotel.occupancy}%</strong>
  </div>
  <div className="progress">
@@ -96,7 +96,7 @@
  </div>
  ))
  ) : (
- <div className="admin-empty-state">Cha co ?O lieu occupancy theo hotel.</div>
+ <div className="admin-empty-state">Chưa có dữ liệu occupancy theo hotel.</div>
  )}
  </div>
  </article>
@@ -106,8 +106,8 @@
  <article className="panel">
  <div className="panel-head">
  <div>
- <p className="panel-tag">Booking gan day</p>
- <h2>Danh sach ?at phong moi nhat</h2>
+ <p className="panel-tag">Booking gần đây</p>
+ <h2>Danh sách đặt phòng mới nhất</h2>
  </div>
  </div>
 
@@ -115,12 +115,12 @@
  <table>
  <thead>
  <tr>
- <th>Ma</th>
- <th>Nguoi dat</th>
- <th>Khach san</th>
- <th>Ngy o</th>
- <th>Tng tien</th>
- <th>Trang thai</th>
+ <th>Mã</th>
+ <th>Người đặt</th>
+ <th>Khách sạn</th>
+ <th>Ngày ở</th>
+ <th>Tổng tiền</th>
+ <th>Trạng thái</th>
  </tr>
  </thead>
  <tbody>
@@ -148,57 +148,57 @@
  <article className="panel">
  <div className="panel-head">
  <div>
- <p className="panel-tag">Tng quan nhanh</p>
- <h2>DO lieu van hanh</h2>
+ <p className="panel-tag">Tổng quan nhanh</p>
+ <h2>Dữ liệu vận hành</h2>
  </div>
  </div>
 
  <div className="type-grid">
  <article className="type-card">
- <h3>Trang thai booking</h3>
+ <h3>Trạng thái booking</h3>
  <p>
- Sap ?en: {overviewStatus.upcoming} | Dang ?: {overviewStatus.active} | Hoan tat:{" "}
- {overviewStatus.completed} | Da huy: {overviewStatus.cancelled}
+ Sắp đến: {overviewStatus.upcoming} | Đang ở: {overviewStatus.active} | Hoàn tất:{" "}
+ {overviewStatus.completed} | Đã hủy: {overviewStatus.cancelled}
  </p>
  <button type="button" onClick={() => openView("bookings")}>
  Xem booking
  </button>
  </article>
  <article className="type-card">
- <h3>Thanh toan</h3>
+ <h3>Thanh toán</h3>
  <p>
- Da thanh toan: {paymentSummary.paid} | Cho thanh toan: {paymentSummary.pending} |
- Hoan tien: {paymentSummary.refunded} | Thet bai: {paymentSummary.failed}
+ Đã thanh toán: {paymentSummary.paid} | Chờ thanh toán: {paymentSummary.pending} |
+ Hoàn tiền: {paymentSummary.refunded} | Thất bại: {paymentSummary.failed}
  </p>
  <button type="button" onClick={() => openView("bookings")}>
  Xem payment
  </button>
  </article>
  <article className="type-card">
- <h3>Phan bo thanh phi</h3>
+ <h3>Phân bố thành phố</h3>
  <p>
  {citySummary.length
  ? citySummary.map((item) => `${item.city} (${item.count})`).join(", ")
- : "Cha co ?O lieu thanh phi"}
+ : "Chưa có dữ liệu thành phố"}
  </p>
  <button type="button" onClick={() => openView("hotels")}>
  Xem hotels
  </button>
  </article>
  <article className="type-card">
- <h3>Coupon dang dung</h3>
+ <h3>Coupon đang dùng</h3>
  <p>
- Hoat dong: {couponSummary.active} | Het han: {couponSummary.expired} | Tam tat:{" "}
+ Hoạt động: {couponSummary.active} | Hết hạn: {couponSummary.expired} | Tạm tắt:{" "}
  {couponSummary.inactive}
  </p>
  <button type="button" onClick={() => openView("coupons")}>
- Quan ly coupon
+ Quản lý coupon
  </button>
  </article>
  <article className="type-card">
- <h3>Phan quyen nguoi dung</h3>
+ <h3>Phân quyền người dùng</h3>
  <p>
- Admin: {userSummary.admins} | User: {userSummary.usersNormal} | Tng:{" "}
+ Admin: {userSummary.admins} | User: {userSummary.usersNormal} | Tổng:{" "}
  {userSummary.total}
  </p>
  <button type="button" onClick={() => openView("users")}>
@@ -211,3 +211,4 @@
  </>
  );
 }
+

@@ -52,8 +52,10 @@ He thong cung cap:
 - Tim hotel theo thanh pho.
 
 ### FR-05 Quan ly khach san theo admin
-- Admin co the tao/sua/xoa hotel.
-- Admin co the upload anh hotel.
+- Admin co the duyet/tu choi hotel do host tao trong dashboard `/admin`.
+- Admin co the cap nhat ghi chu duyet (approval note) de phan hoi lai host.
+- He thong van giu API CRUD hotel (`POST/PUT/DELETE /hotels`, upload anh) cho nhu cau van hanh ky thuat,
+  nhung scope UI admin hien tai uu tien workflow duyet hotel.
 
 ### FR-06 Quan ly phong
 - Tat ca role co the xem danh sach phong va phong theo hotel.
@@ -132,4 +134,4 @@ He thong cung cap:
 - User co the tim phong, dat phong va xem lich su booking cua minh.
 - User co the cap nhat profile va doi email.
 - Host co the quan ly hotel/room cua minh.
-- Admin xem duoc dashboard va quan ly user.
+- Admin xem duoc dashboard, duyet hotel va quan ly user.

@@ -1,4 +1,4 @@
-export default function AccountView({
+﻿export default function AccountView({
  accountLoading,
  accountError,
  getAvatarText,
@@ -21,7 +21,7 @@ export default function AccountView({
  return (
  <section className="admin-account-section">
  {accountLoading ? (
- <div className="admin-account-state">dang tai profile admin...</div>
+ <div className="admin-account-state">đang tải profile admin...</div>
  ) : accountError ? (
  <div className="admin-account-state error">{accountError}</div>
  ) : (
@@ -30,7 +30,7 @@ export default function AccountView({
  <div className="admin-account-hero">
  <span className="admin-account-avatar">{getAvatarText(profileData.name)}</span>
  <div className="admin-account-hero-text">
- <h2>{profileData.name || "Quan tri vien"}</h2>
+ <h2>{profileData.name || "Quản trị viên"}</h2>
  <p>{email || "admin@hotelbooking.com"}</p>
  <div className="admin-account-tags">
  <span className="admin-role-pill">{accountSummary.roleLabel}</span>
@@ -47,7 +47,7 @@ export default function AccountView({
 
  <div className="admin-account-progress">
  <div className="admin-account-progress-head">
- <span>Muc do hoan thien profile</span>
+ <span>Mức độ hoàn thiện profile</span>
  <strong>{accountSummary.completionPercent}%</strong>
  </div>
  <div className="admin-account-progress-track">
@@ -61,38 +61,38 @@ export default function AccountView({
  <strong>{shortId(accountId)}</strong>
  </li>
  <li>
- <span>CCCD hien thi</span>
+ <span>CCCD hiển thị</span>
  <strong>{accountSummary.maskedCitizenId}</strong>
  </li>
  <li>
- <span>Xac thuc email luc</span>
+ <span>Xác thực email lúc</span>
  <strong>{accountSummary.verificationTime}</strong>
  </li>
  </ul>
  </article>
 
  <article className="admin-account-card">
- <h2>Thong tin ca nhan admin</h2>
+ <h2>Thông tin cá nhân admin</h2>
  <p className="admin-account-note">
- Cap nhat thong tin chuan de profile admin hien thi giong tai khoan that.
+ Cập nhật thông tin chuẩn để profile admin hiển thị giống tài khoản thật.
  </p>
 
  <form className="admin-account-form" onSubmit={handleProfileSave}>
  <label>
- <span>Ho ten</span>
+ <span>Họ tên</span>
  <input
  name="name"
  value={profileData.name}
  onChange={(event) =>
  setProfileData((prev) => ({ ...prev, name: event.target.value }))
  }
- placeholder="Nhap ho ten"
+ placeholder="Nhập họ tên"
  required
  />
  </label>
 
  <label>
- <span>Gioi tinh</span>
+ <span>Giới tính</span>
  <select
  name="gender"
  value={profileData.gender}
@@ -100,15 +100,15 @@ export default function AccountView({
  setProfileData((prev) => ({ ...prev, gender: event.target.value }))
  }
  >
- <option value="">Chon gioi tinh</option>
+ <option value="">Chọn giới tính</option>
  <option value="Nam">Nam</option>
- <option value="Nu">Nu</option>
- <option value="Khac">Khac</option>
+ <option value="Nu">Nữ</option>
+ <option value="Khac">Khác</option>
  </select>
  </label>
 
  <label>
- <span>Ngay sinh</span>
+ <span>Ngày sinh</span>
  <input
  type="date"
  name="dateOfBirth"
@@ -120,14 +120,14 @@ export default function AccountView({
  </label>
 
  <label>
- <span>Can cuoc cong dan</span>
+ <span>Căn cước công dân</span>
  <input
  name="citizenId"
  value={profileData.citizenId}
  onChange={(event) =>
  setProfileData((prev) => ({ ...prev, citizenId: event.target.value }))
  }
- placeholder="So CCCD"
+ placeholder="Số CCCD"
  />
  </label>
 
@@ -138,15 +138,15 @@ export default function AccountView({
  )}
 
  <button type="submit" className="admin-save-btn" disabled={profileSaving}>
- {profileSaving ? "Dang luu..." : "Luu profile"}
+ {profileSaving ? "Đang lưu..." : "Lưu profile"}
  </button>
  </form>
  </article>
 
  <article className="admin-account-card">
- <h2>Cai dat email dang nhap</h2>
+ <h2>Cài đặt email đăng nhập</h2>
  <p className="admin-account-note">
- Email nay duoc dung de dang nhap va nhan link dat lai mat khau.
+ Email này được dùng để đăng nhập và nhận link đặt lại mật khẩu.
  </p>
 
  <form className="admin-account-form" onSubmit={handleEmailSave}>
@@ -172,13 +172,13 @@ export default function AccountView({
  className="admin-save-btn secondary"
  disabled={emailSaving}
  >
- {emailSaving ? "Dang cap nhat..." : "Cap nhat email"}
+ {emailSaving ? "Đang cập nhật..." : "Cập nhật email"}
  </button>
  </form>
 
  <ul className="admin-info-list">
  <li>
- <span>Role hien tai</span>
+ <span>Role hiện tại</span>
  <strong>{accountSummary.roleLabel}</strong>
  </li>
  <li>
@@ -186,11 +186,11 @@ export default function AccountView({
  <strong>{shortId(accountId)}</strong>
  </li>
  <li>
- <span>Trang thai email</span>
+ <span>Trạng thái email</span>
  <strong>{accountSummary.verificationLabel}</strong>
  </li>
  <li>
- <span>Tong doanh thu he thong</span>
+ <span>Tổng doanh thu hệ thống</span>
  <strong>{currencyFormatter.format(dashboard.totalRevenue || 0)}</strong>
  </li>
  </ul>
@@ -200,4 +200,6 @@ export default function AccountView({
  </section>
  );
 }
+
+
 

@@ -1,4 +1,4 @@
-export default function ProfileTab({
+﻿export default function ProfileTab({
   profile,
   handleProfileChange,
   handleSaveProfile,
@@ -11,35 +11,35 @@ export default function ProfileTab({
   return (
     <section className="account-card profile-card">
       <div className="profile-section">
-        <h3>Thong tin ca nhan</h3>
+        <h3>Thông tin cá nhân</h3>
         <p className="card-note">
-          Cap nhat ho ten, gioi tinh, ngay sinh va so can cuoc cua ban.
+          Cập nhật họ tên, giới tính, ngày sinh và số căn cước của bạn.
         </p>
 
         <form className="account-form" onSubmit={handleSaveProfile}>
           <label>
-            <span>Ho ten</span>
+            <span>Họ tên</span>
             <input
               name="name"
               value={profile.name}
               onChange={handleProfileChange}
-              placeholder="Nhap ho ten day du"
+              placeholder="Nhập họ tên đầy đủ"
               required
             />
           </label>
 
           <label>
-            <span>Gioi tinh</span>
+            <span>Giới tính</span>
             <select name="gender" value={profile.gender} onChange={handleProfileChange}>
-              <option value="">Chon gioi tinh</option>
+              <option value="">Chọn giới tính</option>
               <option value="Nam">Nam</option>
-              <option value="Nu">Nu</option>
-              <option value="Khac">Khac</option>
+              <option value="Nu">Nữ</option>
+              <option value="Khac">Khác</option>
             </select>
           </label>
 
           <label>
-            <span>Ngay sinh</span>
+            <span>Ngày sinh</span>
             <input
               type="date"
               name="dateOfBirth"
@@ -49,25 +49,25 @@ export default function ProfileTab({
           </label>
 
           <label>
-            <span>So can cuoc</span>
+            <span>Số căn cước</span>
             <input
               name="citizenId"
               value={profile.citizenId}
               onChange={handleProfileChange}
-              placeholder="Nhap so can cuoc"
+              placeholder="Nhập số căn cước"
             />
           </label>
 
           <button type="submit" className="save-btn" disabled={profileSaving}>
-            {profileSaving ? "Dang luu..." : "Luu profile"}
+            {profileSaving ? "Đang lưu..." : "Lưu profile"}
           </button>
         </form>
       </div>
 
       <div className="profile-section">
-        <h3>Cai dat tai khoan</h3>
+        <h3>Cài đặt tài khoản</h3>
         <p className="card-note">
-          Di email dang nhap. He thong se cap token moi ngay sau khi doi.
+          Đổi email đăng nhập. Hệ thống sẽ cấp token mới ngay sau khi đổi.
         </p>
 
         <form className="account-form" onSubmit={handleSaveEmail}>
@@ -83,10 +83,12 @@ export default function ProfileTab({
           </label>
 
           <button type="submit" className="save-btn secondary" disabled={emailSaving}>
-            {emailSaving ? "Dang cap nhat..." : "Cap nhat email"}
+            {emailSaving ? "Đang cập nhật..." : "Cập nhật email"}
           </button>
         </form>
       </div>
     </section>
   );
 }
+
+

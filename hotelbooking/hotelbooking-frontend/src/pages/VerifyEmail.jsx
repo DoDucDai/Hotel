@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FaArrowRight, FaCheckCircle, FaEnvelopeOpenText, FaShieldAlt } from "react-icons/fa";
 import { verifyEmail } from "../services/authService";
@@ -12,7 +12,7 @@ function VerifyEmail() {
  const token = useMemo(() => searchParams.get("token") || "", [searchParams]);
 
  const [status, setStatus] = useState("loading");
- const [message, setMessage] = useState("Dang xac nhan email cua ban...");
+ const [message, setMessage] = useState("Đang xác nhận email của bạn...");
  const [verifiedEmail, setVerifiedEmail] = useState("");
 
  const readAuthError = (error, fallback) =>
@@ -26,7 +26,7 @@ function VerifyEmail() {
  const submitVerification = async () => {
  if (!token) {
  setStatus("error");
- setMessage("Lien ket xac nhan email khong hop le hoac thieu token.");
+ setMessage("Liên kết xác nhận email không hợp lệ hoặc thiếu token.");
  return;
  }
 
@@ -38,8 +38,8 @@ function VerifyEmail() {
 
  setStatus("success");
  setVerifiedEmail(res?.data?.email || "");
- setMessage(res?.data?.message || "Email da duoc xac nhan th nh cong");
- toast.success("Xac nhan email th nh cong");
+ setMessage(res?.data?.message || "Email đã được xác nhận thành công");
+ toast.success("Xác nhận email thành công");
  } catch (error) {
  if (!active) {
  return;
@@ -47,7 +47,7 @@ function VerifyEmail() {
 
  console.error("Cannot verify email", error);
  setStatus("error");
- setMessage(readAuthError(error, "Khong the xac nhan email. Link co the da het han."));
+ setMessage(readAuthError(error, "Không thể xác nhận email. Link có thể đã hết hạn."));
  }
  };
 
@@ -62,20 +62,20 @@ function VerifyEmail() {
  <section className="auth-assist-shell compact">
  <article className="auth-assist-copy">
  <p className="auth-assist-tag">Email verification</p>
- <h1>Mot buoc nho de kich hoat va xac thuc dua chi email cua ban.</h1>
+ <h1>Một bước nhỏ để kích hoạt và xác thực địa chỉ email của bạn.</h1>
  <div className="auth-assist-points">
  <article>
  <FaEnvelopeOpenText />
  <div>
- <strong>Xac nhan nhanh</strong>
- <p>Cho can bam vao link trong email de ho n tat xac thuc t i khoan.</p>
+ <strong>Xác nhận nhanh</strong>
+ <p>Chỉ cần bấm vào link trong email để hoàn tất xác thực tài khoản.</p>
  </div>
  </article>
  <article>
  <FaShieldAlt />
  <div>
- <strong>Giam nham lan</strong>
- <p>Buoc nay giup dam bao email dang ky la email ban dang thuc so so dung.</p>
+ <strong>Giảm nhầm lẫn</strong>
+ <p>Bước này giúp đảm bảo email đăng ký là email bạn đang thực sự sử dụng.</p>
  </div>
  </article>
  </div>
@@ -85,10 +85,10 @@ function VerifyEmail() {
  <p className="auth-assist-card-tag">Verification status</p>
  <h2>
  {status === "loading"
- ? "Dang x? ly"
+ ? "Đang xử lý"
  : status === "success"
- ? "Xac nhan th nh cong"
- : "Khong the xac nhan"}
+ ? "Xác nhận thành công"
+ : "Không thể xác nhận"}
  </h2>
  <div className={`auth-assist-feedback ${status === "error" ? "error" : ""}`}>
  {message}
@@ -101,7 +101,7 @@ function VerifyEmail() {
 
  <div className="auth-assist-actions">
  <button type="button" className="auth-assist-link" onClick={() => navigate("/login")}>
- Dang nhap ngay
+ Đăng nhập ngay
  </button>
  {status === "error" ? (
  <button
@@ -109,7 +109,7 @@ function VerifyEmail() {
  className="auth-assist-link subtle"
  onClick={() => navigate("/register")}
  >
- Tao t i khoan moi
+ Tạo tài khoản mới
  </button>
  ) : null}
  </div>
@@ -120,7 +120,7 @@ function VerifyEmail() {
  className="auth-assist-submit"
  onClick={() => navigate("/login")}
  >
- <span>Di den dang nhap</span>
+ <span>Đi đến đăng nhập</span>
  <FaArrowRight />
  </button>
  ) : null}
@@ -128,7 +128,7 @@ function VerifyEmail() {
  {status === "success" ? (
  <div className="auth-assist-helper success">
  <FaCheckCircle />
- <span>Email cua ban da san sang de so dung cho cac thong bao sau nay.</span>
+ <span>Email của bạn đã sẵn sàng để sử dụng cho các thông báo sau này.</span>
  </div>
  ) : null}
  </article>
@@ -138,4 +138,6 @@ function VerifyEmail() {
 }
 
 export default VerifyEmail;
+
+
 

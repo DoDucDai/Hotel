@@ -1,16 +1,21 @@
-import { updateMyEmail, updateMyProfile } from "../../../services/accountService";
+﻿import { updateMyEmail, updateMyProfile } from "../../../services/accountService";
 import {
  createAdminCoupon,
+ createAdminUser,
  deleteAdminCoupon,
+ deleteAdminUser,
  updateAdminBookingPaymentStatus,
  updateAdminBookingStatus,
  updateAdminCoupon,
  updateAdminDisputeStatus,
  updateAdminHotelApproval,
+ updateAdminUser,
 } from "../../../services/adminService";
 import {
+ adminUserInitialState,
  couponInitialState,
  paymentStatusMeta,
+ toAdminUserFormState,
  toCouponFormState,
 } from "../adminDashboardUtils";
 
@@ -38,10 +43,19 @@ export default function useAdminDashboardActions({
  setConfirmDialog,
  setCouponDeletingId,
  setCoupons,
+ setUsers,
  editingCouponId,
  confirmDialog,
  couponForm,
  setCouponSaving,
+ userForm,
+ setUserForm,
+ editingUserId,
+ setEditingUserId,
+ setUserSaving,
+ userDeletingId,
+ setUserDeletingId,
+ setUserMessage,
  setPaymentDrafts,
  setBookingStatusDrafts,
  setBookingStatusNotes,
@@ -132,13 +146,13 @@ export default function useAdminDashboardActions({
  emailVerifiedAt: user.emailVerifiedAt ?? prev.emailVerifiedAt,
  }));
 
- setProfileMessage({ type: "success", text: "Da cap nhat profile admin." });
- toast.success("Da cap nhat profile admin");
+ setProfileMessage({ type: "success", text: "Đã cập nhật profile admin." });
+ toast.success("Đã cập nhật profile admin");
  } catch (saveError) {
  console.error("Cannot save admin profile", saveError);
  const message =
  saveError?.response?.data?.message ||
- "Cap nhat profile that bai. Vui long thu lai.";
+ "Cập nhật profile thất bại. Vui lòng thử lại.";
  setProfileMessage({ type: "error", text: message });
  toast.error(message);
  } finally {
@@ -181,13 +195,13 @@ export default function useAdminDashboardActions({
  emailVerifiedAt: user.emailVerifiedAt ?? prev.emailVerifiedAt,
  }));
 
- setEmailMessage({ type: "success", text: "Da cap nhat email admin." });
- toast.success("Da cap nhat email admin");
+ setEmailMessage({ type: "success", text: "Đã cập nhật email admin." });
+ toast.success("Đã cập nhật email admin");
  } catch (saveError) {
  console.error("Cannot update admin email", saveError);
  const message =
  saveError?.response?.data?.message ||
- "Cap nhat email that bai. Vui long thu lai.";
+ "Cập nhật email thất bại. Vui lòng thử lại.";
  setEmailMessage({ type: "error", text: message });
  toast.error(message);
  } finally {
@@ -210,7 +224,7 @@ export default function useAdminDashboardActions({
  };
 
  const closeConfirmDialog = () => {
- if (couponDeletingId) {
+ if (couponDeletingId || userDeletingId) {
  return;
  }
 
@@ -219,7 +233,7 @@ export default function useAdminDashboardActions({
 
  const performCouponDelete = async (coupon) => {
  if (!coupon?.id) {
- toast.error("Coupon nay chua san sang de xoa.");
+ toast.error("Coupon này chưa sẵn sàng để xóa.");
  return;
  }
 
@@ -235,14 +249,14 @@ export default function useAdminDashboardActions({
  }
 
  setConfirmDialog(null);
- toast.success("Da xoa coupon thanh cong.");
+ toast.success("Đã xóa coupon thành công.");
  } catch (deleteError) {
  console.error("Cannot delete coupon", deleteError);
  const responseMessage =
  typeof deleteError?.response?.data === "string"
  ? deleteError.response.data
  : deleteError?.response?.data?.message;
- toast.error(responseMessage || "Khong the xoa coupon. Vui long thu lai.");
+ toast.error(responseMessage || "Không thể xóa coupon. Vui lòng thử lại.");
  } finally {
  setCouponDeletingId(null);
  }
@@ -250,15 +264,15 @@ export default function useAdminDashboardActions({
 
  const handleCouponDeleteRequest = (coupon) => {
  if (!coupon?.id) {
- toast.error("Coupon nay chua san sang de xoa.");
+ toast.error("Coupon này chưa sẵn sàng để xóa.");
  return;
  }
 
  setConfirmDialog({
  type: "delete-coupon",
- title: "Xoa coupon nay?",
- description: `Coupon ${coupon.code || ""} se bi xoa khoi he thong va khong con hien thi o trang booking.`,
- confirmLabel: "Xoa coupon",
+ title: "Xóa coupon này?",
+ description: `Coupon ${coupon.code || ""} sẽ bị xóa khỏi hệ thống và không còn hiển thị ở trang booking.`,
+ confirmLabel: "Xóa coupon",
  coupon,
  });
  };
@@ -270,6 +284,11 @@ export default function useAdminDashboardActions({
 
  if (confirmDialog.type === "delete-coupon") {
  await performCouponDelete(confirmDialog.coupon);
+ return;
+ }
+
+ if (confirmDialog.type === "delete-user") {
+ await performUserDelete(confirmDialog.user);
  }
  };
 
@@ -319,8 +338,8 @@ export default function useAdminDashboardActions({
  });
 
  const successMessage = editingCouponId
- ? "Da cap nhat coupon thanh cong."
- : "Da tao coupon moi thanh cong.";
+ ? "Đã cập nhật coupon thành công."
+ : "Đã tạo coupon mới thành công.";
 
  setCouponMessage({ type: "success", text: successMessage });
  toast.success(successMessage);
@@ -332,11 +351,149 @@ export default function useAdminDashboardActions({
  typeof saveError?.response?.data === "string"
  ? saveError.response.data
  : saveError?.response?.data?.message;
- const message = responseMessage || "Khong the luu coupon. Vui long thu lai.";
+ const message = responseMessage || "Không thể lưu coupon. Vui lòng thử lại.";
  setCouponMessage({ type: "error", text: message });
  toast.error(message);
  } finally {
  setCouponSaving(false);
+ }
+ };
+
+ const handleUserFieldChange = (event) => {
+ const { name, value } = event.target;
+ setUserForm((prev) => ({
+ ...prev,
+ [name]: value,
+ }));
+ };
+
+ const resetUserForm = () => {
+ setUserForm({ ...adminUserInitialState });
+ setEditingUserId(null);
+ setUserMessage(null);
+ };
+
+ const handleUserEdit = (user) => {
+ setUserForm(toAdminUserFormState(user));
+ setEditingUserId(user?.id || null);
+ setUserMessage(null);
+ setActiveView("users");
+ setSidebarOpen(false);
+ };
+
+ const performUserDelete = async (user) => {
+ if (!user?.id) {
+ toast.error("User này chưa sẵn sàng để xóa.");
+ return;
+ }
+
+ setUserDeletingId(user.id);
+ setUserMessage(null);
+
+ try {
+ await deleteAdminUser(user.id);
+ setUsers((prev) => prev.filter((item) => item.id !== user.id));
+
+ if (editingUserId === user.id) {
+ resetUserForm();
+ }
+
+ setConfirmDialog(null);
+ toast.success("Đã xóa user thành công.");
+ } catch (deleteError) {
+ console.error("Cannot delete user", deleteError);
+ const responseMessage =
+ typeof deleteError?.response?.data === "string"
+ ? deleteError.response.data
+ : deleteError?.response?.data?.message;
+ toast.error(responseMessage || "Không thể xóa user. Vui lòng thử lại.");
+ } finally {
+ setUserDeletingId(null);
+ }
+ };
+
+ const handleUserDeleteRequest = (user) => {
+ if (!user?.id) {
+ toast.error("User này chưa sẵn sàng để xóa.");
+ return;
+ }
+
+ setConfirmDialog({
+ type: "delete-user",
+ title: "Xóa user này?",
+ description: `Tài khoản ${user.email || user.id} sẽ bị xóa khỏi hệ thống.`,
+ confirmLabel: "Xóa user",
+ user,
+ });
+ };
+
+ const handleUserSubmit = async (event) => {
+ event.preventDefault();
+ setUserSaving(true);
+ setUserMessage(null);
+
+ const payload = {
+ name: userForm.name.trim(),
+ email: userForm.email.trim().toLowerCase(),
+ role: userForm.role || "USER",
+ gender: userForm.gender.trim() || null,
+ dateOfBirth: userForm.dateOfBirth.trim() || null,
+ citizenId: userForm.citizenId.trim() || null,
+ };
+
+ const rawPassword = userForm.password.trim();
+ if (!editingUserId) {
+ if (!rawPassword) {
+ setUserMessage({ type: "error", text: "Mật khẩu là bắt buộc khi tạo user." });
+ toast.error("Mật khẩu là bắt buộc khi tạo user");
+ setUserSaving(false);
+ return;
+ }
+ payload.password = rawPassword;
+ } else if (rawPassword) {
+ payload.password = rawPassword;
+ }
+
+ try {
+ const res = editingUserId
+ ? await updateAdminUser(editingUserId, payload)
+ : await createAdminUser(payload);
+ const savedUser = res?.data;
+
+ setUsers((prev) => {
+ const nextUsers = editingUserId
+ ? prev.map((item) => (item.id === savedUser?.id ? savedUser : item))
+ : [savedUser, ...prev];
+
+ const seen = new Set();
+ return nextUsers.filter((item) => {
+ const key = item?.id || item?.email;
+ if (!key || seen.has(key)) {
+ return false;
+ }
+ seen.add(key);
+ return true;
+ });
+ });
+
+ const successMessage = editingUserId
+ ? "Đã cập nhật user thành công."
+ : "Đã tạo user mới thành công.";
+ setUserMessage({ type: "success", text: successMessage });
+ toast.success(successMessage);
+ setUserForm({ ...adminUserInitialState });
+ setEditingUserId(null);
+ } catch (saveError) {
+ console.error("Cannot save user", saveError);
+ const responseMessage =
+ typeof saveError?.response?.data === "string"
+ ? saveError.response.data
+ : saveError?.response?.data?.message;
+ const message = responseMessage || "Không thể lưu user. Vui lòng thử lại.";
+ setUserMessage({ type: "error", text: message });
+ toast.error(message);
+ } finally {
+ setUserSaving(false);
  }
  };
 
@@ -413,7 +570,7 @@ export default function useAdminDashboardActions({
  delete nextDrafts[booking.id];
  return nextDrafts;
  });
- toast.success(`Da cap nhat payment status: ${paymentStatusMeta(nextStatus).label}.`);
+ toast.success(`Đã cập nhật payment status: ${paymentStatusMeta(nextStatus).label}.`);
  } catch (updateError) {
  console.error("Cannot update payment status", updateError);
  const responseMessage =
@@ -421,7 +578,7 @@ export default function useAdminDashboardActions({
  ? updateError.response.data
  : updateError?.response?.data?.message;
  toast.error(
- responseMessage || "Khong the cap nhat payment status. Vui long thu lai."
+ responseMessage || "Không thể cập nhật payment status. Vui lòng thử lại."
  );
  } finally {
  setPaymentUpdatingId(null);
@@ -458,14 +615,14 @@ export default function useAdminDashboardActions({
  delete next[booking.id];
  return next;
  });
- toast.success("Da cap nhat trang thai booking");
+ toast.success("Đã cập nhật trạng thái booking");
  } catch (updateError) {
  console.error("Cannot update booking status", updateError);
  const responseMessage =
  typeof updateError?.response?.data === "string"
  ? updateError.response.data
  : updateError?.response?.data?.message;
- toast.error(responseMessage || "Khong the cap nhat trang thai booking.");
+ toast.error(responseMessage || "Không thể cập nhật trạng thái booking.");
  } finally {
  setBookingStatusUpdatingId(null);
  }
@@ -500,14 +657,14 @@ export default function useAdminDashboardActions({
  delete next[hotel.id];
  return next;
  });
- toast.success("Da cap nhat trang thai duyet hotel");
+ toast.success("Đã cập nhật trạng thái duyệt hotel");
  } catch (updateError) {
  console.error("Cannot update hotel approval", updateError);
  const responseMessage =
  typeof updateError?.response?.data === "string"
  ? updateError.response.data
  : updateError?.response?.data?.message;
- toast.error(responseMessage || "Khong the cap nhat trang thai hotel.");
+ toast.error(responseMessage || "Không thể cập nhật trạng thái hotel.");
  } finally {
  setHotelApprovalUpdatingId(null);
  }
@@ -544,14 +701,14 @@ export default function useAdminDashboardActions({
  delete next[dispute.id];
  return next;
  });
- toast.success("Da cap nhat tranh chap");
+ toast.success("Đã cập nhật tranh chấp");
  } catch (updateError) {
  console.error("Cannot update dispute", updateError);
  const responseMessage =
  typeof updateError?.response?.data === "string"
  ? updateError.response.data
  : updateError?.response?.data?.message;
- toast.error(responseMessage || "Khong the cap nhat tranh chap.");
+ toast.error(responseMessage || "Không thể cập nhật tranh chấp.");
  } finally {
  setDisputeUpdatingId(null);
  }
@@ -573,6 +730,11 @@ export default function useAdminDashboardActions({
  handleConfirmDialogAction,
  handleCouponEdit,
  handleCouponSubmit,
+ handleUserFieldChange,
+ resetUserForm,
+ handleUserEdit,
+ handleUserSubmit,
+ handleUserDeleteRequest,
  handlePaymentDraftChange,
  handleBookingStatusDraftChange,
  handleBookingStatusNoteChange,
@@ -586,3 +748,5 @@ export default function useAdminDashboardActions({
  handleDisputeUpdate,
  };
 }
+
+

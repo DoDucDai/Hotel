@@ -1,4 +1,4 @@
-import {
+﻿import {
   currencyFormatter,
   formatDate,
   getPaymentMeta,
@@ -23,20 +23,20 @@ export default function HistoryTab({
   return (
     <section className="account-card account-history-card">
       <div className="history-head">
-        <h2>Lich su dat phong cua toi</h2>
+        <h2>Lịch sử đặt phòng của tôi</h2>
         <span>{sortedBookings.length} booking</span>
       </div>
 
       {selectedBooking && bookingAction ? (
         <div className="booking-action-panel">
-          <h3>{bookingAction.mode === "cancel" ? "Huy booking" : "Di lich booking"}</h3>
+          <h3>{bookingAction.mode === "cancel" ? "Hủy booking" : "Dời lịch booking"}</h3>
           <p>
             {selectedBooking.hotel?.name || "-"} - {selectedBooking.room?.name || "-"}
           </p>
 
           {bookingAction.mode === "cancel" ? (
             <label className="action-field">
-              <span>Ly do huy</span>
+              <span>Lý do hủy</span>
               <textarea
                 value={bookingAction.reason || ""}
                 onChange={(event) =>
@@ -45,13 +45,13 @@ export default function HistoryTab({
                     reason: event.target.value,
                   }))
                 }
-                placeholder="Vi du: thay doi ke hoach di chuyen"
+                placeholder="Ví dụ: thay đổi kế hoạch di chuyển"
               />
             </label>
           ) : (
             <div className="action-field-row">
               <label className="action-field">
-                <span>Ngay nhan phong moi</span>
+                <span>Ngày nhận phòng mới</span>
                 <input
                   type="date"
                   value={bookingAction.checkInDate || ""}
@@ -65,7 +65,7 @@ export default function HistoryTab({
               </label>
 
               <label className="action-field">
-                <span>Ngay tra phong moi</span>
+                <span>Ngày trả phòng mới</span>
                 <input
                   type="date"
                   value={bookingAction.checkOutDate || ""}
@@ -87,36 +87,36 @@ export default function HistoryTab({
               onClick={handleSubmitBookingAction}
               disabled={actionSaving}
             >
-              {actionSaving ? "Dang xu ly..." : "Xac nhan"}
+              {actionSaving ? "Đang xử lý..." : "Xác nhận"}
             </button>
             <button type="button" className="action-text-btn" onClick={() => setBookingAction(null)}>
-              Huy thao tac
+              Hủy thao tác
             </button>
           </div>
         </div>
       ) : null}
 
       {bookingsLoading ? (
-        <div className="account-state">Dang tai lich su booking...</div>
+        <div className="account-state">Đang tải lịch sử booking...</div>
       ) : bookingsError ? (
         <div className="account-state">{bookingsError}</div>
       ) : sortedBookings.length === 0 ? (
-        <div className="account-state">Ban chua co booking nao.</div>
+        <div className="account-state">Bạn chưa có booking nào.</div>
       ) : (
         <div className="history-table-wrap">
           <table className="history-table history-table-wide">
             <thead>
               <tr>
-                <th>Khach san</th>
-                <th>Phong</th>
-                <th>Nhan phong</th>
-                <th>Tra phong</th>
-                <th>So dem</th>
-                <th>Tong tien</th>
-                <th>Ghi chu</th>
-                <th>Thanh toan</th>
-                <th>Trang thai</th>
-                <th>Thao tac</th>
+                <th>Khách sạn</th>
+                <th>Phòng</th>
+                <th>Nhận phòng</th>
+                <th>Trả phòng</th>
+                <th>Số đêm</th>
+                <th>Tổng tiền</th>
+                <th>Ghi chú</th>
+                <th>Thanh toán</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -159,7 +159,7 @@ export default function HistoryTab({
                                 })
                               }
                             >
-                              Di lich
+                              Dời lịch
                             </button>
                             <button
                               type="button"
@@ -172,7 +172,7 @@ export default function HistoryTab({
                                 })
                               }
                             >
-                              Huy booking
+                              Hủy booking
                             </button>
                           </>
                         ) : (
@@ -187,7 +187,7 @@ export default function HistoryTab({
                                 : null
                             }
                           >
-                            Xem hotel
+                            Xem khách sạn
                           </button>
                         )}
                         {existingDispute ? (
@@ -196,7 +196,7 @@ export default function HistoryTab({
                             className="table-action-btn"
                             onClick={() => setActiveTab("payments")}
                           >
-                            Xem tranh chap
+                            Xem tranh chấp
                           </button>
                         ) : (
                           <button
@@ -207,13 +207,13 @@ export default function HistoryTab({
                               setDisputeDraft({
                                 bookingId: booking.id,
                                 subject: booking.cancellationReason
-                                  ? "Can giai quyet booking da huy"
-                                  : "Can ho tro booking",
-                                description: booking.note ? `Chi tiat booking: ${booking.note}` : "",
+                                  ? "Cần giải quyết booking đã hủy"
+                                  : "Cần hỗ trợ booking",
+                                description: booking.note ? `Chi tiết booking: ${booking.note}` : "",
                               });
                             }}
                           >
-                            Bao cao
+                            Báo cáo
                           </button>
                         )}
                       </div>
@@ -228,3 +228,5 @@ export default function HistoryTab({
     </section>
   );
 }
+
+

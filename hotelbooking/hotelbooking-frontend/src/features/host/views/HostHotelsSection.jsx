@@ -1,4 +1,4 @@
-export default function HostHotelsSection({
+﻿export default function HostHotelsSection({
  editingHotelId,
  resetHotelForm,
  handleSubmitHotel,
@@ -14,51 +14,51 @@ export default function HostHotelsSection({
  return (
  <section className="host-card">
  <div className="card-head">
- <h2>{editingHotelId ? "Chinh sua khach san" : "Tao khach san moi"}</h2>
+ <h2>{editingHotelId ? "Chỉnh sửa khách sạn" : "Tạo khách sạn mới"}</h2>
  {editingHotelId && (
  <button type="button" className="ghost-btn" onClick={resetHotelForm}>
- Huy sua
+ Hủy sửa
  </button>
  )}
  </div>
 
  <form className="host-form" onSubmit={handleSubmitHotel}>
  <label>
- <span>Ten khach san</span>
+ <span>Tên khách sạn</span>
  <input
  name="name"
  value={hotelForm.name}
  onChange={handleHotelChange}
- placeholder="Vi du: Happy Stay"
+ placeholder="Ví dụ: Happy Stay"
  required
  />
  </label>
 
  <label>
- <span>Dia chi</span>
+ <span>Địa chỉ</span>
  <input
  name="address"
  value={hotelForm.address}
  onChange={handleHotelChange}
- placeholder="So nha, duong, phuong"
+ placeholder="Số nhà, đường, phường"
  required
  />
  </label>
 
  <label>
- <span>Thanh pho</span>
+ <span>Thành phố</span>
  <input
  name="city"
  value={hotelForm.city}
  onChange={handleHotelChange}
- placeholder="Ha Noi, Da Nang..."
+ placeholder="Hà Nội, Đà Nẵng..."
  required
  />
  </label>
 
  <div className="field-row">
  <label>
- <span>So sao</span>
+ <span>Số sao</span>
  <input
  name="starRating"
  type="number"
@@ -71,19 +71,19 @@ export default function HostHotelsSection({
  </label>
 
  <label>
- <span>Tien nghi</span>
+ <span>Tiện nghi</span>
  <input
  name="amenities"
  value={hotelForm.amenities}
  onChange={handleHotelChange}
- placeholder="Wifi, Bai do xe, Le tan 24/7"
+ placeholder="Wifi, Bãi đỗ xe, Lễ tân 24/7"
  />
  </label>
  </div>
 
  <div className="field-row">
  <label>
- <span>Huy mien phi truoc (ngay)</span>
+ <span>Hủy miễn phí trước (ngày)</span>
  <input
  name="freeCancellationBeforeDays"
  type="number"
@@ -94,7 +94,7 @@ export default function HostHotelsSection({
  </label>
 
  <label>
- <span>Hoan tien tre (%)</span>
+ <span>Hoàn tiền trễ (%)</span>
  <input
  name="lateCancellationRefundRate"
  type="number"
@@ -107,14 +107,14 @@ export default function HostHotelsSection({
  </div>
 
  <button type="submit" disabled={savingHotel}>
- {savingHotel ? "dang luu..." : editingHotelId ? "Lu khach san" : "Tao khach san"}
+ {savingHotel ? "Đang lưu..." : editingHotelId ? "Lưu khách sạn" : "Tạo khách sạn"}
  </button>
  </form>
 
  <div className="host-list">
- <h3>Khach san cua ban</h3>
+ <h3>Khách sạn của bạn</h3>
  {hotels.length === 0 ? (
- <p className="inline-note">Ban chua tao khach san nao.</p>
+ <p className="inline-note">Bạn chưa tạo khách sạn nào.</p>
  ) : (
  hotels.map((hotel) => {
  const meta = approvalMeta(hotel.approvalStatus);
@@ -134,24 +134,24 @@ export default function HostHotelsSection({
  : ""}
  </small>
  <div className="list-item-meta">
- <span>Huy mien phi truoc {hotel.freeCancellationBeforeDays ?? 0} ngay</span>
- <span>Hoan tien muon {hotel.lateCancellationRefundRate ?? 0}%</span>
- <span>Duyet luc {hotel.approvedAt ? formatDateTime(hotel.approvedAt) : "-"}</span>
+ <span>Hủy miễn phí trước {hotel.freeCancellationBeforeDays ?? 0} ngày</span>
+ <span>Hoàn tiền muộn {hotel.lateCancellationRefundRate ?? 0}%</span>
+ <span>Duyệt lúc {hotel.approvedAt ? formatDateTime(hotel.approvedAt) : "-"}</span>
  </div>
  {hotel.approvalNote ? (
- <p className="approval-note">Ghi chu admin: {hotel.approvalNote}</p>
+ <p className="approval-note">Ghi chú admin: {hotel.approvalNote}</p>
  ) : null}
  </div>
  <div className="item-actions">
  <button type="button" onClick={() => handleEditHotel(hotel)}>
- Sua
+ Sửa
  </button>
  <button
  type="button"
  className="danger"
  onClick={() => handleDeleteHotelRequest(hotel)}
  >
- Xoa
+ Xóa
  </button>
  </div>
  </article>
@@ -162,3 +162,5 @@ export default function HostHotelsSection({
  </section>
  );
 }
+
+

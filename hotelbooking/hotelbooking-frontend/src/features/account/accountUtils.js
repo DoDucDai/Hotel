@@ -1,4 +1,4 @@
-export const initialProfile = {
+﻿export const initialProfile = {
   name: "",
   gender: "",
   dateOfBirth: "",
@@ -56,43 +56,43 @@ export function nightsBetween(checkInDate, checkOutDate) {
 export function getStatusMeta(booking) {
   switch (booking?.status) {
     case "CANCELLED":
-      return { label: "Da huy", className: "cancelled" };
+      return { label: "Đã hủy", className: "cancelled" };
     case "CHECKED_IN":
-      return { label: "Dang luu tru", className: "active" };
+      return { label: "Đang lưu trú", className: "active" };
     case "CHECKED_OUT":
-      return { label: "Da tra phong", className: "done" };
+      return { label: "Đã trả phòng", className: "done" };
     case "NO_SHOW":
-      return { label: "Khong den", className: "neutral" };
+      return { label: "Không đến", className: "neutral" };
     case "CONFIRMED": {
       const checkIn = new Date(booking?.checkInDate);
       const now = new Date();
       now.setHours(0, 0, 0, 0);
 
       if (!Number.isNaN(checkIn.getTime()) && now < checkIn) {
-        return { label: "Sap den", className: "upcoming" };
+        return { label: "Sắp đến", className: "upcoming" };
       }
 
-      return { label: "Da xac nhan", className: "pending" };
+      return { label: "Đã xác nhận", className: "pending" };
     }
     default:
-      return { label: "Khong ro", className: "neutral" };
+      return { label: "Không rõ", className: "neutral" };
   }
 }
 
 export function getPaymentMeta(status) {
   if (status === "PAID") {
-    return { label: "Da thanh toan", className: "paid" };
+    return { label: "Đã thanh toán", className: "paid" };
   }
 
   if (status === "REFUNDED") {
-    return { label: "Da hoan tien", className: "refunded" };
+    return { label: "Đã hoàn tiền", className: "refunded" };
   }
 
   if (status === "FAILED") {
-    return { label: "That bai", className: "failed" };
+    return { label: "Thất bại", className: "failed" };
   }
 
-  return { label: "Thanh toan sau", className: "pending" };
+  return { label: "Thanh toán sau", className: "pending" };
 }
 
 export function normalizeBookings(payload) {
@@ -157,3 +157,5 @@ export function resolveInitialTab(locationState) {
 
   return "profile";
 }
+
+

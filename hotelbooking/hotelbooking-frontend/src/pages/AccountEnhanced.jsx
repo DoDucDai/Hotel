@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+﻿import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "../components/ToastProvider";
 import useAccountEnhancedState from "../features/account/hooks/useAccountEnhancedState";
@@ -65,9 +65,9 @@ export default function AccountEnhanced() {
     }
 
     if (paymentStatus === "PAID") {
-      toast.success(`Thanh toan thanh cong${bookingId ? ` cho booking ${bookingId}` : ""}`);
+      toast.success(`Thanh toán thành công${bookingId ? ` cho booking ${bookingId}` : ""}`);
     } else if (paymentStatus === "FAILED") {
-      toast.error(`Thanh toan that bai${bookingId ? ` cho booking ${bookingId}` : ""}`);
+      toast.error(`Thanh toán thất bại${bookingId ? ` cho booking ${bookingId}` : ""}`);
     }
 
     if (!focus && !paymentStatus && !bookingId) {
@@ -93,20 +93,20 @@ export default function AccountEnhanced() {
       <section className="account-shell">
         <header className="account-header">
           <div>
-            <p className="account-tag">Profile nguoi dung</p>
-            <h1>Quan ly tai khoan cua ban</h1>
+            <p className="account-tag">Profile người dùng</p>
+            <h1>Quản lý tài khoản của bạn</h1>
             <p className="account-subtitle">
-              Mot noi duy nhat de cap nhat profile, theo doi booking, lich su thanh toan, hoan tien,
-              tranh chap va quan ly wishlist.
+              Một nơi duy nhất để cập nhật profile, theo dõi booking, lịch sử thanh toán, hoàn tiền,
+              tranh chấp và quản lý wishlist.
             </p>
           </div>
           <button type="button" className="back-btn" onClick={() => navigate("/")}>
-            Quay ve trang chu
+            Quay về trang chủ
           </button>
         </header>
 
         {loading ? (
-          <div className="account-state">dang tai lieu tai khoan...</div>
+          <div className="account-state">đang tải dữ liệu tài khoản...</div>
         ) : loadError ? (
           <div className="account-error">{loadError}</div>
         ) : (
@@ -114,7 +114,7 @@ export default function AccountEnhanced() {
             <section className="profile-hero">
               <div className="hero-avatar">{getAvatarText(profile.name)}</div>
               <div className="hero-info">
-                <h2>{profile.name || "Nguoi dung"}</h2>
+                <h2>{profile.name || "Người dùng"}</h2>
                 <p>{email || "-"}</p>
               </div>
             </section>
@@ -132,14 +132,14 @@ export default function AccountEnhanced() {
                 className={`tab-btn ${activeTab === "history" ? "active" : ""}`}
                 onClick={() => setActiveTab("history")}
               >
-                Lich su booking
+                Lịch sử booking
               </button>
               <button
                 type="button"
                 className={`tab-btn ${activeTab === "payments" ? "active" : ""}`}
                 onClick={() => setActiveTab("payments")}
               >
-                Thanh toan
+                Thanh toán
               </button>
               <button
                 type="button"
@@ -212,3 +212,5 @@ export default function AccountEnhanced() {
     </main>
   );
 }
+
+

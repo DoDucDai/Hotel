@@ -12,6 +12,7 @@ import HotelDetailEnhanced from "./pages/HotelDetailEnhanced";
 import HotelsEnhanced from "./pages/HotelsEnhanced";
 import HostRooms from "./pages/HostRooms";
 import Login from "./pages/Login";
+import Notifications from "./pages/Notifications";
 import Register from "./pages/Register";
 import ResetPassword from "./pages/ResetPassword";
 import VerifyEmail from "./pages/VerifyEmail";
@@ -88,6 +89,14 @@ function App() {
  element={
  <ProtectedRoute>
  <AccountEnhanced />
+ </ProtectedRoute>
+ }
+ />
+ <Route
+ path="/notifications"
+ element={
+ <ProtectedRoute>
+ <Notifications />
  </ProtectedRoute>
  }
  />

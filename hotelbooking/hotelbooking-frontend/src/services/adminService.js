@@ -12,6 +12,18 @@ export const getAdminUsers = () => {
  return axiosClient.get("/users");
 };
 
+export const createAdminUser = (payload) => {
+ return axiosClient.post("/users", payload);
+};
+
+export const updateAdminUser = (userId, payload) => {
+ return axiosClient.put(`/users/${userId}`, payload);
+};
+
+export const deleteAdminUser = (userId) => {
+ return axiosClient.delete(`/users/${userId}`);
+};
+
 export const getAdminBookings = () => {
  return axiosClient.get("/bookings");
 };

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { useToast } from "../components/ToastProvider";
@@ -138,7 +138,7 @@ function HostRooms() {
  });
  } catch (error) {
  console.error("Cannot load host dashboard", error);
- toast.error("Khong the tai du lieu dang phong");
+ toast.error("Không thể tải dữ liệu đăng phòng");
  } finally {
  setLoading(false);
  setDashboardLoading(false);
@@ -161,7 +161,7 @@ function HostRooms() {
 
  const fetchInventory = async () => {
  if (new Date(inventoryRange.endDate) < new Date(inventoryRange.startDate)) {
- toast.error("Khoang ngay xem ton kho khong hop le");
+ toast.error("Khoảng ngày xem tồn kho không hợp lệ");
  return;
  }
 
@@ -186,7 +186,7 @@ function HostRooms() {
  setInventoryCalendar([]);
  setInventoryBlocks([]);
  }
- toast.error("Khong the tai ton kho theo ngay");
+ toast.error("Không thể tải tồn kho theo ngày");
  } finally {
  if (isMounted) {
  setInventoryLoading(false);
@@ -256,23 +256,23 @@ function HostRooms() {
  };
 
  if (!payload.name || !payload.address || !payload.city) {
- toast.error("Vui long nhap day thong tin khach san");
+ toast.error("Vui lòng nhập đầy đủ thông tin khách sạn");
  return;
  }
 
  if (editingHotelId) {
  await updateHostHotel(editingHotelId, payload);
- toast.success("Da cap nhat khach san");
+ toast.success("Đã cập nhật khách sạn");
  } else {
  await createHostHotel(payload);
- toast.success("Da tao khach san moi");
+ toast.success("Đã tạo khách sạn mới");
  }
 
  resetHotelForm();
  await loadHostData();
  } catch (error) {
  console.error("Cannot save hotel", error);
- toast.error(error?.response?.data?.error || "Khong the luu khach san");
+ toast.error(error?.response?.data?.error || "Không thể lưu khách sạn");
  } finally {
  setSavingHotel(false);
  }
@@ -295,7 +295,7 @@ function HostRooms() {
  setConfirmLoading(true);
  try {
  await deleteHostHotel(hotelId);
- toast.success("Da xoa khach san");
+ toast.success("Đã xóa khách sạn");
  if (editingHotelId === hotelId) {
  resetHotelForm();
  }
@@ -303,7 +303,7 @@ function HostRooms() {
  await loadHostData();
  } catch (error) {
  console.error("Cannot delete hotel", error);
- toast.error(error?.response?.data?.error || "Khong the xoa khach san");
+ toast.error(error?.response?.data?.error || "Không thể xóa khách sạn");
  } finally {
  setConfirmLoading(false);
  }
@@ -313,10 +313,10 @@ function HostRooms() {
  setConfirmDialog({
  type: "hotel",
  id: hotel.id,
- title: "Xoa khach san nay?",
+ title: "Xóa khách sạn này?",
  description:
- "Khach san va cac loai phong thuoc khach san nay se bi xoa khoi he thong dang phong cua ban.",
- confirmLabel: "Xoa khach san",
+ "Khách sạn và các loại phòng thuộc khách sạn này sẽ bị xóa khỏi hệ thống đăng phòng của bạn.",
+ confirmLabel: "Xóa khách sạn",
  });
  };
 
@@ -338,33 +338,33 @@ function HostRooms() {
  };
 
  if (!payload.hotelId || !payload.name) {
- toast.error("Vui long chon khach san va ten phong");
+ toast.error("Vui lòng chọn khách sạn và tên phòng");
  return;
  }
 
  if (!Number.isFinite(payload.capacity) || payload.capacity < 1) {
- toast.error("Suc chua phai lon hon hoac bang 1");
+ toast.error("Sức chứa phải lớn hơn hoặc bằng 1");
  return;
  }
 
  if (!Number.isFinite(payload.price) || payload.price < 0) {
- toast.error("Gia phong khong hop le");
+ toast.error("Giá phòng không hợp lệ");
  return;
  }
 
  if (editingRoomId) {
  await updateHostRoom(editingRoomId, payload);
- toast.success("Da cap nhat loai phong");
+ toast.success("Đã cập nhật loại phòng");
  } else {
  await createHostRoom(payload);
- toast.success("Da tao loai phong moi");
+ toast.success("Đã tạo loại phòng mới");
  }
 
  resetRoomForm();
  await loadHostData();
  } catch (error) {
  console.error("Cannot save room", error);
- toast.error(error?.response?.data?.error || "Khong the luu phong");
+ toast.error(error?.response?.data?.error || "Không thể lưu phòng");
  } finally {
  setSavingRoom(false);
  }
@@ -389,7 +389,7 @@ function HostRooms() {
  setConfirmLoading(true);
  try {
  await deleteHostRoom(roomId);
- toast.success("Da xoa phong");
+ toast.success("Đã xóa phòng");
  if (editingRoomId === roomId) {
  resetRoomForm();
  }
@@ -397,7 +397,7 @@ function HostRooms() {
  await loadHostData();
  } catch (error) {
  console.error("Cannot delete room", error);
- toast.error(error?.response?.data?.error || "Khong the xoa phong");
+ toast.error(error?.response?.data?.error || "Không thể xóa phòng");
  } finally {
  setConfirmLoading(false);
  }
@@ -407,10 +407,10 @@ function HostRooms() {
  setConfirmDialog({
  type: "room",
  id: room.id,
- title: "Xoa loai phong nay?",
+ title: "Xóa loại phòng này?",
  description:
- "Loai phong nay se bi go khoi he thong va khong con duoc hien cho nguoi dung dat.",
- confirmLabel: "Xoa phong",
+ "Loại phòng này sẽ bị gỡ khỏi hệ thống và không còn được hiển thị cho người dùng đặt.",
+ confirmLabel: "Xóa phòng",
  });
  };
 
@@ -418,17 +418,17 @@ function HostRooms() {
  event.preventDefault();
 
  if (!inventoryRoomId) {
- toast.error("Hay chon mot loai phong de block ton kho");
+ toast.error("Hãy chọn một loại phòng để block tồn kho");
  return;
  }
 
  if (!inventoryForm.startDate || !inventoryForm.endDate) {
- toast.error("Vui long chon day khoang ngay block");
+ toast.error("Vui lòng chọn dải khoảng ngày block");
  return;
  }
 
  if (new Date(inventoryForm.endDate) < new Date(inventoryForm.startDate)) {
- toast.error("Ngay ket thuc block phai sau ngay bat dau");
+ toast.error("Ngày kết thúc block phải sau ngày bắt đầu");
  return;
  }
 
@@ -446,11 +446,11 @@ function HostRooms() {
  blockedUnits: 1,
  reason: "",
  }));
- toast.success("Da them block ton kho");
+ toast.success("Đã thêm block tồn kho");
  await loadHostData();
  } catch (error) {
  console.error("Cannot create inventory block", error);
- toast.error(error?.response?.data?.error || "Khong the block ton kho");
+ toast.error(error?.response?.data?.error || "Không thể block tồn kho");
  } finally {
  setInventorySaving(false);
  }
@@ -465,11 +465,11 @@ function HostRooms() {
  try {
  await deleteHostInventoryBlock(blockId);
  setConfirmDialog(null);
- toast.success("Da go block ton kho");
+ toast.success("Đã gỡ block tồn kho");
  await loadHostData();
  } catch (error) {
  console.error("Cannot delete inventory block", error);
- toast.error(error?.response?.data?.error || "Khong the xoa block ton kho");
+ toast.error(error?.response?.data?.error || "Không thể xóa block tồn kho");
  } finally {
  setConfirmLoading(false);
  }
@@ -479,10 +479,10 @@ function HostRooms() {
  setConfirmDialog({
  type: "inventory-block",
  id: block.id,
- title: "Go block ton kho nay?",
+ title: "Gỡ block tồn kho này?",
  description:
- "Thong tin block ton kho se bi xoa va phong se tro lai trang thai mo ban theo ton kho hien co.",
- confirmLabel: "Go block",
+ "Thông tin block tồn kho sẽ bị xóa và phòng sẽ trở lại trạng thái mở bán theo tồn kho hiện có.",
+ confirmLabel: "Gỡ block",
  });
  };
 
@@ -520,7 +520,7 @@ function HostRooms() {
  open={Boolean(confirmDialog)}
  title={confirmDialog?.title || ""}
  description={confirmDialog?.description || ""}
- confirmLabel={confirmDialog?.confirmLabel || "Xoa"}
+ confirmLabel={confirmDialog?.confirmLabel || "Xóa"}
  loading={confirmLoading}
  onClose={closeConfirmDialog}
  onConfirm={handleConfirmDialog}
@@ -529,16 +529,16 @@ function HostRooms() {
  <section className="host-shell">
  <header className="host-header">
  <div>
- <p className="host-tag">Nguoi cho thue</p>
- <h1>Quan ly hotel, loai phong va ton kho theo ngay</h1>
+ <p className="host-tag">Người cho thuê</p>
+ <h1>Quản lý hotel, loại phòng và tồn kho theo ngày</h1>
  <p>
- Quan ly thong tin khach san, nhieu loai phong, chinh sach huy va lich ton
- kho de mo phong mot he thong van hanh thuc te hon.
+ Quản lý thông tin khách sạn, nhiều loại phòng, chính sách hủy và lịch tồn
+ kho để mô phỏng một hệ thống vận hành thực tế hơn.
  </p>
  </div>
 
  <button type="button" className="host-back-btn" onClick={() => navigate("/")}>
- Ve trang chu
+ Về trang chủ
  </button>
  </header>
 
@@ -551,7 +551,7 @@ function HostRooms() {
  />
 
  {loading ? (
- <div className="host-state">dang tai du lieu dang phong...</div>
+ <div className="host-state">đang tải dữ liệu đăng phòng...</div>
  ) : (
  <>
  <div className="host-grid">
@@ -613,3 +613,5 @@ function HostRooms() {
 }
 
 export default HostRooms;
+
+

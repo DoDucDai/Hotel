@@ -19,10 +19,10 @@
  <article className="panel">
  <div className="panel-head">
  <div>
- <p className="panel-tag">Tranh chap booking</p>
- <h2>Xu ly ticket do nguoi dung gui len he thong</h2>
+ <p className="panel-tag">Tranh chấp booking</p>
+ <h2>Xử lý ticket do người dùng gửi lên hệ thống</h2>
  </div>
- <span className="panel-badge">{sortedDisputes.length} tranh chap</span>
+ <span className="panel-badge">{sortedDisputes.length} tranh chấp</span>
  </div>
 
  {sortedDisputes.length ? (
@@ -43,7 +43,7 @@
  <div className="admin-dispute-head">
  <div>
  <p className="panel-tag">Booking {shortId(dispute.bookingId)}</p>
- <h3>{dispute.subject || "Tranh chap booking"}</h3>
+ <h3>{dispute.subject || "Tranh chấp booking"}</h3>
  </div>
  <span className={`status-pill ${disputeMeta.className}`}>
  {disputeMeta.label}
@@ -60,7 +60,7 @@
 
  <div className="admin-form-stack">
  <label className="admin-filter-field">
- <span>Trang thai xu ly</span>
+ <span>Trạng thái xử lý</span>
  <select
  value={selectedStatus}
  onChange={(event) =>
@@ -77,20 +77,20 @@
  </label>
 
  <label className="admin-filter-field">
- <span>Phan hoi admin</span>
+ <span>Phản hồi admin</span>
  <textarea
  value={noteValue}
  onChange={(event) =>
  handleDisputeNoteChange(dispute.id, event.target.value)
  }
- placeholder="Cap nhat ket qua xu ly cho nguoi dung"
+ placeholder="Cập nhật kết quả xử lý cho người dùng"
  />
  </label>
  </div>
 
  <div className="admin-card-actions">
  <span className="admin-cell-note">
- Cap nhat: {formatDateTime(dispute.updatedAt || dispute.createdAt)}
+ Cập nhật: {formatDateTime(dispute.updatedAt || dispute.createdAt)}
  </span>
  <button
  type="button"
@@ -98,7 +98,7 @@
  disabled={!statusDirty || disputeUpdatingId === dispute.id}
  onClick={() => handleDisputeUpdate(dispute)}
  >
- {disputeUpdatingId === dispute.id ? "Dang luu..." : "Lu xu ly"}
+ {disputeUpdatingId === dispute.id ? "Đang lưu..." : "Lưu xử lý"}
  </button>
  </div>
  </article>
@@ -106,9 +106,11 @@
  })}
  </div>
  ) : (
- <div className="admin-empty-state">Cha co tranh chap nao can xu ly.</div>
+ <div className="admin-empty-state">Chưa có tranh chấp nào cần xử lý.</div>
  )}
  </article>
  </section>
  );
 }
+
+

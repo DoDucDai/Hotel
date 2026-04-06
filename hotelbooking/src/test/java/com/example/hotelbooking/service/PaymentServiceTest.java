@@ -10,7 +10,6 @@ import static org.mockito.Mockito.when;
 import java.util.Map;
 import java.util.Optional;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -50,8 +49,7 @@ class PaymentServiceTest {
 
     private PaymentService paymentService;
 
-    @BeforeEach
-    void setUp() {
+    private void initPaymentService() {
         paymentService = new PaymentService(
                 bookingRepository,
                 userRepository,
@@ -66,6 +64,8 @@ class PaymentServiceTest {
 
     @Test
     void createSandboxCheckoutBuildsCheckoutUrlForOnlinePayment() {
+        initPaymentService();
+
         User user = new User();
         user.setId("user-1");
         user.setEmail("user@example.com");
@@ -93,6 +93,8 @@ class PaymentServiceTest {
 
     @Test
     void processSandboxWebhookIsIdempotentByTransactionRef() {
+        initPaymentService();
+
         Booking booking = new Booking();
         booking.setId("booking-2");
         booking.setUserId("user-2");
@@ -120,7 +122,8 @@ class PaymentServiceTest {
         request.setSignature(signature);
 
         when(paymentWebhookEventRepository.findByEventKey(anyString()))
-                .thenReturn(Optional.empty(), Optional.of(new PaymentWebhookEvent()));
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(new PaymentWebhookEvent()));
 
         Map<String, Object> first = paymentService.processSandboxWebhook(request);
         Map<String, Object> second = paymentService.processSandboxWebhook(request);

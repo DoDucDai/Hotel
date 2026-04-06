@@ -1,4 +1,4 @@
-// Extracted constants/helpers to keep AdminDashboard page maintainable.
+﻿// Extracted constants/helpers to keep AdminDashboard page maintainable.
 
 export const currencyFormatter = new Intl.NumberFormat("vi-VN", {
  style: "currency",
@@ -32,45 +32,60 @@ export const couponInitialState = {
  active: true,
 };
 
+export const adminUserInitialState = {
+ name: "",
+ email: "",
+ password: "",
+ role: "USER",
+ gender: "",
+ dateOfBirth: "",
+ citizenId: "",
+};
+
+export const adminUserRoleOptions = [
+ { value: "USER", label: "USER" },
+ { value: "ADMIN", label: "ADMIN" },
+];
+
 export const paymentStatusOptions = [
- { value: "PENDING", label: "Cho thanh toan" },
- { value: "PAID", label: "Da thanh toan" },
- { value: "REFUNDED", label: "Da ho n tien" },
- { value: "FAILED", label: "Thet bai" },
+ { value: "PENDING", label: "Chờ thanh toán" },
+ { value: "PAID", label: "Đã thanh toán" },
+ { value: "REFUNDED", label: "Đã hoàn tiền" },
+ { value: "FAILED", label: "Thất bại" },
 ];
 
 export const paymentStatusFilterOptions = [
- { value: "all", label: "Tat c? payment" },
+ { value: "all", label: "Tất cả payment" },
  ...paymentStatusOptions,
 ];
 
 export const bookingStatusOptions = [
- { value: "CONFIRMED", label: "Da xac nhan" },
+ { value: "CONFIRMED", label: "Đã xác nhận" },
  { value: "CHECKED_IN", label: "Checked-in" },
  { value: "CHECKED_OUT", label: "Checked-out" },
  { value: "NO_SHOW", label: "No-show" },
- { value: "CANCELLED", label: "Da huy" },
+ { value: "CANCELLED", label: "Đã hủy" },
 ];
 
 export const hotelApprovalOptions = [
- { value: "PENDING", label: "Cho duyat" },
- { value: "APPROVED", label: "Da duyet" },
- { value: "REJECTED", label: "Tu choi" },
+ { value: "PENDING", label: "Chờ duyệt" },
+ { value: "APPROVED", label: "Đã duyệt" },
+ { value: "REJECTED", label: "Từ chối" },
 ];
 
 export const disputeStatusOptions = [
- { value: "OPEN", label: "Moi tao" },
- { value: "IN_REVIEW", label: "Dang x? ly" },
- { value: "RESOLVED", label: "Da giai quyet" },
- { value: "REJECTED", label: "Tu choi" },
+ { value: "OPEN", label: "Mới tạo" },
+ { value: "IN_REVIEW", label: "Đang xử lý" },
+ { value: "RESOLVED", label: "Đã giải quyết" },
+ { value: "REJECTED", label: "Từ chối" },
 ];
 
 export const bookingStayStatusOptions = [
- { value: "all", label: "Tat c? trang thai o" },
- { value: "upcoming", label: "Sap ?en" },
- { value: "active", label: "Dang ?" },
- { value: "completed", label: "Hoan tat" },
- { value: "cancelled", label: "Da huy" },
+ { value: "all", label: "Tất cả trạng thái ở" },
+ { value: "upcoming", label: "Sắp đến" },
+ { value: "active", label: "Đang ở" },
+ { value: "completed", label: "Hoàn tất" },
+ { value: "cancelled", label: "Đã hủy" },
 ];
 
 export const ADMIN_HOTELS_PER_PAGE = 8;
@@ -133,6 +148,18 @@ export function normalizeUsers(payload) {
  }
 
  return [];
+}
+
+export function toAdminUserFormState(user) {
+ return {
+ name: user?.name || "",
+ email: user?.email || "",
+ password: "",
+ role: user?.role || "USER",
+ gender: user?.gender || "",
+ dateOfBirth: user?.dateOfBirth || "",
+ citizenId: user?.citizenId || "",
+ };
 }
 
 export function normalizeCoupons(payload) {
@@ -269,11 +296,11 @@ export function bookingRevenueValue(booking) {
 export function bookingStatusMeta(booking) {
  switch (booking?.status) {
  case "CANCELLED":
- return { label: "Da huy", className: "danger" };
+ return { label: "Đã hủy", className: "danger" };
  case "CHECKED_IN":
- return { label: "Dang ?", className: "success" };
+ return { label: "Đang ở", className: "success" };
  case "CHECKED_OUT":
- return { label: "Da tra phong", className: "neutral" };
+ return { label: "Đã trả phòng", className: "neutral" };
  case "NO_SHOW":
  return { label: "No-show", className: "info" };
  case "CONFIRMED": {
@@ -282,63 +309,63 @@ export function bookingStatusMeta(booking) {
  today.setHours(0, 0, 0, 0);
 
  if (checkIn && today < checkIn) {
- return { label: "Sap den", className: "pending" };
+ return { label: "Sắp đến", className: "pending" };
  }
 
- return { label: "Da xac nhan", className: "pending" };
+ return { label: "Đã xác nhận", className: "pending" };
  }
  default:
- return { label: "Khong ro", className: "neutral" };
+ return { label: "Không rõ", className: "neutral" };
  }
 }
 
 export function paymentStatusMeta(status) {
  switch (status) {
  case "PAID":
- return { label: "Da thanh toan", className: "success", kind: "paid" };
+ return { label: "Đã thanh toán", className: "success", kind: "paid" };
  case "PENDING":
- return { label: "Cho thanh toan", className: "pending", kind: "pending" };
+ return { label: "Chờ thanh toán", className: "pending", kind: "pending" };
  case "REFUNDED":
- return { label: "Da hoan tien", className: "info", kind: "refunded" };
+ return { label: "Đã hoàn tiền", className: "info", kind: "refunded" };
  case "FAILED":
- return { label: "That bai", className: "danger", kind: "failed" };
+ return { label: "Thất bại", className: "danger", kind: "failed" };
  default:
- return { label: "Khong ro", className: "neutral", kind: "unknown" };
+ return { label: "Không rõ", className: "neutral", kind: "unknown" };
  }
 }
 
 export function hotelApprovalMeta(status) {
  switch (status) {
  case "APPROVED":
- return { label: "Da duyet", className: "success" };
+ return { label: "Đã duyệt", className: "success" };
  case "REJECTED":
- return { label: "Tu choi", className: "danger" };
+ return { label: "Từ chối", className: "danger" };
  default:
- return { label: "Cho duyat", className: "pending" };
+ return { label: "Chờ duyệt", className: "pending" };
  }
 }
 
 export function disputeStatusMeta(status) {
  switch (status) {
  case "RESOLVED":
- return { label: "Da giai quyet", className: "success" };
+ return { label: "Đã giải quyết", className: "success" };
  case "IN_REVIEW":
- return { label: "Dang x? ly", className: "info" };
+ return { label: "Đang xử lý", className: "info" };
  case "REJECTED":
- return { label: "Tu choi", className: "danger" };
+ return { label: "Từ chối", className: "danger" };
  default:
- return { label: "Moi tao", className: "pending" };
+ return { label: "Mới tạo", className: "pending" };
  }
 }
 
 export function paymentMethodLabel(method) {
  switch (method) {
  case "BANK_TRANSFER":
- return "ChuyOn khoan";
+ return "Chuyển khoản";
  case "E_WALLET":
- return "Vi dien tu";
+ return "Ví điện tử";
  case "PAY_AT_HOTEL":
- return "Tai khach san";
+ return "Tại khách sạn";
  default:
  return "-";
  }
@@ -349,15 +376,15 @@ export function couponStatusMeta(coupon) {
  today.setHours(0, 0, 0, 0);
 
  if (!coupon?.active) {
- return { label: "Tam tat", className: "neutral", kind: "inactive" };
+ return { label: "Tạm tắt", className: "neutral", kind: "inactive" };
  }
 
  const expiresAt = parseDate(coupon?.expiresAt);
  if (expiresAt && expiresAt < today) {
- return { label: "Het han", className: "danger", kind: "expired" };
+ return { label: "Hết hạn", className: "danger", kind: "expired" };
  }
 
- return { label: "Dang hoat dong", className: "success", kind: "active" };
+ return { label: "Đang hoạt động", className: "success", kind: "active" };
 }
 
 export function formatCouponValue(coupon) {
@@ -438,7 +465,7 @@ export function formatRoleLabel(role) {
 export function maskCitizenId(value) {
  const source = String(value || "").trim();
  if (!source) {
- return "Cha cap nhat";
+ return "Chưa cập nhật";
  }
 
  if (source.length <= 4) {
@@ -465,4 +492,6 @@ export function parseNonNegative(value, max = Number.POSITIVE_INFINITY) {
 
  return Math.min(Math.floor(parsed), max);
 }
+
+
 

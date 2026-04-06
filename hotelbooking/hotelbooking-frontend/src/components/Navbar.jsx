@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getUnreadNotificationCount } from "../services/notificationService";
 import "./Navbar.css";
@@ -23,8 +23,8 @@ export default function Navbar() {
 
  const navItems = useMemo(
  () => [
- { label: "Trang chu", path: "/" },
- { label: "Khach sn", path: "/hotels" },
+ { label: "Trang chủ", path: "/" },
+ { label: "Khách sạn", path: "/hotels" },
  ],
  []
  );
@@ -166,14 +166,14 @@ export default function Navbar() {
  className="action-btn action-ghost"
  onClick={() => navigate("/login")}
  >
- Dang nhp
+ Đăng nhập
  </button>
  <button
  type="button"
  className="action-btn action-soft"
  onClick={() => navigate("/register")}
  >
- Dang ky
+ Đăng ký
  </button>
  </>
  ) : (
@@ -185,8 +185,8 @@ export default function Navbar() {
  >
  <span className="nav-profile-avatar">{getAvatarText(role)}</span>
  <span className="nav-profile-meta">
- <strong>{role === "ADMIN" ? "Admin" : "Tai khon ca bn"}</strong>
- <small>{role === "ADMIN" ? "Quan tri he thong" : "Ngi dung"}</small>
+ <strong>{role === "ADMIN" ? "Admin" : "Tài khoản cá nhân"}</strong>
+ <small>{role === "ADMIN" ? "Quản trị hệ thống" : "Người dùng"}</small>
  </span>
  <span className={`nav-profile-caret ${profileOpen ? "open" : ""}`}>v</span>
  {unreadNotifications > 0 && (
@@ -196,28 +196,21 @@ export default function Navbar() {
 
  {profileOpen && (
  <div className="nav-profile-menu">
- <button
- type="button"
- onClick={() =>
- navigate("/account", {
- state: { focus: "history" },
- })
- }
- >
- Thong bao {unreadNotifications > 0 ? `(${unreadNotifications})` : ""}
+ <button type="button" onClick={() => navigate("/notifications")}>
+ Thông báo {unreadNotifications > 0 ? `(${unreadNotifications})` : ""}
  </button>
  <button type="button" onClick={openProfile}>
- {role === "ADMIN" ? "Profile quan tri" : "Profile cua toi"}
+ {role === "ADMIN" ? "Hồ sơ quản trị" : "Hồ sơ của tôi"}
  </button>
  <button type="button" onClick={() => navigate("/host")}>
- Dang phong
+ Đăng phòng
  </button>
  {role !== "ADMIN" && (
  <button
  type="button"
  onClick={() => navigate("/account", { state: { focus: "wishlist" } })}
  >
- Yeu thich
+ Yêu thích
  </button>
  )}
  {role !== "ADMIN" && (
@@ -229,11 +222,11 @@ export default function Navbar() {
  })
  }
  >
- Lch so booking
+ Lịch sử booking
  </button>
  )}
  <button type="button" className="danger" onClick={handleLogout}>
- Dang xuat
+ Đăng xuất
  </button>
  </div>
  )}
@@ -241,14 +234,14 @@ export default function Navbar() {
  )}
 
  <button type="button" className="action-btn action-primary" onClick={handleBooking}>
- Dt phong ngay
+ Đặt phòng ngay
  </button>
  </div>
 
  <button
  type="button"
  className="mobile-btn"
- aria-label={open ? "Dang menu" : "Mo menu"}
+ aria-label={open ? "Đóng menu" : "Mở menu"}
  aria-expanded={open}
  onClick={() => setOpen((prev) => !prev)}
  >
@@ -276,23 +269,30 @@ export default function Navbar() {
  className="action-btn action-ghost"
  onClick={() => navigate("/login")}
  >
- Dang nhp
+ Đăng nhập
  </button>
  <button
  type="button"
  className="action-btn action-soft"
  onClick={() => navigate("/register")}
  >
- Dang ky
+ Đăng ký
  </button>
  </>
  ) : (
  <>
+ <button
+ type="button"
+ className="action-btn action-soft"
+ onClick={() => navigate("/notifications")}
+ >
+ Thông báo {unreadNotifications > 0 ? `(${unreadNotifications})` : ""}
+ </button>
  <button type="button" className="action-btn action-soft" onClick={openProfile}>
- {role === "ADMIN" ? "Profile quan tri" : "Profile"}
+ {role === "ADMIN" ? "Hồ sơ quản trị" : "Hồ sơ"}
  </button>
  <button type="button" className="action-btn action-soft" onClick={() => navigate("/host")}>
- Dang phong
+ Đăng phòng
  </button>
  {role !== "ADMIN" && (
  <button
@@ -300,7 +300,7 @@ export default function Navbar() {
  className="action-btn action-soft"
  onClick={() => navigate("/account", { state: { focus: "wishlist" } })}
  >
- Yeu thich
+ Yêu thích
  </button>
  )}
  {role !== "ADMIN" && (
@@ -309,21 +309,20 @@ export default function Navbar() {
  className="action-btn action-soft"
  onClick={() => navigate("/account", { state: { focus: "history" } })}
  >
- Lch so booking
+ Lịch sử booking
  </button>
  )}
  <button type="button" className="action-btn action-ghost" onClick={handleLogout}>
- Dang xuat
+ Đăng xuất
  </button>
  </>
  )}
 
  <button type="button" className="action-btn action-primary" onClick={handleBooking}>
- Dt phong ngay
+ Đặt phòng ngay
  </button>
  </div>
  </div>
  </header>
  );
 }
-

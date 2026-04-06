@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
  FaArrowRight,
@@ -42,14 +42,14 @@ function Register() {
 
  try {
  if (password !== confirmPassword) {
- toast.error("Mat khau va xac nhan mat khau khong khop");
+  toast.error("Mật khẩu và xác nhận mật khẩu không khớp");
  setLoading(false);
  return;
  }
 
  const res = await registerUser({ name, email, password });
  toast.success(
- res?.data?.message || "Dang ky th nh cong, vui long kiem tra email xac nhan"
+  res?.data?.message || "Đăng ký thành công, vui lòng kiểm tra email xác nhận"
  );
 
  navigate("/login", {
@@ -62,7 +62,7 @@ function Register() {
  });
  } catch (registerError) {
  console.error("Register failed", registerError);
- toast.error(readAuthError(registerError, "Dang ky thet bai"));
+ toast.error(readAuthError(registerError, "Đăng ký thất bại"));
  } finally {
  setLoading(false);
  }
@@ -72,11 +72,11 @@ function Register() {
  <main className="register-page">
  <section className="register-shell">
  <article className="register-card register-copy">
- <p className="register-eyebrow">Tao t i khoan moi</p>
- <h1>Bat dau hanh trinh dat phong va quan ly luu tru theo cach gon hon.</h1>
+  <p className="register-eyebrow">Tạo tài khoản mới</p>
+  <h1>Bắt đầu hành trình đặt phòng và quản lý lưu trú theo cách gọn hơn.</h1>
  <p className="register-description">
- Dang ky mot t i khoan de luu lich so booking, wishlist va tiep tuc cac thao tac dang
- cho ma khong can nhap lai tu dau.
+  Đăng ký một tài khoản để lưu lịch sử booking, wishlist và tiếp tục các thao tác đang
+  chờ mà không cần nhập lại từ đầu.
  </p>
 
  <div className="register-benefits">
@@ -85,8 +85,8 @@ function Register() {
  <FaCheckCircle />
  </span>
  <div>
- <strong>Dang ky nhanh</strong>
- <p>Giao dien don gian, ro rang va toi uu cho ca desktop lan mobile.</p>
+ <strong>Đăng ký nhanh</strong>
+  <p>Giao diện đơn giản, rõ ràng và tối ưu cho cả desktop lẫn mobile.</p>
  </div>
  </article>
 
@@ -95,8 +95,8 @@ function Register() {
  <FaShieldAlt />
  </span>
  <div>
- <strong>Thong tin nhat quan</strong>
- <p>Giup ban quay lai nhanh trang can den sau khi dang ky va dang nhap.</p>
+  <strong>Thông tin nhất quán</strong>
+  <p>Giúp bạn quay lại nhanh trang cần đến sau khi đăng ký và đăng nhập.</p>
  </div>
  </article>
  </div>
@@ -105,20 +105,20 @@ function Register() {
  <article className="register-card register-form-card">
  <div className="register-top">
  <p className="register-form-tag">Create account</p>
- <h2>Dang ky t i khoan</h2>
+  <h2>Đăng ký tài khoản</h2>
  <p className="register-note">
- Nhap thong tin co ban de bat dau so dung he thong. Sau khi dang ky, he thong se
- gui email xac nhan cho ban.
+  Nhập thông tin cơ bản để bắt đầu sử dụng hệ thống. Sau khi đăng ký, hệ thống sẽ
+  gửi email xác nhận cho bạn.
  </p>
  </div>
 
  <form className="register-form" onSubmit={handleRegister}>
  <label className="register-field">
- <span>Ho va ten</span>
+  <span>Họ và tên</span>
  <div className="register-input-shell">
  <FaUser />
  <input
- placeholder="Nhap ho va ten"
+  placeholder="Nhập họ và tên"
  value={name}
  onChange={(event) => setName(event.target.value)}
  autoComplete="name"
@@ -143,12 +143,12 @@ function Register() {
  </label>
 
  <label className="register-field">
- <span>Mat khau</span>
+ <span>Mật khẩu</span>
  <div className="register-input-shell">
  <FaLock />
  <input
  type={showPassword ? "text" : "password"}
- placeholder="Toi thieu 6 ky tu"
+  placeholder="Tối thiểu 6 ký tự"
  value={password}
  onChange={(event) => setPassword(event.target.value)}
  autoComplete="new-password"
@@ -158,7 +158,7 @@ function Register() {
  type="button"
  className="register-visibility-btn"
  onClick={() => setShowPassword((prev) => !prev)}
- aria-label={showPassword ? "An mat khau" : "Hien mat khau"}
+  aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
  >
  {showPassword ? <FaEyeSlash /> : <FaEye />}
  </button>
@@ -166,12 +166,12 @@ function Register() {
  </label>
 
  <label className="register-field">
- <span>Xac nhan mat khau</span>
+  <span>Xác nhận mật khẩu</span>
  <div className="register-input-shell">
  <FaLock />
  <input
  type={showConfirmPassword ? "text" : "password"}
- placeholder="Nhap lai mat khau"
+  placeholder="Nhập lại mật khẩu"
  value={confirmPassword}
  onChange={(event) => setConfirmPassword(event.target.value)}
  autoComplete="new-password"
@@ -181,7 +181,7 @@ function Register() {
  type="button"
  className="register-visibility-btn"
  onClick={() => setShowConfirmPassword((prev) => !prev)}
- aria-label={showConfirmPassword ? "An mat khau xac nhan" : "Hien mat khau xac nhan"}
+  aria-label={showConfirmPassword ? "Ẩn mật khẩu xác nhận" : "Hiện mật khẩu xác nhận"}
  >
  {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
  </button>
@@ -190,14 +190,14 @@ function Register() {
 
  <p className={`register-helper ${passwordReady ? "success" : passwordMismatch ? "error" : ""}`}>
  {passwordMismatch
- ? "Mat khau va xac nhan mat khau chua khop."
+ ? "Mật khẩu và xác nhận mật khẩu chưa khớp."
  : password.length > 0
- ? "Mat khau da san sang. Hay dam bao tu 6 ky tu tro len."
- : "Mat khau nen co it nhat 6 ky tu de dang ky an denh hon."}
+  ? "Mật khẩu đã sẵn sàng. Hãy đảm bảo từ 6 ký tự trở lên."
+  : "Mật khẩu nên có ít nhất 6 ký tự để đăng ký an toàn hơn."}
  </p>
 
  <button type="submit" className="register-submit-btn" disabled={loading}>
- <span>{loading ? "Dang dang ky..." : "Dang ky t i khoan"}</span>
+  <span>{loading ? "Đang đăng ký..." : "Đăng ký tài khoản"}</span>
  <FaArrowRight />
  </button>
  </form>
@@ -215,7 +215,7 @@ function Register() {
  })
  }
  >
- Ban da co t i khoan? Dang nhap
+ Bạn đã có tài khoản? Đăng nhập
  </button>
  </div>
  </article>
@@ -225,4 +225,6 @@ function Register() {
 }
 
 export default Register;
+
+
 

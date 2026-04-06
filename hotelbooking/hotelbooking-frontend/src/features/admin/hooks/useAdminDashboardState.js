@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useState } from "react";
 import { getMyAccount } from "../../../services/accountService";
 import {
  getAdminDisputes,
@@ -17,6 +17,8 @@ import {
  accountInitialState,
  accountMetaInitialState,
  couponInitialState,
+ adminUserInitialState,
+ adminUserRoleOptions,
  paymentStatusOptions,
  paymentStatusFilterOptions,
  bookingStatusOptions,
@@ -88,6 +90,11 @@ export default function useAdminDashboardState({ navigate, toast, profileRef }) 
  const [couponSaving, setCouponSaving] = useState(false);
  const [couponDeletingId, setCouponDeletingId] = useState(null);
  const [couponMessage, setCouponMessage] = useState(null);
+ const [userForm, setUserForm] = useState(adminUserInitialState);
+ const [editingUserId, setEditingUserId] = useState(null);
+ const [userSaving, setUserSaving] = useState(false);
+ const [userDeletingId, setUserDeletingId] = useState(null);
+ const [userMessage, setUserMessage] = useState(null);
  const [confirmDialog, setConfirmDialog] = useState(null);
  const [bookingFilters, setBookingFilters] = useState({
  paymentStatus: "all",
@@ -176,8 +183,8 @@ export default function useAdminDashboardState({ navigate, toast, profileRef }) 
  setLogs(normalizeLogs(logsRes?.data));
  } catch (loadError) {
  console.error("Cannot load admin dashboard", loadError);
- setError("Khong the tai du lieu dashboard. Vui long thu lai.");
- toast.error("Khong the tai du lieu dashboard");
+ setError("Không thể tai dữ liệu dashboard. Vui lòng thử lại.");
+ toast.error("Không thể tai dữ liệu dashboard");
  } finally {
  setLoading(false);
  setRefreshing(false);
@@ -209,7 +216,7 @@ export default function useAdminDashboardState({ navigate, toast, profileRef }) 
  });
  } catch (loadError) {
  console.error("Cannot load admin account", loadError);
- setAccountError("Khong the tai thong tin tai khoan admin.");
+ setAccountError("Không thể tai thông tin tài khoản admin.");
  } finally {
  setAccountLoading(false);
  }
@@ -294,6 +301,11 @@ export default function useAdminDashboardState({ navigate, toast, profileRef }) 
  handleConfirmDialogAction,
  handleCouponEdit,
  handleCouponSubmit,
+ handleUserFieldChange,
+ resetUserForm,
+ handleUserEdit,
+ handleUserSubmit,
+ handleUserDeleteRequest,
  handlePaymentDraftChange,
  handleBookingStatusDraftChange,
  handleBookingStatusNoteChange,
@@ -329,10 +341,19 @@ export default function useAdminDashboardState({ navigate, toast, profileRef }) 
  setConfirmDialog,
  setCouponDeletingId,
  setCoupons,
+ setUsers,
  editingCouponId,
  confirmDialog,
  couponForm,
  setCouponSaving,
+ userForm,
+ setUserForm,
+ editingUserId,
+ setEditingUserId,
+ setUserSaving,
+ userDeletingId,
+ setUserDeletingId,
+ setUserMessage,
  setPaymentDrafts,
  setBookingStatusDrafts,
  setBookingStatusNotes,
@@ -393,6 +414,12 @@ export default function useAdminDashboardState({ navigate, toast, profileRef }) 
  couponSaving,
  couponDeletingId,
  couponMessage,
+ userForm,
+ setUserForm,
+ editingUserId,
+ userSaving,
+ userDeletingId,
+ userMessage,
  confirmDialog,
  bookingFilters,
  paymentDrafts,
@@ -452,6 +479,11 @@ export default function useAdminDashboardState({ navigate, toast, profileRef }) 
  handleConfirmDialogAction,
  handleCouponEdit,
  handleCouponSubmit,
+ handleUserFieldChange,
+ resetUserForm,
+ handleUserEdit,
+ handleUserSubmit,
+ handleUserDeleteRequest,
  handlePaymentDraftChange,
  handleBookingStatusDraftChange,
  handleBookingStatusNoteChange,
@@ -484,5 +516,8 @@ export default function useAdminDashboardState({ navigate, toast, profileRef }) 
  formatCellText,
  shortId,
  getAvatarText,
+ adminUserRoleOptions,
  };
 }
+
+

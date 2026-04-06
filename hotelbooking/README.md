@@ -94,10 +94,19 @@ Recommended environment variables:
 - `PAYMENT_SANDBOX_SECRET` (used to sign sandbox checkout/webhook)
 - `MAIL_USERNAME`, `MAIL_PASSWORD`, `APP_MAIL_FROM`
 - `APP_FRONTEND_URL`
+- `APP_BOOTSTRAP_ADMIN_ENABLED`, `APP_BOOTSTRAP_ADMIN_EMAIL`, `APP_BOOTSTRAP_ADMIN_PASSWORD` (optional first-admin bootstrap for local/dev)
+- `APP_DEMO_SEED_ENABLED`, `APP_DEMO_SEED_PASSWORD` (optional demo data seed for local UI flow)
 
 Optional project `.env` workflow:
 - Copy `.env.example` -> `.env` and fill local values.
 - `.env` is git-ignored, only `.env.example` is committed.
+
+Demo seed for local testing:
+- Set `APP_DEMO_SEED_ENABLED=true` and `APP_DEMO_SEED_PASSWORD=Demo123!` in `.env`
+- Restart backend once to seed idempotent demo data:
+  - admin: `demo.admin@hotelbooking.local`
+  - host: `demo.host@hotelbooking.local`
+  - user: `demo.user@hotelbooking.local`
 
 ## 8. Testing
 Backend:

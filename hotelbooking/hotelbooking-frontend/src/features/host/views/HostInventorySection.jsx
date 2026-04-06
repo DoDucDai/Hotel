@@ -1,4 +1,4 @@
-export default function HostInventorySection({
+﻿export default function HostInventorySection({
  rooms,
  inventoryRoomId,
  setInventoryRoomId,
@@ -20,23 +20,23 @@ export default function HostInventorySection({
  <section className="host-card host-card-wide">
  <div className="card-head">
  <div>
- <h2>Lich phong theo ngay va quan ly ton kho</h2>
+ <h2>Lịch phòng theo ngày và quản lý tồn kho</h2>
  <p className="inline-note">
- Block phong bao tri, khoa phong dip le va xem ton kho con trong theo tung ngay.
+ Block phòng bảo trì, khóa phòng dịp lễ và xem tồn kho còn trống theo từng ngày.
  </p>
  </div>
 
  <label className="inventory-room-picker">
- <span>Loai phong dang xem</span>
+ <span>Loại phòng đang xem</span>
  <select
  value={inventoryRoomId}
  onChange={(event) => setInventoryRoomId(event.target.value)}
  disabled={!rooms.length}
  >
- {!rooms.length ? <option value="">Cha co loai phong</option> : null}
+ {!rooms.length ? <option value="">Chưa có loại phòng</option> : null}
  {rooms.map((room) => (
  <option key={room.id} value={room.id}>
- {room.name} - {hotelsById[room.hotelId]?.name || "Khach san"}
+ {room.name} - {hotelsById[room.hotelId]?.name || "Khách sạn"}
  </option>
  ))}
  </select>
@@ -44,7 +44,7 @@ export default function HostInventorySection({
  </div>
 
  {!selectedInventoryRoom ? (
- <p className="inline-note">Tao it nhat 1 loai phong de bat dau quan ly ton kho.</p>
+ <p className="inline-note">Tạo ít nhất 1 loại phòng để bắt đầu quản lý tồn kho.</p>
  ) : (
  <>
  <div className="inventory-toolbar">
@@ -52,14 +52,14 @@ export default function HostInventorySection({
  <strong>{selectedInventoryRoom.name}</strong>
  <span>{selectedInventoryRoom.roomType || "STANDARD"}</span>
  <p>
- Tong {selectedInventoryRoom.totalUnits || 1} phong tai{" "}
+ Tổng {selectedInventoryRoom.totalUnits || 1} phòng tại{" "}
  {hotelsById[selectedInventoryRoom.hotelId]?.name || "-"}
  </p>
  </div>
 
  <div className="inventory-range">
  <label>
- <span>Tu ngay</span>
+ <span>Từ ngày</span>
  <input
  type="date"
  name="startDate"
@@ -68,7 +68,7 @@ export default function HostInventorySection({
  />
  </label>
  <label>
- <span>Den ngay</span>
+ <span>Đến ngày</span>
  <input
  type="date"
  name="endDate"
@@ -81,11 +81,11 @@ export default function HostInventorySection({
 
  <div className="inventory-grid">
  <form className="host-form inventory-form" onSubmit={handleSubmitInventoryBlock}>
- <h3>Tao block ton kho</h3>
+ <h3>Tạo block tồn kho</h3>
 
  <div className="field-row">
  <label>
- <span>Bat dau</span>
+ <span>Bắt đầu</span>
  <input
  type="date"
  name="startDate"
@@ -95,7 +95,7 @@ export default function HostInventorySection({
  </label>
 
  <label>
- <span>Ket thuc</span>
+ <span>Kết thúc</span>
  <input
  type="date"
  name="endDate"
@@ -106,7 +106,7 @@ export default function HostInventorySection({
  </div>
 
  <label>
- <span>So phong block</span>
+ <span>Số phòng block</span>
  <input
  type="number"
  min="1"
@@ -118,40 +118,40 @@ export default function HostInventorySection({
  </label>
 
  <label>
- <span>Ly do</span>
+ <span>Lý do</span>
  <textarea
  name="reason"
  value={inventoryForm.reason}
  onChange={handleInventoryFormChange}
- placeholder="Vi du: bao tri phong, khoa ban dip le, su kien noi bo"
+ placeholder="Ví dụ: bảo trì phòng, khóa bán dịp lễ, sự kiện nội bộ"
  />
  </label>
 
  <button type="submit" disabled={inventorySaving}>
- {inventorySaving ? "dang block..." : "Them block ton kho"}
+ {inventorySaving ? "Đang block..." : "Thêm block tồn kho"}
  </button>
  </form>
 
  <div className="inventory-side">
  <div className="inventory-table-wrap">
  <div className="table-section-head">
- <h3>Lich ton kho</h3>
- <span>{inventoryCalendar.length} ngay</span>
+ <h3>Lịch tồn kho</h3>
+ <span>{inventoryCalendar.length} ngày</span>
  </div>
 
  {inventoryLoading ? (
- <p className="inline-note">dang tai lich ton kho...</p>
+ <p className="inline-note">đang tải lịch tồn kho...</p>
  ) : inventoryCalendar.length === 0 ? (
- <p className="inline-note">Cha co du lieu ton kho trong khoang ngay nay.</p>
+ <p className="inline-note">Chưa có dữ liệu tồn kho trong khoảng ngày này.</p>
  ) : (
  <table className="inventory-table">
  <thead>
  <tr>
- <th>Ngay</th>
- <th>Tong</th>
- <th>Da dat</th>
+ <th>Ngày</th>
+ <th>Tổng</th>
+ <th>Đã đặt</th>
  <th>Block</th>
- <th>Con trong</th>
+ <th>Còn trống</th>
  </tr>
  </thead>
  <tbody>
@@ -179,12 +179,12 @@ export default function HostInventorySection({
 
  <div className="inventory-block-list">
  <div className="table-section-head">
- <h3>Danh sach block</h3>
- <span>{inventoryBlocks.length} muc</span>
+ <h3>Danh sách block</h3>
+ <span>{inventoryBlocks.length} mục</span>
  </div>
 
  {inventoryBlocks.length === 0 ? (
- <p className="inline-note">Cha co block ton kho nao cho loai phong nay.</p>
+ <p className="inline-note">Chưa có block tồn kho nào cho loại phòng này.</p>
  ) : (
  inventoryBlocks.map((block) => (
  <article key={block.id} className="inventory-block-item">
@@ -192,15 +192,15 @@ export default function HostInventorySection({
  <strong>
  {formatDate(block.startDate)} - {formatDate(block.endDate)}
  </strong>
- <p>Block {block.blockedUnits} phong</p>
- <small>{block.reason || "Khong co ghi chu"}</small>
+ <p>Block {block.blockedUnits} phòng</p>
+ <small>{block.reason || "Không có ghi chú"}</small>
  </div>
  <button
  type="button"
  className="ghost-btn danger"
  onClick={() => handleDeleteInventoryBlockRequest(block)}
  >
- Go block
+ Gỡ block
  </button>
  </article>
  ))
@@ -213,3 +213,4 @@ export default function HostInventorySection({
  </section>
  );
 }
+

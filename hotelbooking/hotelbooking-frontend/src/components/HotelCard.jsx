@@ -1,4 +1,4 @@
-import "./HotelCard.css";
+﻿import "./HotelCard.css";
 import { getPrimaryImage } from "../utils/imageHelpers";
 
 const FALLBACK_IMAGE = `data:image/svg+xml,${encodeURIComponent(
@@ -36,23 +36,24 @@ export default function HotelCard({ hotel, onView }) {
  </div>
 
  <div className="admin-hotel-content">
- <p className="admin-hotel-city">{hotel.city || "Dang cap nhet"}</p>
- <h3>{hotel.name || "Khach san"}</h3>
+ <p className="admin-hotel-city">{hotel.city || "Đang cập nhật"}</p>
+ <h3>{hotel.name || "Khách sạn"}</h3>
  <p className="admin-hotel-address">{hotel.address || "-"}</p>
 
  <div className="admin-hotel-metrics">
- <span>{hotel.totalRooms || 0} phong</span>
+ <span>{hotel.totalRooms || 0} phòng</span>
  <span>{hotel.totalBookings || 0} booking</span>
- <span>{hotel.occupancy || 0}% lap day</span>
+ <span>{hotel.occupancy || 0}% lấp đầy</span>
  </div>
 
  {typeof onView === "function" ? (
  <button type="button" className="admin-hotel-btn" onClick={() => onView(hotel)}>
- Xem ch? tiet
+ Xem chi tiết
  </button>
  ) : null}
  </div>
  </article>
  );
 }
+
 

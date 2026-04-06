@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "../components/ToastProvider";
 import { getHotels } from "../services/hotelService";
@@ -84,7 +84,7 @@ export default function HotelsEnhanced() {
  if (isMounted) {
  setHotels([]);
  setRooms([]);
- setError("Khong the tai danh sach khach san. Vui long the lai sau.");
+ setError("Không thể tải danh sách khách sạn. Vui lòng thử lại sau.");
  }
  } finally {
  if (isMounted) {
@@ -151,7 +151,7 @@ export default function HotelsEnhanced() {
 
  if (checkIn && checkOut && new Date(checkOut) <= new Date(checkIn)) {
  setRoomAvailability({});
- setAvailabilityError("Ng y tra phong phai sau ngay nhan phong.");
+ setAvailabilityError("Ngày trả phòng phải sau ngày nhận phòng.");
  return;
  }
 
@@ -189,7 +189,7 @@ export default function HotelsEnhanced() {
  console.error(fetchError);
  if (isMounted) {
  setRoomAvailability({});
- setAvailabilityError("Cha tai duoc de lieu phong theo bo luc hien tai.");
+ setAvailabilityError("Chưa tải được dữ liệu phòng theo bộ lọc hiện tại.");
  }
  } finally {
  if (isMounted) {
@@ -420,15 +420,15 @@ export default function HotelsEnhanced() {
  if (alreadySaved) {
  await removeFromWishlist(normalizedHotelId);
  setWishlistIds((prev) => prev.filter((id) => id !== normalizedHotelId));
- toast.success("Da xoa khoi danh sach yeu thich");
+ toast.success("Đã xóa khỏi danh sách yêu thích");
  } else {
  await addToWishlist(normalizedHotelId);
  setWishlistIds((prev) => [...prev, normalizedHotelId]);
- toast.success("Da them vao wishlist");
+ toast.success("Đã thêm vào wishlist");
  }
  } catch (wishlistError) {
  console.error("Cannot update wishlist", wishlistError);
- toast.error("Khong the cap nhat wishlist");
+ toast.error("Không thể cập nhật wishlist");
  }
  };
 
@@ -486,3 +486,4 @@ export default function HotelsEnhanced() {
  </main>
  );
 }
+

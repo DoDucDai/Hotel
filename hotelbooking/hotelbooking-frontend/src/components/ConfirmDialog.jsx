@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+﻿import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import "./ConfirmDialog.css";
 
@@ -6,9 +6,9 @@ function ConfirmDialog({
  open,
  title,
  description,
- confirmLabel = "Xac nhan",
- cancelLabel = "Huy",
- tag = "Xac nhan thao tac",
+ confirmLabel = "Xác nhận",
+ cancelLabel = "Hủy",
+ tag = "Xác nhận thao tác",
  tone = "danger",
  loading = false,
  onClose,
@@ -40,7 +40,7 @@ function ConfirmDialog({
  className="confirm-dialog-backdrop"
  onClick={onClose}
  disabled={loading}
- aria-label="Dang popup xac nhan"
+ aria-label="Đóng popup xác nhận"
  />
 
  <div className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
@@ -65,7 +65,7 @@ function ConfirmDialog({
  onClick={onConfirm}
  disabled={loading}
  >
- {loading ? "Dang x? ly..." : confirmLabel}
+ {loading ? "Đang xử lý..." : confirmLabel}
  </button>
  </div>
  </article>
@@ -76,4 +76,6 @@ function ConfirmDialog({
 }
 
 export default ConfirmDialog;
+
+
 

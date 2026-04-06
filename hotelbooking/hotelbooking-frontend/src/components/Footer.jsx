@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+﻿import { useNavigate } from "react-router-dom";
 import "./Footer.css";
 
 export default function Footer() {
@@ -10,18 +10,18 @@ export default function Footer() {
  <div className="footer-shell">
  <div className="footer-brand">
  <strong>Hotel Booking</strong>
- <p>Dat phong de dang, thong tin ro rang, ho tro nhanh 24/7.</p>
+ <p>Đặt phòng dễ dàng, thông tin rõ ràng, hỗ trợ nhanh 24/7.</p>
  </div>
 
  <div className="footer-links">
  <button type="button" onClick={() => navigate("/")}>
- Trang chu
+ Trang chủ
  </button>
  <button type="button" onClick={() => navigate("/hotels")}>
- Khach san
+ Khách sạn
  </button>
  <button type="button" onClick={() => navigate("/host")}>
- Dang phong
+ Đăng phòng
  </button>
  <button type="button" onClick={() => navigate("/account")}>
  Profile
@@ -33,4 +33,6 @@ export default function Footer() {
  </footer>
  );
 }
+
+
 

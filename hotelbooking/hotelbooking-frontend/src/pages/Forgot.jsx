@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
  FaArrowRight,
@@ -48,7 +48,7 @@ function Forgot() {
 
  setResetToken(tokenFromUrl);
  setTokenStatus("idle");
- setTokenMessage("Da nhan ma tu link email. Ban c? the kiem tra ma va dat lai mat khau.");
+ setTokenMessage("Đã nhận mã từ link email. Bạn có thể kiểm tra mã và đặt lại mật khẩu.");
  }, [tokenFromUrl]);
 
  const readAuthError = (error, fallback) =>
@@ -66,11 +66,11 @@ function Forgot() {
  setSubmittedEmail(normalizedEmail);
  toast.success(
  res?.data?.message ||
- "Neu email ton toi, chung toi da gui m? dat lai mat khau."
+ "Nếu email tồn tại, chúng tôi đã gửi mã đặt lại mật khẩu."
  );
  } catch (error) {
  console.error("Forgot password failed", error);
- toast.error(readAuthError(error, "Khong the gui yeu cau dat lai mat khau"));
+ toast.error(readAuthError(error, "Không thể gửi yêu cầu đặt lại mật khẩu"));
  } finally {
  setSending(false);
  }
@@ -79,12 +79,12 @@ function Forgot() {
  const handleCheckCode = async () => {
  const token = resetToken.trim();
  if (!token) {
- toast.error("Vui long nhap ma OTP 6 so");
+  toast.error("Vui lòng nhập mã OTP 6 số");
  return;
  }
 
  if (!/^\d{6}$/.test(token)) {
- toast.error("M? OTP phai gam Dong 6 chi so");
+  toast.error("Mã OTP phải gồm đúng 6 chữ số");
  return;
  }
 
@@ -95,13 +95,13 @@ function Forgot() {
  setTokenStatus("valid");
  setTokenMessage(
  emailFromToken
- ? `Ma hop le cho t i khoan ${emailFromToken}.`
- : "Ma hop le. Ban c? the dat lai mat khau."
+  ? `Mã hợp lệ cho tài khoản ${emailFromToken}.`
+  : "Mã hợp lệ. Bạn có thể đặt lại mật khẩu."
  );
- toast.success("Ma dat lai mat khau hop le");
+  toast.success("Mã đặt lại mật khẩu hợp lệ");
  } catch (error) {
  console.error("Cannot validate reset token", error);
- const message = readAuthError(error, "Ma dat lai mat khau khong hop le hoac da het han.");
+  const message = readAuthError(error, "Mã đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.");
  setTokenStatus("invalid");
  setTokenMessage(message);
  toast.error(message);
@@ -115,38 +115,38 @@ function Forgot() {
 
  const token = resetToken.trim();
  if (!token) {
- toast.error("Vui long nhap ma OTP 6 so");
+  toast.error("Vui lòng nhập mã OTP 6 số");
  return;
  }
 
  if (!/^\d{6}$/.test(token)) {
- toast.error("M? OTP phai gam Dong 6 chi so");
+  toast.error("Mã OTP phải gồm đúng 6 chữ số");
  return;
  }
 
  if (!isCodeVerified) {
- toast.error("Vui long kiem tra ma OTP truoc khi dat lai mat khau");
+  toast.error("Vui lòng kiểm tra mã OTP trước khi đặt lại mật khẩu");
  return;
  }
 
  if (password.length < 6) {
- toast.error("Mat khau moi phai co it nhat 6 ky tu");
+  toast.error("Mật khẩu mới phải có ít nhất 6 ký tự");
  return;
  }
 
  if (passwordMismatch) {
- toast.error("Mat khau va xac nhan mat khau khong khop");
+  toast.error("Mật khẩu và xác nhận mật khẩu không khớp");
  return;
  }
 
  setResetting(true);
  try {
  const res = await resetPassword(token, password);
- toast.success(res?.data?.message || "Dat lai mat khau th nh cong");
+  toast.success(res?.data?.message || "Đặt lại mật khẩu thành công");
  navigate("/login", { replace: true });
  } catch (error) {
  console.error("Cannot reset password", error);
- toast.error(readAuthError(error, "Khong the dat lai mat khau"));
+  toast.error(readAuthError(error, "Không thể đặt lại mật khẩu"));
  } finally {
  setResetting(false);
  }
@@ -157,35 +157,35 @@ function Forgot() {
  <section className="auth-assist-shell">
  <article className="auth-assist-copy">
  <p className="auth-assist-tag">Recovery</p>
- <h1>Khoi phuc t i khoan bang ma reset gui qua email.</h1>
+  <h1>Khôi phục tài khoản bằng mã reset gửi qua email.</h1>
  <p className="auth-assist-text">
- Buoc 1: nhap email de nhan ma. Buoc 2: nhap ma reset, mat khau moi va xac nhan
- mat khau ngay tren man hinh nay.
+  Bước 1: nhập email để nhận mã. Bước 2: nhập mã reset, mật khẩu mới và xác nhận
+  mật khẩu ngay trên màn hình này.
  </p>
 
  <div className="auth-assist-points">
  <article>
  <FaKey />
  <div>
- <strong>Co ca link va ma reset</strong>
- <p>Ban c? the bam link trong mail hoac copy ma OTP 6 so de nhap the cong.</p>
+  <strong>Có cả link và mã reset</strong>
+  <p>Bạn có thể bấm link trong mail hoặc copy mã OTP 6 số để nhập thủ công.</p>
  </div>
  </article>
  <article>
  <FaShieldAlt />
  <div>
- <strong>Ma co thoi han ngan</strong>
- <p>Ma dat lai mat khau chi hieu luc trong 30 phut ke tu luc gui.</p>
+  <strong>Mã có thời hạn ngắn</strong>
+  <p>Mã đặt lại mật khẩu chỉ hiệu lực trong 30 phút kể từ lúc gửi.</p>
  </div>
  </article>
  </div>
  </article>
 
  <article className="auth-assist-card">
- <p className="auth-assist-card-tag">Quen mat khau</p>
- <h2>Gui ma va dat lai mat khau</h2>
+ <p className="auth-assist-card-tag">Quen mật khẩu</p>
+  <h2>Gửi mã và đặt lại mật khẩu</h2>
  <p className="auth-assist-note">
- Vui long kiem tra ca hop the chinh va muc spam neu chua thay email.
+ Vui lòng kiểm tra cả hộp thư chính và mục spam nếu chưa thấy email.
  </p>
 
  <form className="auth-assist-form" onSubmit={handleSendRequest}>
@@ -205,15 +205,15 @@ function Forgot() {
  </label>
 
  <button type="submit" className="auth-assist-submit" disabled={sending}>
- <span>{sending ? "Dang gui..." : "Gui m? dat lai mat khau"}</span>
+  <span>{sending ? "Đang gửi..." : "Gửi mã đặt lại mật khẩu"}</span>
  <FaArrowRight />
  </button>
  </form>
 
  {submittedEmail ? (
  <div className="auth-assist-feedback">
- Yeu cau da duoc gui cho <strong>{submittedEmail}</strong> neu t i khoan ton toi.
- Ban c? the copy ma OTP 6 so trong email de nhap o buoc duoi.
+  Yêu cầu đã được gửi cho <strong>{submittedEmail}</strong> nếu tài khoản tồn tại.
+  Bạn có thể copy mã OTP 6 số trong email để nhập ở bước dưới.
  </div>
  ) : null}
 
@@ -221,12 +221,12 @@ function Forgot() {
 
  <form className="auth-assist-form" onSubmit={handleResetPassword}>
  <label className="auth-assist-field">
- <span>Ma OTP 6 so</span>
+  <span>Mã OTP 6 số</span>
  <div className="auth-assist-input">
  <FaKey />
  <input
  type="text"
- placeholder="Nhap ma OTP 6 so"
+  placeholder="Nhập mã OTP 6 số"
  value={resetToken}
  onChange={(event) => {
  const normalized = event.target.value.replace(/\D/g, "").slice(0, 6);
@@ -249,7 +249,7 @@ function Forgot() {
  onClick={handleCheckCode}
  disabled={checkingToken}
  >
- <span>{checkingToken ? "Dang kiem tra..." : "Kiem tra ma"}</span>
+  <span>{checkingToken ? "Đang kiểm tra..." : "Kiểm tra mã"}</span>
  <FaCheckCircle />
  </button>
 
@@ -263,12 +263,12 @@ function Forgot() {
  {isCodeVerified ? (
  <>
  <label className="auth-assist-field">
- <span>Mat khau moi</span>
+  <span>Mật khẩu mới</span>
  <div className="auth-assist-input">
  <FaLock />
  <input
  type={showPassword ? "text" : "password"}
- placeholder="Toi thieu 6 ky tu"
+  placeholder="Tối thiểu 6 ký tự"
  value={password}
  onChange={(event) => setPassword(event.target.value)}
  autoComplete="new-password"
@@ -278,7 +278,7 @@ function Forgot() {
  type="button"
  className="auth-assist-toggle"
  onClick={() => setShowPassword((prev) => !prev)}
- aria-label={showPassword ? "An mat khau" : "Hien mat khau"}
+  aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
  >
  {showPassword ? <FaEyeSlash /> : <FaEye />}
  </button>
@@ -286,12 +286,12 @@ function Forgot() {
  </label>
 
  <label className="auth-assist-field">
- <span>Xac nhan mat khau moi</span>
+  <span>Xác nhận mật khẩu mới</span>
  <div className="auth-assist-input">
  <FaLock />
  <input
  type={showConfirmPassword ? "text" : "password"}
- placeholder="Nhap lai mat khau moi"
+  placeholder="Nhập lại mật khẩu mới"
  value={confirmPassword}
  onChange={(event) => setConfirmPassword(event.target.value)}
  autoComplete="new-password"
@@ -302,7 +302,7 @@ function Forgot() {
  className="auth-assist-toggle"
  onClick={() => setShowConfirmPassword((prev) => !prev)}
  aria-label={
- showConfirmPassword ? "An xac nhan mat khau" : "Hien xac nhan mat khau"
+  showConfirmPassword ? "Ẩn xác nhận mật khẩu" : "Hiện xác nhận mật khẩu"
  }
  >
  {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
@@ -312,32 +312,32 @@ function Forgot() {
 
  <p className={`auth-assist-helper ${passwordMismatch ? "error" : ""}`}>
  {passwordMismatch
- ? "Mat khau va xac nhan mat khau chua khop."
- : "Ma hop le. Ban c? the dat mat khau moi."}
+ ? "Mật khẩu và xác nhận mật khẩu chưa khớp."
+  : "Mã hợp lệ. Bạn có thể đặt mật khẩu mới."}
  </p>
 
  <button type="submit" className="auth-assist-submit" disabled={resetting}>
- <span>{resetting ? "Dang cap nhet..." : "Xac nhan mat khau moi"}</span>
+  <span>{resetting ? "Đang cập nhật..." : "Xác nhận mật khẩu mới"}</span>
  <FaArrowRight />
  </button>
  </>
  ) : (
  <p className="auth-assist-helper">
- Kiem tra ma OTP th nh cong de hien the form dat mat khau moi.
+  Kiểm tra mã OTP thành công để hiển thị form đặt mật khẩu mới.
  </p>
  )}
  </form>
 
  <div className="auth-assist-actions">
  <button type="button" className="auth-assist-link" onClick={() => navigate("/login")}>
- Quay lai dang nhap
+  Quay lại đăng nhập
  </button>
  <button
  type="button"
  className="auth-assist-link subtle"
  onClick={() => navigate("/register")}
  >
- Tao t i khoan moi
+  Tạo tài khoản mới
  </button>
  </div>
  </article>
@@ -347,4 +347,6 @@ function Forgot() {
 }
 
 export default Forgot;
+
+
 

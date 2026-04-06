@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { getMyAccount, updateMyEmail, updateMyProfile } from "../../../services/accountService";
 import {
   cancelBooking,
@@ -142,11 +142,11 @@ export default function useAccountEnhancedState({ location, navigate, toast }) {
       } catch (error) {
         console.error("Cannot load account", error);
         if (isMounted) {
-          setLoadError("Khong the tai thong tin tai khoan. Vui long thu lai.");
-          setBookingsError("Khong the tai lich su dat phong.");
-          setWishlistError("Khong the tai wishlist.");
-          setDisputesError("Khong the tai danh sach tranh chap.");
-          toast.error("Khong the tai du lieu tai khoan");
+          setLoadError("Không thể tải thông tin tài khoản. Vui lòng thử lại.");
+          setBookingsError("Không thể tải lịch sử đặt phòng.");
+          setWishlistError("Không thể tải wishlist.");
+          setDisputesError("Không thể tải danh sách tranh chấp.");
+          toast.error("Không thể tải dữ liệu tài khoản");
         }
       } finally {
         if (isMounted) {
@@ -213,10 +213,10 @@ export default function useAccountEnhancedState({ location, navigate, toast }) {
         dateOfBirth: user.dateOfBirth || "",
         citizenId: user.citizenId || "",
       });
-      toast.success("Da luu thong tin profile");
+      toast.success("Đã lưu thông tin profile");
     } catch (error) {
       console.error("Cannot save profile", error);
-      toast.error(error?.response?.data?.message || "Cap nhat profile that bai");
+      toast.error(error?.response?.data?.message || "Cập nhật profile thất bại");
     } finally {
       setProfileSaving(false);
     }
@@ -248,10 +248,10 @@ export default function useAccountEnhancedState({ location, navigate, toast }) {
         citizenId: user.citizenId ?? prev.citizenId,
       }));
 
-      toast.success("Da doi email thanh cong");
+      toast.success("Đã đổi email thành công");
     } catch (error) {
       console.error("Cannot change email", error);
-      toast.error(error?.response?.data?.message || "Doi email that bai");
+      toast.error(error?.response?.data?.message || "Đổi email thất bại");
     } finally {
       setEmailSaving(false);
     }
@@ -267,7 +267,7 @@ export default function useAccountEnhancedState({ location, navigate, toast }) {
       setBookingsError("");
     } catch (error) {
       console.error("Cannot refresh booking history", error);
-      setBookingsError("Khong the tai lich su dat phong.");
+      setBookingsError("Không thể tải lịch sử đặt phòng.");
     } finally {
       setBookingsLoading(false);
     }
@@ -282,7 +282,7 @@ export default function useAccountEnhancedState({ location, navigate, toast }) {
       setDisputesError("");
     } catch (error) {
       console.error("Cannot refresh disputes", error);
-      setDisputesError("Khong the tai danh sach tranh chap.");
+      setDisputesError("Không thể tải danh sách tranh chấp.");
     } finally {
       setDisputesLoading(false);
     }
@@ -298,20 +298,20 @@ export default function useAccountEnhancedState({ location, navigate, toast }) {
 
       if (bookingAction.mode === "cancel") {
         await cancelBooking(selectedBooking.id, bookingAction.reason || "");
-        toast.success("Da huy booking thanh cong");
+        toast.success("Đã hủy booking thành công");
       } else {
         await rescheduleBooking(selectedBooking.id, {
           checkInDate: bookingAction.checkInDate,
           checkOutDate: bookingAction.checkOutDate,
         });
-        toast.success("Da doi lich booking");
+        toast.success("Đã dời lịch booking");
       }
 
       setBookingAction(null);
       await refreshBookings();
     } catch (error) {
       console.error("Cannot update booking", error);
-      toast.error(error?.response?.data?.error || "Khong the cap nhat booking");
+      toast.error(error?.response?.data?.error || "Không thể cập nhật booking");
     } finally {
       setActionSaving(false);
     }
@@ -321,10 +321,10 @@ export default function useAccountEnhancedState({ location, navigate, toast }) {
     try {
       await removeFromWishlist(hotelId);
       setWishlistItems((prev) => prev.filter((item) => item.hotelId !== hotelId));
-      toast.success("Da bo khoi wishlist");
+      toast.success("Đã bỏ khỏi wishlist");
     } catch (error) {
       console.error("Cannot remove wishlist item", error);
-      toast.error("Khong the xoa khoi wishlist");
+      toast.error("Không thể xóa khỏi wishlist");
     }
   };
 
@@ -332,7 +332,7 @@ export default function useAccountEnhancedState({ location, navigate, toast }) {
     event.preventDefault();
 
     if (!disputeDraft.bookingId || !disputeDraft.subject.trim() || !disputeDraft.description.trim()) {
-      toast.error("Vui long chon booking va nhap day du noi dung tranh chap");
+      toast.error("Vui lòng chọn booking và nhập đầy đủ nội dung tranh chấp");
       return;
     }
 
@@ -349,10 +349,10 @@ export default function useAccountEnhancedState({ location, navigate, toast }) {
         description: "",
       });
       await refreshDisputes();
-      toast.success("Da gui tranh chap thanh cong");
+      toast.success("Đã gửi tranh chấp thành công");
     } catch (error) {
       console.error("Cannot create dispute", error);
-      toast.error(error?.response?.data?.error || "Khong the gui tranh chap");
+      toast.error(error?.response?.data?.error || "Không thể gửi tranh chấp");
     } finally {
       setDisputeSaving(false);
     }
@@ -397,3 +397,5 @@ export default function useAccountEnhancedState({ location, navigate, toast }) {
     refreshDisputes,
   };
 }
+
+

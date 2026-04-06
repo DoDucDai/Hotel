@@ -1,3 +1,5 @@
+import { addDaysToDateInput, formatDateInputLocal } from "../../utils/dateInput.js";
+
 export const initialHotelForm = {
  name: "",
  address: "",
@@ -27,17 +29,11 @@ export const currencyFormatter = new Intl.NumberFormat("vi-VN", {
 });
 
 export function todayString() {
- return new Date().toISOString().slice(0, 10);
+ return formatDateInputLocal(new Date());
 }
 
 export function addDays(value, amount) {
- const date = new Date(value);
- if (Number.isNaN(date.getTime())) {
- return value;
- }
-
- date.setDate(date.getDate() + amount);
- return date.toISOString().slice(0, 10);
+ return addDaysToDateInput(value, amount);
 }
 
 export function normalizeList(payload) {
@@ -92,10 +88,10 @@ export function formatDateTime(value) {
 export function approvalMeta(status) {
  switch (status) {
  case "APPROVED":
- return { label: "Da duyet", className: "success" };
+ return { label: "Đã duyệt", className: "success" };
  case "REJECTED":
- return { label: "Bi tu choi", className: "danger" };
+ return { label: "Bị từ chối", className: "danger" };
  default:
- return { label: "Cho duyet", className: "pending" };
+ return { label: "Chờ duyệt", className: "pending" };
  }
 }

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+﻿import { useMemo } from "react";
 import {
  ADMIN_HOTELS_PER_PAGE,
  bookingMatchesDateRange,
@@ -34,56 +34,56 @@ export default function useAdminDashboardDerivedData({
  const viewMeta = useMemo(() => {
  if (activeView === "hotels") {
  return {
- title: "Quan ly khach san",
- subtitle: "Thong tin hotel duoc tach thanh card de de chinh sua",
+ title: "Quản lý khách sạn",
+ subtitle: "Thông tin hotel được tách thành card để dễ chỉnh sửa",
  };
  }
 
  if (activeView === "bookings") {
  return {
- title: "Quan ly booking",
- subtitle: "Theo doi tinh trang dat phong va doanh thu moi ngay",
+ title: "Quản lý booking",
+    subtitle: "Theo dõi tình trạng đặt phòng và doanh thu mỗi ngày",
  };
  }
 
  if (activeView === "users") {
  return {
- title: "Quan ly nguoi dung",
- subtitle: "Tong hop vai tro va danh sach tai khoan dang hoat dong",
+ title: "Quản lý người dùng",
+ subtitle: "Tổng hợp vai trò và danh sách tài khoản đang hoạt động",
  };
  }
 
  if (activeView === "coupons") {
  return {
- title: "Quan ly coupon",
- subtitle: "Tao, cap nhat va kiem soat uu dai dang ap dung trong he thong",
+ title: "Quản lý coupon",
+ subtitle: "Tạo, cập nhật và kiểm soát ưu đãi đang áp dụng trong hệ thống",
  };
  }
 
  if (activeView === "account") {
  return {
  title: "Profile admin",
- subtitle: "Cap nhat thong tin ca nhan va cai dat email",
+ subtitle: "Cập nhật thông tin cá nhân và cài đặt email",
  };
  }
 
  if (activeView === "disputes") {
  return {
- title: "Tranh chap va bao cao",
- subtitle: "Xu ly cac ticket lien quan den booking, thanh toan va chat luong luu tru",
+ title: "Tranh chấp và báo cáo",
+ subtitle: "Xử lý các ticket liên quan đến booking, thanh toán và chất lượng lưu trú",
  };
  }
 
  if (activeView === "logs") {
  return {
- title: "Nhat ky hoat dong",
- subtitle: "Theo doi nhung thay doi quan trong de kiem soat van hanh he thong",
+ title: "Nhật ký hoạt động",
+ subtitle: "Theo dõi những thay đổi quan trọng để kiểm soát vận hành hệ thống",
  };
  }
 
  return {
- title: "Tong quan he thong",
- subtitle: "Dashboard du lieu thuc tu backend cua project",
+ title: "Tổng quan hệ thống",
+ subtitle: "Dashboard dữ liệu thực từ backend của project",
  };
  }, [activeView]);
 
@@ -347,7 +347,7 @@ export default function useAdminDashboardDerivedData({
  verified,
  roleLabel: formatRoleLabel(accountMeta.role || localStorage.getItem("role") || "ADMIN"),
  maskedCitizenId: maskCitizenId(profileData.citizenId),
- verificationLabel: verified ? "Email da xac thuc" : "Email chua xac thuc",
+ verificationLabel: verified ? "Email đã xác thực" : "Email chưa xác thực",
  verificationTime: verified
  ? accountMeta.emailVerifiedAt
  ? formatDateTime(accountMeta.emailVerifiedAt)
@@ -523,3 +523,5 @@ export default function useAdminDashboardDerivedData({
  sortedLogs,
  };
 }
+
+

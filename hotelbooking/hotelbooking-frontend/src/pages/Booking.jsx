@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "../components/ToastProvider";
 import { getMyAccount } from "../services/accountService";
 import { createBooking, createPaymentCheckout } from "../services/bookingService";
 import { getActiveCoupons } from "../services/couponService";
 import { resolveBookingContext } from "../features/booking/bookingPageUtils";
+import { addDaysToDateInput, formatDateInputLocal } from "../utils/dateInput";
 import "./Booking.css";
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN", {
@@ -16,29 +17,27 @@ const currencyFormatter = new Intl.NumberFormat("vi-VN", {
 const paymentOptions = [
  {
  value: "PAY_AT_HOTEL",
- label: "Thanh toan tai khach san",
- note: "Booking duoc giu cho ban, thanh toan khi check-in.",
+ label: "Thanh toán tại khách sạn",
+ note: "Booking được giữ cho bạn, thanh toán khi check-in.",
  },
  {
  value: "BANK_TRANSFER",
- label: "Chuyen khoan",
- note: "Thanh toan qua cong thanh toan sandbox, booking cap nhat qua webhook.",
+ label: "Chuyển khoản",
+ note: "Thanh toán qua cổng thanh toán sandbox, booking cập nhật qua webhook.",
  },
  {
  value: "E_WALLET",
- label: "Vi dien tu",
- note: "Thanh toan online sandbox, ket qua tra ve theo callback.",
+ label: "Ví điện tử",
+ note: "Thanh toán online sandbox, kết quả trả về theo callback.",
  },
 ];
 
 function getToday() {
- return new Date().toISOString().slice(0, 10);
+ return formatDateInputLocal(new Date());
 }
 
 function getTomorrow() {
- const date = new Date();
- date.setDate(date.getDate() + 1);
- return date.toISOString().slice(0, 10);
+ return addDaysToDateInput(getToday(), 1);
 }
 
 function daysBetween(checkIn, checkOut) {
@@ -172,8 +171,8 @@ function Booking() {
  setCoupons(normalizeCoupons(couponsRes?.data));
  } catch (fetchError) {
  console.error("Cannot load booking dependencies", fetchError);
- setPageError("Khong the tai de lieu booking. Vui long the lai.");
- toast.error("Khong the tai de lieu booking");
+ setPageError("Không thể tải dữ liệu booking. Vui lòng thử lại.");
+ toast.error("Không thể tải dữ liệu booking");
  } finally {
  setLoadingAccount(false);
  setCouponsLoading(false);
@@ -228,20 +227,20 @@ function Booking() {
  }
 
  if (!selectedCoupon) {
- return "Ma giam gia nay khong co trong danh sach dang hoat dong.";
+ return "Mã giảm giá này không có trong danh sách đang hoạt động.";
  }
 
  if (!couponStillValid(selectedCoupon)) {
- return "Ma giam gia nay da het han.";
+ return "Mã giảm giá này đã hết hạn.";
  }
 
  if (estimatedOriginalPrice < Number(selectedCoupon.minOrderAmount || 0)) {
- return `Can dat toi thieu ${currencyFormatter.format(
+ return `Cần đặt tối thiểu ${currencyFormatter.format(
  Number(selectedCoupon.minOrderAmount || 0)
- )} de dung ma nay.`;
+ )} để dùng mã này.`;
  }
 
- return `Ap dung th nh cong: ${selectedCoupon.description || selectedCoupon.code}`;
+ return `Áp dụng thành công: ${selectedCoupon.description || selectedCoupon.code}`;
  }, [estimatedOriginalPrice, normalizedCouponCode, selectedCoupon]);
 
  const handleSubmit = async (event) => {
@@ -249,17 +248,17 @@ function Booking() {
  setPageError("");
 
  if (!selectedRoom?.id) {
- toast.error("Ban can chan phong truoc khi dat");
+ toast.error("Bạn cần chọn phòng trước khi đặt");
  return;
  }
 
  if (!checkInDate || !checkOutDate) {
- toast.error("Vui long chan day ngay nhan va ngay tra");
+ toast.error("Vui lòng chọn đầy đủ ngày nhận và ngày trả");
  return;
  }
 
  if (new Date(checkOutDate) <= new Date(checkInDate)) {
- toast.error("Ng y tra phai sau ngay nhan");
+ toast.error("Ngày trả phải sau ngày nhận");
  return;
  }
 
@@ -285,7 +284,7 @@ function Booking() {
 
  if (paymentMethod === "PAY_AT_HOTEL") {
  setRedirecting(true);
- toast.success("Dt phong th nh cong. Booking da duoc tao.");
+ toast.success("Đặt phòng thành công. Booking đã được tạo.");
 
  if (redirectTimerRef.current) {
  clearTimeout(redirectTimerRef.current);
@@ -300,9 +299,9 @@ function Booking() {
  const checkoutRes = await createPaymentCheckout(createdBooking.id);
  const checkoutUrl = checkoutRes?.data?.checkoutUrl;
  if (!checkoutUrl) {
- throw new Error("Khong tao duoc link thanh toan");
+ throw new Error("Không tạo được link thanh toán");
  }
- toast.success("Dang chuyen den cong thanh toan sandbox...");
+ toast.success("Đang chuyển đến cổng thanh toán sandbox...");
  window.location.assign(checkoutUrl);
  } catch (submitError) {
  console.error("Cannot create booking", submitError);
@@ -310,10 +309,10 @@ function Booking() {
  submitError?.response?.data?.error ||
  submitError?.response?.data?.message ||
  submitError?.response?.data ||
- "Dt phong thet bai. Vui long the lai.";
+ "Đặt phòng thất bại. Vui lòng thử lại.";
  setPageError(message);
  toast.error(
- typeof message === "string" ? message : "Dt phong thet bai. Vui long the lai."
+ typeof message === "string" ? message : "Đặt phòng thất bại. Vui lòng thử lại."
  );
  } finally {
  setSubmitting(false);
@@ -325,45 +324,45 @@ function Booking() {
  <section className="booking-shell">
  <header className="booking-header">
  <div>
- <p className="booking-tag">Xac nhan dat phong</p>
- <h1>Thong tin dat phong cua ban</h1>
+ <p className="booking-tag">Xác nhận đặt phòng</p>
+ <h1>Thông tin đặt phòng của bạn</h1>
  <p>
- Chan lich luu tru, them ma giam gia va quyet dinh cach thanh toan truoc khi
- ho n tat booking.
+ Chọn lịch lưu trú, thêm mã giảm giá và quyết định cách thanh toán trước khi
+ hoàn tất booking.
  </p>
  </div>
 
  <button type="button" className="back-hotels-btn" onClick={() => navigate("/hotels")}>
- V? trang hotels
+ Về trang hotels
  </button>
  </header>
 
  <div className="booking-grid">
  <section className="booking-card">
- <h2>Chi tiat dat phong</h2>
+ <h2>Chi tiết đặt phòng</h2>
 
  {!selectedRoom ? (
  <div className="booking-state">
- Cha co phong duoc chan. Vui long vao trang chi tiet khach san de chan phong.
+ Chưa có phòng được chọn. Vui lòng vào trang chi tiết khách sạn để chọn phòng.
  <button type="button" onClick={() => navigate("/hotels")}>
- Chan phong ngay
+ Chọn phòng ngay
  </button>
  </div>
  ) : (
  <form className="booking-form" onSubmit={handleSubmit}>
  <label>
- <span>Khach san</span>
+ <span>Khách sạn</span>
  <input value={selectedHotel?.name || "-"} readOnly />
  </label>
 
  <label>
- <span>Loai phong</span>
+ <span>Loại phòng</span>
  <input value={selectedRoom?.name || "-"} readOnly />
  </label>
 
  <div className="field-row">
  <label>
- <span>Ng y nhan phong</span>
+ <span>Ngày nhận phòng</span>
  <input
  type="date"
  value={checkInDate}
@@ -374,7 +373,7 @@ function Booking() {
  </label>
 
  <label>
- <span>Ng y tra phong</span>
+ <span>Ngày trả phòng</span>
  <input
  type="date"
  value={checkOutDate}
@@ -387,7 +386,7 @@ function Booking() {
 
  <div className="field-row">
  <label>
- <span>So nguoi</span>
+ <span>Số người</span>
  <input
  type="number"
  min="1"
@@ -397,13 +396,13 @@ function Booking() {
  </label>
 
  <label>
- <span>So dem</span>
- <input value={nightCount > 0 ? `${nightCount} dem` : "-"} readOnly />
+ <span>Số đêm</span>
+ <input value={nightCount > 0 ? `${nightCount} đêm` : "-"} readOnly />
  </label>
  </div>
 
  <label>
- <span>Phuong thuc thanh toan</span>
+ <span>Phương thức thanh toán</span>
  <select
  value={paymentMethod}
  onChange={(event) => setPaymentMethod(event.target.value)}
@@ -419,17 +418,17 @@ function Booking() {
  <p className="payment-hint">{selectedPayment.note}</p>
 
  <label>
- <span>Ma giam gia</span>
+ <span>Mã giảm giá</span>
  <input
  value={couponCode}
  onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
- placeholder="Nhap ma nhu WELCOME10"
+ placeholder="Nhập mã như WELCOME10"
  />
  </label>
 
  <div className="coupon-pills">
  {couponsLoading ? (
- <span className="coupon-pill muted">Dang toi coupon...</span>
+ <span className="coupon-pill muted">Đang tải coupon...</span>
  ) : coupons.length ? (
  coupons.map((coupon) => (
  <button
@@ -452,7 +451,7 @@ function Booking() {
  </button>
  ))
  ) : (
- <span className="coupon-pill muted">Cha co coupon dang hoat dong</span>
+ <span className="coupon-pill muted">Chưa có coupon đang hoạt động</span>
  )}
  </div>
 
@@ -467,18 +466,18 @@ function Booking() {
  ) : null}
 
  <label>
- <span>Ghi chu</span>
+ <span>Ghi chú</span>
  <textarea
  value={note}
  onChange={(event) => setNote(event.target.value)}
- placeholder="Yeu cau dac biet (neu co)"
+ placeholder="Yêu cầu đặc biệt (nếu có)"
  />
  </label>
 
  {pageError && <p className="form-message error">{pageError}</p>}
 
  <button type="submit" disabled={submitting || loadingAccount || redirecting}>
- {submitting ? "Dang dat phong..." : "Xac nhan dat phong"}
+ {submitting ? "Đang đặt phòng..." : "Xác nhận đặt phòng"}
  </button>
 
  {redirecting && (
@@ -489,7 +488,7 @@ function Booking() {
  navigate("/account", { replace: true, state: { focus: "history" } })
  }
  >
- Xem lich so booking ngay
+ Xem lịch sử booking ngay
  </button>
  )}
  </form>
@@ -498,10 +497,10 @@ function Booking() {
 
  <aside className="booking-summary">
  <article className="summary-card">
- <h3>Tom tat</h3>
+ <h3>Tóm tắt</h3>
  <ul>
  <li>
- <span>Khach hang</span>
+ <span>Khách hàng</span>
  <strong>{account?.name || "-"}</strong>
  </li>
  <li>
@@ -509,27 +508,27 @@ function Booking() {
  <strong>{account?.email || "-"}</strong>
  </li>
  <li>
- <span>Khach san</span>
+ <span>Khách sạn</span>
  <strong>{selectedHotel?.name || "-"}</strong>
  </li>
  <li>
- <span>Phong</span>
+ <span>Phòng</span>
  <strong>{selectedRoom?.name || "-"}</strong>
  </li>
  <li>
- <span>Gia / dem</span>
+ <span>Giá / đêm</span>
  <strong>
  {selectedRoom?.price
  ? currencyFormatter.format(selectedRoom.price)
- : "Dang cap nhet"}
+ : "Đang cập nhật"}
  </strong>
  </li>
  <li>
- <span>Thanh toan</span>
+ <span>Thanh toán</span>
  <strong>{selectedPayment.label}</strong>
  </li>
  <li>
- <span>Tam tinh</span>
+ <span>Tạm tính</span>
  <strong>
  {estimatedOriginalPrice
  ? currencyFormatter.format(estimatedOriginalPrice)
@@ -537,13 +536,13 @@ function Booking() {
  </strong>
  </li>
  <li>
- <span>Giam gia</span>
+ <span>Giảm giá</span>
  <strong>
  {discountAmount ? `- ${currencyFormatter.format(discountAmount)}` : "-"}
  </strong>
  </li>
  <li className="summary-total">
- <span>Tong thanh toan</span>
+ <span>Tổng thanh toán</span>
  <strong>
  {estimatedFinalPrice
  ? currencyFormatter.format(estimatedFinalPrice)
@@ -560,4 +559,3 @@ function Booking() {
 }
 
 export default Booking;
-
