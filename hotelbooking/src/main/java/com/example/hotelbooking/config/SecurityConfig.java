@@ -75,6 +75,7 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.POST, "/hotels/*/image").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/payments/webhook/sandbox").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/payments/instructions").permitAll()
                         .requestMatchers(HttpMethod.GET, "/payments/sandbox/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/health/**", "/actuator/info").permitAll()
                         .requestMatchers("/uploads/**").permitAll()

@@ -1,4 +1,12 @@
 ﻿import { currencyFormatter, formatDate, formatDateTime, getPaymentMeta } from "../accountUtils";
+import { useEffect, useMemo, useState } from "react";
+import { getPaymentInstructions } from "../../../services/bookingService";
+import {
+  getPaymentAccountLabel,
+  getPaymentMethodLabel,
+  getPaymentProviderLabel,
+  normalizePaymentInstructions,
+} from "../../../utils/paymentPresentation";
 
 export default function PaymentsTab({
   sortedBookings,
@@ -14,12 +22,82 @@ export default function PaymentsTab({
   disputesError,
   refreshDisputes,
 }) {
+  const [paymentInstructions, setPaymentInstructions] = useState({});
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchPaymentInstructions = async () => {
+      try {
+        const response = await getPaymentInstructions();
+        if (isMounted) {
+          setPaymentInstructions(normalizePaymentInstructions(response?.data));
+        }
+      } catch (error) {
+        console.error("Cannot load payment instructions", error);
+      }
+    };
+
+    fetchPaymentInstructions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const instructionCards = useMemo(
+    () => [paymentInstructions.bankTransfer, paymentInstructions.eWallet].filter(Boolean),
+    [paymentInstructions],
+  );
+
   return (
     <section className="account-card payments-card">
       <div className="history-head">
         <h2>Lịch sử thanh toán và tranh chấp</h2>
         <span>{sortedBookings.length} giao dịch</span>
       </div>
+
+      {instructionCards.length ? (
+        <div className="payments-reference-grid">
+          {instructionCards.map((instruction) => (
+            <article
+              key={instruction.method || instruction.providerName}
+              className="payments-reference-card"
+            >
+              <div className="payments-reference-head">
+                <div>
+                  <strong>{instruction.label || getPaymentMethodLabel(instruction.method)}</strong>
+                  <span>{instruction.providerName || "-"}</span>
+                </div>
+                <span className="payments-reference-chip">
+                  {instruction.method === "E_WALLET" ? "MoMo" : "STK"}
+                </span>
+              </div>
+
+              <div className="payments-reference-details">
+                <div className="payments-reference-item">
+                  <span>{getPaymentProviderLabel(instruction.method)}</span>
+                  <strong>{instruction.providerName || "-"}</strong>
+                </div>
+                <div className="payments-reference-item">
+                  <span>{getPaymentAccountLabel(instruction.method)}</span>
+                  <strong>{instruction.accountNumber || "-"}</strong>
+                </div>
+                <div className="payments-reference-item">
+                  <span>Người nhận</span>
+                  <strong>{instruction.accountName || "-"}</strong>
+                </div>
+                <div className="payments-reference-item">
+                  <span>Nội dung</span>
+                  <strong>{instruction.transferContent || "BOOKING-<BOOKING_ID>"}</strong>
+                </div>
+              </div>
+
+              <p className="payments-reference-note">{instruction.note || "-"}</p>
+            </article>
+          ))}
+        </div>
+      ) : null}
 
       <div className="payments-grid">
         <section className="payments-panel">
@@ -60,7 +138,7 @@ export default function PaymentsTab({
                         <td>
                           <span className={`payment-pill ${paymentMeta.className}`}>{paymentMeta.label}</span>
                         </td>
-                        <td>{booking.paymentMethod || "PAY_AT_HOTEL"}</td>
+                        <td>{getPaymentMethodLabel(booking.paymentMethod || "PAY_AT_HOTEL")}</td>
                         <td>
                           {Number(booking.finalPrice || booking.totalPrice || 0) > 0
                             ? currencyFormatter.format(Number(booking.finalPrice || booking.totalPrice || 0))

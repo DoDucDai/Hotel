@@ -1,95 +1,43 @@
 ﻿export default function HotelsToolbarSection({
  filters,
- sortBy,
  handleFilterChange,
- setSortBy,
- setCurrentPage,
  amenityOptions,
  isLoggedIn,
- availabilityLoading,
- filteredHotelsCount,
  resetFilters,
  availabilityError,
 }) {
+ const activeFilters = [
+ filters.priceMin,
+ filters.priceMax,
+ Number(filters.minRating) > 0,
+ Number(filters.minStars) > 0,
+ filters.amenity !== "all",
+ filters.freeCancellationOnly,
+ filters.wishlistOnly,
+ ].filter(Boolean).length;
+
  return (
- <section className="hotels-container hotels-toolbar">
- <div className="toolbar-grid toolbar-grid-main">
- <label className="filter-field">
- <span>Ở đâu</span>
- <input
- name="destination"
- type="text"
- value={filters.destination}
- onChange={handleFilterChange}
- placeholder="Nhập tên khách sạn, thành phố hoặc địa chỉ"
- />
- </label>
-
- <label className="filter-field">
- <span>Bao nhiêu người</span>
- <input
- name="guests"
- type="number"
- min="1"
- value={filters.guests}
- onChange={handleFilterChange}
- />
- </label>
-
- <label className="filter-field">
- <span>Mấy phòng</span>
- <input
- name="roomCount"
- type="number"
- min="1"
- value={filters.roomCount}
- onChange={handleFilterChange}
- />
- </label>
+ <aside className="hotels-sidebar">
+ <section className="sidebar-summary-card">
+ <div className="sidebar-head">
+ <div>
+ <p className="sidebar-kicker">Bộ lọc</p>
+ <h2>Thu hẹp kết quả</h2>
  </div>
-
- <div className="toolbar-grid toolbar-grid-sub">
- <label className="filter-field">
- <span>Ngày nhận phòng</span>
- <input
- name="checkIn"
- type="date"
- value={filters.checkIn}
- onChange={handleFilterChange}
- />
- </label>
-
- <label className="filter-field">
- <span>Ngày trả phòng</span>
- <input
- name="checkOut"
- type="date"
- value={filters.checkOut}
- onChange={handleFilterChange}
- />
- </label>
-
- <label className="filter-field">
- <span>Sắp xếp</span>
- <select
- value={sortBy}
- onChange={(event) => {
- setSortBy(event.target.value);
- setCurrentPage(1);
- }}
- >
- <option value="name-asc">Tên A - Z</option>
- <option value="name-desc">Tên Z - A</option>
- <option value="city-asc">Thành phố A - Z</option>
- <option value="city-desc">Thành phố Z - A</option>
- <option value="price-asc">Giá thấp đến cao</option>
- <option value="price-desc">Giá cao đến thấp</option>
- <option value="rating-desc">Rating cao nhất</option>
- </select>
- </label>
+ <span className="sidebar-count">{activeFilters} đang bật</span>
  </div>
+ <button type="button" className="sidebar-clear-btn" onClick={resetFilters}>
+ Xóa tất cả bộ lọc
+ </button>
+ {availabilityError ? <p className="filter-hint">{availabilityError}</p> : null}
+ </section>
 
- <div className="toolbar-grid toolbar-grid-advanced">
+ <section className="hotels-filter-box">
+ <div className="filter-box-head">
+ <h3>Ngân sách</h3>
+ <span>Khoảng giá mỗi đêm</span>
+ </div>
+ <div className="sidebar-field-row">
  <label className="filter-field">
  <span>Giá từ</span>
  <input
@@ -113,7 +61,14 @@
  placeholder="Không giới hạn"
  />
  </label>
+ </div>
+ </section>
 
+ <section className="hotels-filter-box">
+ <div className="filter-box-head">
+ <h3>Đánh giá</h3>
+ <span>Chọn chất lượng lưu trú</span>
+ </div>
  <label className="filter-field">
  <span>Rating tối thiểu</span>
  <select name="minRating" value={filters.minRating} onChange={handleFilterChange}>
@@ -133,9 +88,15 @@
  <option value="5">5 sao</option>
  </select>
  </label>
+ </section>
 
+ <section className="hotels-filter-box">
+ <div className="filter-box-head">
+ <h3>Tiện nghi</h3>
+ <span>Tiện ích nổi bật</span>
+ </div>
  <label className="filter-field">
- <span>Tiện nghi</span>
+ <span>Tiện nghi chính</span>
  <select name="amenity" value={filters.amenity} onChange={handleFilterChange}>
  <option value="all">Tất cả tiện nghi</option>
  {amenityOptions.map((amenity) => (
@@ -145,8 +106,14 @@
  ))}
  </select>
  </label>
+ </section>
 
- <label className="wishlist-checkbox">
+ <section className="hotels-filter-box">
+ <div className="filter-box-head">
+ <h3>Tùy chọn thêm</h3>
+ <span>Ưu tiên khi tìm phòng</span>
+ </div>
+ <label className="sidebar-check">
  <input
  type="checkbox"
  name="freeCancellationOnly"
@@ -156,7 +123,7 @@
  <span>Có hủy miễn phí</span>
  </label>
 
- <label className="wishlist-checkbox">
+ <label className={`sidebar-check ${!isLoggedIn ? "disabled" : ""}`}>
  <input
  type="checkbox"
  name="wishlistOnly"
@@ -166,20 +133,7 @@
  />
  <span>Chỉ xem wishlist của tôi</span>
  </label>
- </div>
-
- <div className="toolbar-footer">
- <span className="result-pill">
- {availabilityLoading
- ? "Đang cập nhật phòng khả dụng..."
- : `${filteredHotelsCount} khách sạn phù hợp`}
- </span>
- <button type="button" className="reset-btn" onClick={resetFilters}>
- Đặt lại bộ lọc
- </button>
- </div>
-
- {availabilityError && <p className="filter-hint">{availabilityError}</p>}
  </section>
+ </aside>
  );
 }

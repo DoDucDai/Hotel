@@ -11,7 +11,6 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -44,11 +43,8 @@ class AuthServiceTest {
     @Mock
     private AuthEmailService authEmailService;
 
-    private AuthService authService;
-
-    @BeforeEach
-    void setUp() {
-        authService = new AuthService(
+    private AuthService createAuthService() {
+        return new AuthService(
                 userRepository,
                 passwordEncoder,
                 refreshTokenService,
@@ -58,6 +54,7 @@ class AuthServiceTest {
 
     @Test
     void createAdminNormalizesEmailAndMarksAsVerified() {
+        AuthService authService = createAuthService();
         User payload = new User();
         payload.setName("New Admin");
         payload.setEmail("  Admin@Example.com  ");
@@ -83,6 +80,7 @@ class AuthServiceTest {
 
     @Test
     void createAdminRejectsDuplicateEmail() {
+        AuthService authService = createAuthService();
         User existing = new User();
         existing.setEmail("admin@example.com");
 
@@ -101,6 +99,7 @@ class AuthServiceTest {
 
     @Test
     void registerCreatesUserAndSendsVerificationEmail() {
+        AuthService authService = createAuthService();
         User payload = new User();
         payload.setName("User A");
         payload.setEmail(" UserA@Example.com ");

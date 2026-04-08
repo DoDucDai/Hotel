@@ -2,10 +2,19 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "../components/ToastProvider";
 import { getMyAccount } from "../services/accountService";
-import { createBooking, createPaymentCheckout } from "../services/bookingService";
+import {
+ createBooking,
+ createPaymentCheckout,
+ getPaymentInstructions,
+} from "../services/bookingService";
 import { getActiveCoupons } from "../services/couponService";
 import { resolveBookingContext } from "../features/booking/bookingPageUtils";
 import { addDaysToDateInput, formatDateInputLocal } from "../utils/dateInput";
+import {
+ getPaymentAccountLabel,
+ getPaymentProviderLabel,
+ normalizePaymentInstructions,
+} from "../utils/paymentPresentation";
 import "./Booking.css";
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN", {
@@ -76,6 +85,14 @@ function normalizeCoupons(payload) {
  return [];
 }
 
+function settledValue(result, fallback) {
+ if (result?.status === "fulfilled") {
+ return result.value;
+ }
+
+ return fallback;
+}
+
 function couponStillValid(coupon) {
  if (!coupon?.expiresAt) {
  return true;
@@ -124,6 +141,7 @@ function Booking() {
  const [redirecting, setRedirecting] = useState(false);
  const [couponsLoading, setCouponsLoading] = useState(true);
  const [coupons, setCoupons] = useState([]);
+ const [paymentInstructions, setPaymentInstructions] = useState({});
 
  const [checkInDate, setCheckInDate] = useState(searchCriteria.checkIn || getToday());
  const [checkOutDate, setCheckOutDate] = useState(searchCriteria.checkOut || getTomorrow());
@@ -162,13 +180,22 @@ function Booking() {
  setLoadingAccount(true);
  setCouponsLoading(true);
 
- const [accountRes, couponsRes] = await Promise.all([
+ const [accountResult, couponsResult, instructionsResult] = await Promise.allSettled([
  getMyAccount(),
  getActiveCoupons(),
+ getPaymentInstructions(),
  ]);
 
+ const accountRes = settledValue(accountResult, null);
+ if (!accountRes) {
+ throw new Error("Cannot load account");
+ }
+
  setAccount(accountRes?.data || null);
- setCoupons(normalizeCoupons(couponsRes?.data));
+ setCoupons(normalizeCoupons(settledValue(couponsResult, null)?.data));
+ setPaymentInstructions(
+ normalizePaymentInstructions(settledValue(instructionsResult, null)?.data)
+ );
  } catch (fetchError) {
  console.error("Cannot load booking dependencies", fetchError);
  setPageError("Không thể tải dữ liệu booking. Vui lòng thử lại.");
@@ -220,6 +247,18 @@ function Booking() {
  () => paymentOptions.find((item) => item.value === paymentMethod) || paymentOptions[0],
  [paymentMethod]
  );
+
+ const selectedInstruction = useMemo(() => {
+ if (paymentMethod === "BANK_TRANSFER") {
+ return paymentInstructions.bankTransfer || null;
+ }
+
+ if (paymentMethod === "E_WALLET") {
+ return paymentInstructions.eWallet || null;
+ }
+
+ return null;
+ }, [paymentInstructions, paymentMethod]);
 
  const couponHint = useMemo(() => {
  if (!normalizedCouponCode) {
@@ -416,6 +455,44 @@ function Booking() {
  </label>
 
  <p className="payment-hint">{selectedPayment.note}</p>
+
+ {selectedInstruction ? (
+ <section className="payment-reference-card">
+ <div className="payment-reference-head">
+ <div>
+ <strong>{selectedInstruction.label || selectedPayment.label}</strong>
+ <span>{selectedInstruction.providerName || "-"}</span>
+ </div>
+ <span className="payment-reference-chip">
+ {paymentMethod === "E_WALLET" ? "MoMo" : "STK"}
+ </span>
+ </div>
+
+ <div className="payment-reference-grid">
+ <div className="payment-reference-item">
+ <span>{getPaymentProviderLabel(paymentMethod)}</span>
+ <strong>{selectedInstruction.providerName || "-"}</strong>
+ </div>
+ <div className="payment-reference-item">
+ <span>{getPaymentAccountLabel(paymentMethod)}</span>
+ <strong>{selectedInstruction.accountNumber || "-"}</strong>
+ </div>
+ <div className="payment-reference-item">
+ <span>Người nhận</span>
+ <strong>{selectedInstruction.accountName || "-"}</strong>
+ </div>
+ <div className="payment-reference-item">
+ <span>Nội dung chuyển khoản</span>
+ <strong>{selectedInstruction.transferContent || "BOOKING-<BOOKING_ID>"}</strong>
+ </div>
+ </div>
+
+ <p className="payment-reference-note">
+ {selectedInstruction.note ||
+ "Hệ thống sẽ mở sandbox checkout sau khi tạo booking để bạn xác nhận thanh toán."}
+ </p>
+ </section>
+ ) : null}
 
  <label>
  <span>Mã giảm giá</span>

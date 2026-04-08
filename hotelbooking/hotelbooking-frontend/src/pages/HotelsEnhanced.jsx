@@ -373,17 +373,6 @@ export default function HotelsEnhanced() {
  }, [totalPages]);
 
  const totalHotels = hotels.length;
- const totalCities = useMemo(() => {
- const uniqueCities = new Set(
- hotels.map((hotel) => hotel.city?.trim()).filter((cityName) => Boolean(cityName))
- );
- return uniqueCities.size;
- }, [hotels]);
-
- const topRatedCount = useMemo(
- () => hotelCards.filter((hotel) => hotel.averageRating >= 4.5).length,
- [hotelCards]
- );
 
  const handleFilterChange = (event) => {
  const { name, value, type, checked } = event.target;
@@ -450,20 +439,19 @@ export default function HotelsEnhanced() {
  <main className="hotels-page">
  <HotelsHeroSection
  totalHotels={totalHotels}
- totalCities={totalCities}
- topRatedCount={topRatedCount}
+ filteredHotelsCount={filteredHotels.length}
+ filters={filters}
+ handleFilterChange={handleFilterChange}
+ resetFilters={resetFilters}
+ availabilityLoading={availabilityLoading}
  />
 
+ <section className="hotels-container hotels-catalog-layout">
  <HotelsToolbarSection
  filters={filters}
- sortBy={sortBy}
  handleFilterChange={handleFilterChange}
- setSortBy={setSortBy}
- setCurrentPage={setCurrentPage}
  amenityOptions={amenityOptions}
  isLoggedIn={isLoggedIn}
- availabilityLoading={availabilityLoading}
- filteredHotelsCount={filteredHotels.length}
  resetFilters={resetFilters}
  availabilityError={availabilityError}
  />
@@ -482,7 +470,12 @@ export default function HotelsEnhanced() {
  setCurrentPage={setCurrentPage}
  paginationPages={paginationPages}
  totalPages={totalPages}
+ filters={filters}
+ sortBy={sortBy}
+ setSortBy={setSortBy}
+ setCurrentPageFromSort={setCurrentPage}
  />
+ </section>
  </main>
  );
 }

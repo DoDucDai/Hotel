@@ -60,6 +60,12 @@ class PaymentServiceTest {
         ReflectionTestUtils.setField(paymentService, "frontendUrl", "http://localhost:5173");
         ReflectionTestUtils.setField(paymentService, "backendUrl", "http://localhost:8080");
         ReflectionTestUtils.setField(paymentService, "sandboxSecret", "unit-test-secret-123");
+        ReflectionTestUtils.setField(paymentService, "manualBankProvider", "MB Bank");
+        ReflectionTestUtils.setField(paymentService, "manualBankAccountName", "HOTEL BOOKING");
+        ReflectionTestUtils.setField(paymentService, "manualBankAccountNumber", "123456789");
+        ReflectionTestUtils.setField(paymentService, "manualWalletProvider", "MoMo");
+        ReflectionTestUtils.setField(paymentService, "manualWalletAccountName", "HOTEL BOOKING");
+        ReflectionTestUtils.setField(paymentService, "manualWalletAccountNumber", "123456789");
     }
 
     @Test
@@ -87,6 +93,9 @@ class PaymentServiceTest {
         assertEquals("booking-1", response.getBookingId());
         assertEquals("SANDBOX", response.getProvider());
         assertEquals(1_200_000, response.getAmount(), 0.001);
+        assertEquals("BANK_TRANSFER", response.getPaymentMethod());
+        assertEquals("MB Bank", response.getInstruction().getProviderName());
+        assertEquals("123456789", response.getInstruction().getAccountNumber());
         assertNotNull(response.getTransactionRef());
         assertTrue(response.getCheckoutUrl().contains("/payments/sandbox/checkout"));
     }

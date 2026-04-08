@@ -66,20 +66,20 @@
 }
 
 .booking-grid {
- margin-top: 14px;
+ margin-top: 16px;
  display: grid;
- grid-template-columns: 1.4fr 0.8fr;
- gap: 12px;
+ grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.82fr);
+ gap: 16px;
  align-items: flex-start;
 }
 
 .booking-card,
 .summary-card {
  border: 1px solid var(--line);
- border-radius: 16px;
+ border-radius: 18px;
  background: var(--surface);
  box-shadow: 0 10px 20px rgba(10, 37, 80, 0.07);
- padding: 16px;
+ padding: 18px;
 }
 
 .booking-card h2,
@@ -90,7 +90,7 @@
 .booking-form {
  margin-top: 12px;
  display: grid;
- gap: 10px;
+ gap: 12px;
 }
 
 .booking-form label {
@@ -135,7 +135,13 @@
 .field-row {
  display: grid;
  grid-template-columns: 1fr 1fr;
- gap: 10px;
+ gap: 12px;
+}
+
+.booking-summary {
+ position: sticky;
+ top: 108px;
+ align-self: flex-start;
 }
 
 .booking-form button {
@@ -199,7 +205,7 @@
  background: #f9fbff;
  padding: 9px 10px;
  display: flex;
- align-items: center;
+ align-items: flex-start;
  justify-content: space-between;
  gap: 10px;
 }
@@ -212,6 +218,8 @@
 .summary-card li strong {
  color: #1b3f73;
  font-size: 0.86rem;
+ text-align: right;
+ max-width: 58%;
 }
 
 .form-message {
@@ -240,6 +248,84 @@
  color: #5f7190;
  font-size: 0.84rem;
  line-height: 1.6;
+}
+
+.payment-reference-card {
+ border: 1px solid #dbe7ff;
+ border-radius: 16px;
+ background: linear-gradient(180deg, #fbfdff 0%, #f4f8ff 100%);
+ padding: 15px;
+ display: grid;
+ gap: 12px;
+}
+
+.payment-reference-head {
+ display: flex;
+ align-items: flex-start;
+ justify-content: space-between;
+ gap: 12px;
+}
+
+.payment-reference-head > div strong {
+ display: block;
+ color: #173e75;
+ font-size: 0.98rem;
+}
+
+.payment-reference-head > div span {
+ display: block;
+ margin-top: 4px;
+ color: #617390;
+ font-size: 0.84rem;
+}
+
+.payment-reference-chip {
+ display: inline-flex;
+ align-items: center;
+ border-radius: 999px;
+ border: 1px solid #ffd6bb;
+ background: #fff4ea;
+ color: #b8671a;
+ font-size: 0.76rem;
+ font-weight: 800;
+ letter-spacing: 0.04em;
+ padding: 7px 10px;
+}
+
+.payment-reference-grid {
+ display: grid;
+ grid-template-columns: 1fr 1fr;
+ gap: 10px;
+}
+
+.payment-reference-item {
+ border: 1px solid #dce7ff;
+ border-radius: 12px;
+ background: #ffffff;
+ padding: 11px 12px;
+}
+
+.payment-reference-item span {
+ display: block;
+ margin-bottom: 6px;
+ color: #5f7190;
+ font-size: 0.75rem;
+ font-weight: 700;
+ letter-spacing: 0.04em;
+ text-transform: uppercase;
+}
+
+.payment-reference-item strong {
+ color: #173e75;
+ font-size: 0.9rem;
+ word-break: break-word;
+}
+
+.payment-reference-note {
+ margin: 0;
+ color: #506582;
+ font-size: 0.84rem;
+ line-height: 1.65;
 }
 
 .coupon-pills {
@@ -288,6 +374,10 @@
  .booking-grid {
  grid-template-columns: 1fr;
  }
+
+ .booking-summary {
+  position: static;
+ }
 }
 
 @media (max-width: 640px) {
@@ -305,5 +395,13 @@
 
  .field-row {
  grid-template-columns: 1fr;
+ }
+
+ .payment-reference-grid {
+  grid-template-columns: 1fr;
+ }
+
+ .payment-reference-head {
+  flex-direction: column;
  }
 }

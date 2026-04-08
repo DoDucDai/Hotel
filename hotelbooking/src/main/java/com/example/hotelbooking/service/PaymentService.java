@@ -15,6 +15,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
+import com.example.hotelbooking.dto.PaymentInstructionResponse;
+import com.example.hotelbooking.dto.PaymentInstructionsResponse;
 import com.example.hotelbooking.dto.PaymentCheckoutResponse;
 import com.example.hotelbooking.dto.SandboxPaymentWebhookRequest;
 import com.example.hotelbooking.exception.BadRequestException;
@@ -22,6 +24,7 @@ import com.example.hotelbooking.exception.ForbiddenException;
 import com.example.hotelbooking.exception.NotFoundException;
 import com.example.hotelbooking.model.Booking;
 import com.example.hotelbooking.model.BookingStatus;
+import com.example.hotelbooking.model.PaymentMethod;
 import com.example.hotelbooking.model.PaymentStatus;
 import com.example.hotelbooking.model.PaymentWebhookEvent;
 import com.example.hotelbooking.model.Role;
@@ -51,6 +54,24 @@ public class PaymentService {
 
     @Value("${payment.sandbox.secret:replace-me-sandbox-payment-secret}")
     private String sandboxSecret;
+
+    @Value("${payment.manual.bank.provider:MB Bank}")
+    private String manualBankProvider;
+
+    @Value("${payment.manual.bank.account-name:HOTEL BOOKING}")
+    private String manualBankAccountName;
+
+    @Value("${payment.manual.bank.account-number:123456789}")
+    private String manualBankAccountNumber;
+
+    @Value("${payment.manual.wallet.provider:MoMo}")
+    private String manualWalletProvider;
+
+    @Value("${payment.manual.wallet.account-name:HOTEL BOOKING}")
+    private String manualWalletAccountName;
+
+    @Value("${payment.manual.wallet.account-number:123456789}")
+    private String manualWalletAccountNumber;
 
     public PaymentService(
             BookingRepository bookingRepository,
@@ -95,8 +116,22 @@ public class PaymentService {
         response.setCheckoutUrl(checkoutUrl);
         response.setAmount(amount);
         response.setCurrency("VND");
+        response.setPaymentMethod(booking.getPaymentMethod().name());
+        response.setInstruction(buildPaymentInstruction(booking.getPaymentMethod(), booking.getId()));
 
         return response;
+    }
+
+    public PaymentInstructionsResponse getPaymentInstructions() {
+        PaymentInstructionsResponse response = new PaymentInstructionsResponse();
+        response.setBankTransfer(buildPaymentInstruction(PaymentMethod.BANK_TRANSFER, null));
+        response.setEWallet(buildPaymentInstruction(PaymentMethod.E_WALLET, null));
+        return response;
+    }
+
+    public PaymentInstructionResponse getInstructionForBooking(String bookingId) {
+        Booking booking = getBookingById(bookingId);
+        return buildPaymentInstruction(booking.getPaymentMethod(), booking.getId());
     }
 
     public Map<String, Object> processSandboxWebhook(SandboxPaymentWebhookRequest request) {
@@ -241,6 +276,54 @@ public class PaymentService {
 
     private String buildWebhookEventKey(String transactionRef) {
         return SANDBOX_PROVIDER + ":" + transactionRef;
+    }
+
+    private PaymentInstructionResponse buildPaymentInstruction(PaymentMethod paymentMethod, String bookingId) {
+        PaymentMethod safeMethod = paymentMethod == null ? PaymentMethod.PAY_AT_HOTEL : paymentMethod;
+        PaymentInstructionResponse response = new PaymentInstructionResponse();
+        response.setMethod(safeMethod.name());
+        response.setLabel(getPaymentMethodLabel(safeMethod));
+        response.setTransferContent(buildTransferContent(bookingId));
+
+        if (safeMethod == PaymentMethod.BANK_TRANSFER) {
+            response.setProviderName(manualBankProvider);
+            response.setAccountName(manualBankAccountName);
+            response.setAccountNumber(manualBankAccountNumber);
+            response.setNote("Chuyen khoan dung noi dung de he thong doi soat va cap nhat thanh toan.");
+            return response;
+        }
+
+        if (safeMethod == PaymentMethod.E_WALLET) {
+            response.setProviderName(manualWalletProvider);
+            response.setAccountName(manualWalletAccountName);
+            response.setAccountNumber(manualWalletAccountNumber);
+            response.setNote("Thanh toan qua vi dien tu va giu nguyen noi dung giao dich theo booking.");
+            return response;
+        }
+
+        response.setProviderName("Thanh toan tai khach san");
+        response.setNote("Ban thanh toan truc tiep khi check-in tai khach san.");
+        return response;
+    }
+
+    private String getPaymentMethodLabel(PaymentMethod paymentMethod) {
+        if (paymentMethod == PaymentMethod.BANK_TRANSFER) {
+            return "Chuyen khoan ngan hang";
+        }
+
+        if (paymentMethod == PaymentMethod.E_WALLET) {
+            return "Vi dien tu";
+        }
+
+        return "Thanh toan tai khach san";
+    }
+
+    private String buildTransferContent(String bookingId) {
+        if (bookingId == null || bookingId.isBlank()) {
+            return "BOOKING-<BOOKING_ID>";
+        }
+
+        return "BOOKING-" + bookingId;
     }
 
     private String normalizeWebhookStatus(String status) {

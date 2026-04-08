@@ -8,6 +8,8 @@ public class PaymentCheckoutResponse {
     private String checkoutUrl;
     private double amount;
     private String currency;
+    private String paymentMethod;
+    private PaymentInstructionResponse instruction;
 
     public String getBookingId() {
         return bookingId;
@@ -55,5 +57,21 @@ public class PaymentCheckoutResponse {
 
     public void setCurrency(String currency) {
         this.currency = currency;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
+    }
+
+    public PaymentInstructionResponse getInstruction() {
+        return instruction;
+    }
+
+    public void setInstruction(PaymentInstructionResponse instruction) {
+        this.instruction = instruction;
     }
 }
