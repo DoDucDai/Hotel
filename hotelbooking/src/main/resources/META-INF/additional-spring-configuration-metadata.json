@@ -3,82 +3,112 @@
     {
       "name": "app.frontend-url",
       "type": "java.lang.String",
-      "description": "Frontend base URL used to build links in auth emails."
+      "description": "Base URL of the frontend application used in redirects and links."
     },
     {
       "name": "app.backend-url",
       "type": "java.lang.String",
-      "description": "Backend base URL used to build sandbox checkout callback links."
+      "description": "Base URL of the backend application used for payment callback links."
     },
     {
       "name": "app.mail.from",
       "type": "java.lang.String",
-      "description": "From address used when sending auth emails."
-    },
-    {
-      "name": "payment.sandbox.secret",
-      "type": "java.lang.String",
-      "description": "HMAC secret key for signing sandbox checkout and webhook payloads."
+      "description": "Default sender email address for application emails."
     },
     {
       "name": "app.bootstrap-admin.enabled",
       "type": "java.lang.Boolean",
-      "description": "Enable automatic creation of the first ADMIN account when no admin exists."
+      "description": "Enables automatic creation of a bootstrap admin account at startup."
     },
     {
       "name": "app.bootstrap-admin.name",
       "type": "java.lang.String",
-      "description": "Display name for the bootstrap admin account."
+      "description": "Display name of the bootstrap admin account."
     },
     {
       "name": "app.bootstrap-admin.email",
       "type": "java.lang.String",
-      "description": "Email for the bootstrap admin account."
+      "description": "Email address of the bootstrap admin account."
     },
     {
       "name": "app.bootstrap-admin.password",
       "type": "java.lang.String",
-      "description": "Raw password for the bootstrap admin account."
+      "description": "Password used when creating the bootstrap admin account."
     },
     {
       "name": "app.demo-seed.enabled",
       "type": "java.lang.Boolean",
-      "description": "Enable local demo data seed (admin/host/user + sample hotels/rooms/bookings/notifications)."
+      "description": "Enables seeding demo users and sample data at startup."
     },
     {
       "name": "app.demo-seed.password",
       "type": "java.lang.String",
-      "description": "Raw password used for all demo seed accounts."
+      "description": "Shared password assigned to demo seed accounts."
     },
     {
       "name": "app.demo-seed.admin-name",
       "type": "java.lang.String",
-      "description": "Display name for the seeded demo admin account."
+      "description": "Display name of the seeded demo admin account."
     },
     {
       "name": "app.demo-seed.admin-email",
       "type": "java.lang.String",
-      "description": "Email for the seeded demo admin account."
+      "description": "Email address of the seeded demo admin account."
     },
     {
       "name": "app.demo-seed.host-name",
       "type": "java.lang.String",
-      "description": "Display name for the seeded demo host account."
+      "description": "Display name of the seeded demo host account."
     },
     {
       "name": "app.demo-seed.host-email",
       "type": "java.lang.String",
-      "description": "Email for the seeded demo host account."
+      "description": "Email address of the seeded demo host account."
     },
     {
       "name": "app.demo-seed.user-name",
       "type": "java.lang.String",
-      "description": "Display name for the seeded demo user account."
+      "description": "Display name of the seeded demo user account."
     },
     {
       "name": "app.demo-seed.user-email",
       "type": "java.lang.String",
-      "description": "Email for the seeded demo user account."
+      "description": "Email address of the seeded demo user account."
+    },
+    {
+      "name": "payment.sandbox.secret",
+      "type": "java.lang.String",
+      "description": "Shared secret used to sign and verify sandbox payment requests."
+    },
+    {
+      "name": "payment.manual.bank.provider",
+      "type": "java.lang.String",
+      "description": "Display name of the bank used for manual bank transfer payments."
+    },
+    {
+      "name": "payment.manual.bank.account-name",
+      "type": "java.lang.String",
+      "description": "Account holder name for manual bank transfer payments."
+    },
+    {
+      "name": "payment.manual.bank.account-number",
+      "type": "java.lang.String",
+      "description": "Account number for manual bank transfer payments."
+    },
+    {
+      "name": "payment.manual.wallet.provider",
+      "type": "java.lang.String",
+      "description": "Display name of the e-wallet provider used for manual wallet payments."
+    },
+    {
+      "name": "payment.manual.wallet.account-name",
+      "type": "java.lang.String",
+      "description": "Account holder name for manual wallet payments."
+    },
+    {
+      "name": "payment.manual.wallet.account-number",
+      "type": "java.lang.String",
+      "description": "Account number or identifier for manual wallet payments."
     }
   ]
 }
