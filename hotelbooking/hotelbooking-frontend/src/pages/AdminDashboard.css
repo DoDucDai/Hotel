@@ -516,6 +516,13 @@
  font-size: 1.1rem;
 }
 
+.occupancy-caption {
+ margin: 6px 0 0;
+ color: #5f7399;
+ font-size: 0.82rem;
+ line-height: 1.5;
+}
+
 .panel-badge {
  border-radius: 999px;
  background: #e9f6ef;
@@ -582,7 +589,7 @@
  border-radius: 12px;
  border: 1px solid #e5edff;
  background: #f9fbff;
- padding: 10px 11px;
+ padding: 11px 12px;
 }
 
 .occupancy-title {
@@ -590,7 +597,7 @@
  align-items: center;
  justify-content: space-between;
  gap: 8px;
- margin-bottom: 7px;
+ margin-bottom: 6px;
 }
 
 .occupancy-title span {
@@ -600,12 +607,18 @@
 }
 
 .occupancy-title strong {
- font-size: 0.82rem;
+ font-size: 0.84rem;
  color: #1c57b3;
 }
 
+.occupancy-meta {
+ margin: 0 0 8px;
+ color: #58709a;
+ font-size: 0.78rem;
+}
+
 .progress {
- height: 7px;
+ height: 8px;
  border-radius: 999px;
  background: #e2ebff;
  overflow: hidden;
@@ -616,6 +629,12 @@
  height: 100%;
  border-radius: inherit;
  background: linear-gradient(90deg, #22b38e, #2a76ff);
+}
+
+.occupancy-empty {
+ min-height: 132px;
+ display: grid;
+ place-items: center;
 }
 
 .bottom-grid {
@@ -902,6 +921,18 @@ td {
  margin-top: 12px;
  display: grid;
  gap: 10px;
+}
+
+.admin-email-otp-block {
+ display: grid;
+ gap: 9px;
+}
+
+.admin-email-otp-hint {
+ margin: 0;
+ color: #607596;
+ font-size: 0.83rem;
+ line-height: 1.55;
 }
 
 .admin-account-form label {

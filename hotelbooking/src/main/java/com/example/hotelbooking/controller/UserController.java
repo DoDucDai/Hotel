@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.hotelbooking.dto.UpdateEmailRequest;
 import com.example.hotelbooking.dto.UpdateProfileRequest;
 import com.example.hotelbooking.dto.UserAccountResponse;
+import com.example.hotelbooking.dto.VerifyEmailOtpRequest;
 import com.example.hotelbooking.model.User;
 import com.example.hotelbooking.security.JwtUtil;
 import com.example.hotelbooking.service.UserService;
@@ -88,6 +89,41 @@ public class UserController {
 
         String currentEmail = authentication.getName();
         User updatedUser = userService.updateCurrentUserEmail(currentEmail, request.getEmail());
+
+        String accessToken = JwtUtil.generateToken(
+                updatedUser.getEmail(),
+                updatedUser.getRole().name()
+        );
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Email updated successfully",
+                "accessToken", accessToken,
+                "role", updatedUser.getRole().name(),
+                "user", UserAccountResponse.fromUser(updatedUser)
+        ));
+    }
+
+    // REQUEST OTP for current user email change
+    @PostMapping("/me/email/request-otp")
+    public ResponseEntity<Map<String, Object>> requestCurrentUserEmailOtp(
+            Authentication authentication,
+            @RequestBody UpdateEmailRequest request) {
+
+        String currentEmail = authentication.getName();
+        return ResponseEntity.ok(userService.requestCurrentUserEmailChangeOtp(currentEmail, request.getEmail()));
+    }
+
+    // VERIFY OTP and update current user email
+    @PostMapping("/me/email/verify-otp")
+    public ResponseEntity<Map<String, Object>> verifyCurrentUserEmailOtp(
+            Authentication authentication,
+            @RequestBody VerifyEmailOtpRequest request) {
+
+        String currentEmail = authentication.getName();
+        User updatedUser = userService.confirmCurrentUserEmailChangeOtp(
+                currentEmail,
+                request.getEmail(),
+                request.getOtp());
 
         String accessToken = JwtUtil.generateToken(
                 updatedUser.getEmail(),

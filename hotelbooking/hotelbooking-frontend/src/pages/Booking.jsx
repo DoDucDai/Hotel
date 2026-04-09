@@ -14,7 +14,7 @@ import {
  getPaymentAccountLabel,
  getPaymentProviderLabel,
  normalizePaymentInstructions,
-} from "../utils/paymentPresentation";
+} from "../utils/paymentPresentationSafe";
 import "./Booking.css";
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN", {
@@ -131,6 +131,7 @@ function Booking() {
  () => resolveBookingContext(location.state, pendingBooking),
  [location.state, pendingBooking]
  );
+ const bookingRedirectState = bookingContext.raw || null;
  const selectedHotel = bookingContext.hotel;
  const selectedRoom = bookingContext.room;
  const searchCriteria = bookingContext.searchCriteria;
@@ -169,7 +170,7 @@ function Booking() {
  state: {
  from: location.pathname,
  redirectTo: "/booking",
- redirectState: bookingContext.raw || null,
+ redirectState: bookingRedirectState,
  },
  });
  return;
@@ -183,7 +184,7 @@ function Booking() {
  const [accountResult, couponsResult, instructionsResult] = await Promise.allSettled([
  getMyAccount(),
  getActiveCoupons(),
- getPaymentInstructions(),
+ getPaymentInstructions(selectedRoom?.id),
  ]);
 
  const accountRes = settledValue(accountResult, null);
@@ -207,7 +208,7 @@ function Booking() {
  };
 
  fetchData();
- }, [bookingContext, hasToken, location.pathname, navigate, toast]);
+ }, [bookingRedirectState, hasToken, location.pathname, navigate, selectedRoom?.id, toast]);
 
  const nightCount = useMemo(() => {
  if (!checkInDate || !checkOutDate) {

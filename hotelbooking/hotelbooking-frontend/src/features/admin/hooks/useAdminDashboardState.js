@@ -80,6 +80,9 @@ export default function useAdminDashboardState({ navigate, toast, profileRef }) 
  const [accountError, setAccountError] = useState("");
  const [profileData, setProfileData] = useState(accountInitialState);
  const [email, setEmail] = useState("");
+ const [emailOtp, setEmailOtp] = useState("");
+ const [emailOtpSent, setEmailOtpSent] = useState(false);
+ const [emailOtpTarget, setEmailOtpTarget] = useState("");
  const [accountMeta, setAccountMeta] = useState(accountMetaInitialState);
  const [profileSaving, setProfileSaving] = useState(false);
  const [emailSaving, setEmailSaving] = useState(false);
@@ -208,6 +211,9 @@ export default function useAdminDashboardState({ navigate, toast, profileRef }) 
  citizenId: user.citizenId || "",
  });
  setEmail(user.email || "");
+ setEmailOtp("");
+ setEmailOtpSent(false);
+ setEmailOtpTarget("");
  setAccountMeta({
  id: user.id || "",
  role: user.role || localStorage.getItem("role") || "ADMIN",
@@ -293,7 +299,10 @@ export default function useAdminDashboardState({ navigate, toast, profileRef }) 
  resetBookingFilters,
  handleLogout,
  handleProfileSave,
+ handleEmailInputChange,
+ handleEmailOtpChange,
  handleEmailSave,
+ handleVerifyEmailOtp,
  handleCouponFieldChange,
  resetCouponForm,
  closeConfirmDialog,
@@ -331,6 +340,12 @@ export default function useAdminDashboardState({ navigate, toast, profileRef }) 
  setProfileData,
  setEmail,
  email,
+ setEmailOtp,
+ emailOtp,
+ emailOtpSent,
+ setEmailOtpSent,
+ emailOtpTarget,
+ setEmailOtpTarget,
  setAccountMeta,
  setEmailSaving,
  setEmailMessage,
@@ -402,7 +417,8 @@ export default function useAdminDashboardState({ navigate, toast, profileRef }) 
  profileData,
  setProfileData,
  email,
- setEmail,
+ emailOtp,
+ emailOtpSent,
  accountMeta,
  profileSaving,
  emailSaving,
@@ -471,7 +487,10 @@ export default function useAdminDashboardState({ navigate, toast, profileRef }) 
  resetBookingFilters,
  handleLogout,
  handleProfileSave,
+ handleEmailInputChange,
+ handleEmailOtpChange,
  handleEmailSave,
+ handleVerifyEmailOtp,
  handleCouponFieldChange,
  resetCouponForm,
  closeConfirmDialog,

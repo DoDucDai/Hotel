@@ -234,7 +234,22 @@ export default function useAdminDashboardDerivedData({
  }, [bookingsWithMeta, hotels, rooms]);
 
  const occupancyRows = useMemo(() => {
- return [...hotelCards].sort((a, b) => b.occupancy - a.occupancy).slice(0, 6);
+ return [...hotelCards]
+ .filter((hotel) => Number(hotel.totalRooms || 0) > 0)
+ .sort((a, b) => {
+ const occupancyDiff = Number(b.occupancy || 0) - Number(a.occupancy || 0);
+ if (occupancyDiff !== 0) {
+ return occupancyDiff;
+ }
+
+ const activeStayDiff = Number(b.activeStays || 0) - Number(a.activeStays || 0);
+ if (activeStayDiff !== 0) {
+ return activeStayDiff;
+ }
+
+ return Number(b.totalBookings || 0) - Number(a.totalBookings || 0);
+ })
+ .slice(0, 6);
  }, [hotelCards]);
 
  const hotelCityOptions = useMemo(() => {

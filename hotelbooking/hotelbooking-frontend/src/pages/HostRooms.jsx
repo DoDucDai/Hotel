@@ -2,6 +2,7 @@
 import { useNavigate } from "react-router-dom";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { useToast } from "../components/ToastProvider";
+import { getMyAccount } from "../services/accountService";
 import {
  createHostHotel,
  createHostInventoryBlock,
@@ -80,6 +81,12 @@ function HostRooms() {
  const [confirmLoading, setConfirmLoading] = useState(false);
  const [inventoryCalendar, setInventoryCalendar] = useState([]);
  const [inventoryBlocks, setInventoryBlocks] = useState([]);
+ const [payoutProfile, setPayoutProfile] = useState({
+ loaded: false,
+ bankProvider: "",
+ bankAccountName: "",
+ bankAccountNumber: "",
+ });
 
  const hotelsById = useMemo(() => {
  return hotels.reduce((acc, hotel) => {
@@ -94,6 +101,14 @@ function HostRooms() {
  return rooms.find((room) => room.id === inventoryRoomId) || null;
  }, [inventoryRoomId, rooms]);
 
+ const payoutReady = useMemo(() => {
+ const hasBankProvider = Boolean((payoutProfile.bankProvider || "").trim());
+ const hasBankAccountNumber = Boolean((payoutProfile.bankAccountNumber || "").trim());
+ return hasBankProvider && hasBankAccountNumber;
+ }, [payoutProfile.bankAccountNumber, payoutProfile.bankProvider]);
+
+ const showMissingPayoutWarning = payoutProfile.loaded && !payoutReady;
+
  const loadHostData = async () => {
  try {
  setLoading(true);
@@ -106,6 +121,21 @@ function HostRooms() {
  const hotelList = normalizeList(hotelsRes?.data);
  const roomList = normalizeList(roomsRes?.data);
  const dashboard = dashboardRes?.data || {};
+
+ let accountData = null;
+ try {
+ const accountRes = await getMyAccount();
+ accountData = accountRes?.data || null;
+ } catch (accountError) {
+ console.error("Cannot load payout profile for host warning", accountError);
+ }
+
+ setPayoutProfile({
+ loaded: Boolean(accountData),
+ bankProvider: accountData?.bankProvider || "",
+ bankAccountName: accountData?.bankAccountName || "",
+ bankAccountNumber: accountData?.bankAccountNumber || "",
+ });
 
  setHotels(hotelList);
  setRooms(roomList);
@@ -541,6 +571,25 @@ function HostRooms() {
  Về trang chủ
  </button>
  </header>
+
+ {showMissingPayoutWarning ? (
+ <section className="host-alert host-alert-warning">
+ <div className="host-alert-content">
+ <strong>Bạn chưa cấu hình STK nhận cọc</strong>
+ <p>
+ Khách đặt phòng đang chưa thấy thông tin STK cá nhân của bạn. Cập nhật ngay để nhận
+ chuyển khoản cọc đúng tài khoản.
+ </p>
+ </div>
+ <button
+ type="button"
+ className="host-alert-btn"
+ onClick={() => navigate("/account?focus=profile")}
+ >
+ Cập nhật STK ngay
+ </button>
+ </section>
+ ) : null}
 
  <HostDashboardSection
  dashboardLoading={dashboardLoading}

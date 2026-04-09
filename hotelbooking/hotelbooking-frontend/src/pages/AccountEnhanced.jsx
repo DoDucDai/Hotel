@@ -21,7 +21,10 @@ export default function AccountEnhanced() {
     loadError,
     profile,
     email,
-    setEmail,
+    handleEmailInputChange,
+    emailOtp,
+    setEmailOtp,
+    emailOtpSent,
     sortedBookings,
     selectedBooking,
     bookingsLoading,
@@ -44,6 +47,7 @@ export default function AccountEnhanced() {
     handleProfileChange,
     handleSaveProfile,
     handleSaveEmail,
+    handleConfirmEmailOtp,
     handleSubmitBookingAction,
     handleRemoveWishlist,
     handleSubmitDispute,
@@ -157,8 +161,12 @@ export default function AccountEnhanced() {
                 handleSaveProfile={handleSaveProfile}
                 profileSaving={profileSaving}
                 email={email}
-                setEmail={setEmail}
+                handleEmailInputChange={handleEmailInputChange}
+                emailOtp={emailOtp}
+                setEmailOtp={setEmailOtp}
+                emailOtpSent={emailOtpSent}
                 handleSaveEmail={handleSaveEmail}
+                handleConfirmEmailOtp={handleConfirmEmailOtp}
                 emailSaving={emailSaving}
               />
             ) : null}

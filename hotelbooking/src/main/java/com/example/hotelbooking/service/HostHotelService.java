@@ -1,11 +1,13 @@
 package com.example.hotelbooking.service;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -13,10 +15,12 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.example.hotelbooking.exception.BadRequestException;
 import com.example.hotelbooking.exception.NotFoundException;
+import com.example.hotelbooking.model.BookingStatus;
 import com.example.hotelbooking.model.Hotel;
 import com.example.hotelbooking.model.HotelApprovalStatus;
 import com.example.hotelbooking.model.Room;
 import com.example.hotelbooking.model.User;
+import com.example.hotelbooking.repository.BookingRepository;
 import com.example.hotelbooking.repository.HotelRepository;
 import com.example.hotelbooking.repository.RoomRepository;
 
@@ -26,6 +30,7 @@ public class HostHotelService {
     private final HostAccessService hostAccessService;
     private final HotelRepository hotelRepository;
     private final RoomRepository roomRepository;
+    private final BookingRepository bookingRepository;
     private final RoomInventoryService roomInventoryService;
     private final AuditLogService auditLogService;
     private final UploadStorageService uploadStorageService;
@@ -34,12 +39,14 @@ public class HostHotelService {
             HostAccessService hostAccessService,
             HotelRepository hotelRepository,
             RoomRepository roomRepository,
+            BookingRepository bookingRepository,
             RoomInventoryService roomInventoryService,
             AuditLogService auditLogService,
             UploadStorageService uploadStorageService) {
         this.hostAccessService = hostAccessService;
         this.hotelRepository = hotelRepository;
         this.roomRepository = roomRepository;
+        this.bookingRepository = bookingRepository;
         this.roomInventoryService = roomInventoryService;
         this.auditLogService = auditLogService;
         this.uploadStorageService = uploadStorageService;
@@ -131,6 +138,10 @@ public class HostHotelService {
         hostAccessService.assertHotelOwner(user, hotel);
 
         List<Room> rooms = roomRepository.findByHotelId(normalizedHotelId);
+        if (hasActiveOrUpcomingBookings(rooms)) {
+            throw new BadRequestException("Khong the xoa khach san vi van con booking dang hoat dong hoac sap toi");
+        }
+
         if (!rooms.isEmpty()) {
             rooms.forEach((room) -> roomInventoryService.deleteBlocksByRoomId(room.getId()));
             roomRepository.deleteAll(rooms);
@@ -221,5 +232,34 @@ public class HostHotelService {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private boolean hasActiveOrUpcomingBookings(List<Room> rooms) {
+        if (rooms == null || rooms.isEmpty()) {
+            return false;
+        }
+
+        Set<String> roomIds = rooms.stream()
+                .filter(Objects::nonNull)
+                .map(Room::getId)
+                .filter(Objects::nonNull)
+                .filter((value) -> !value.isBlank())
+                .collect(Collectors.toSet());
+
+        if (roomIds.isEmpty()) {
+            return false;
+        }
+
+        LocalDate today = LocalDate.now();
+        return bookingRepository.findByRoomIdIn(List.copyOf(roomIds)).stream()
+                .filter(Objects::nonNull)
+                .filter((booking) -> booking.getStatus() != BookingStatus.CANCELLED)
+                .anyMatch((booking) -> {
+                    if (booking.getCheckOutDate() == null) {
+                        return true;
+                    }
+
+                    return !booking.getCheckOutDate().isBefore(today);
+                });
     }
 }

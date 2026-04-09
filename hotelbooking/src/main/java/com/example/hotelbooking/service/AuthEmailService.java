@@ -54,7 +54,7 @@ public class AuthEmailService {
     }
 
     public void sendPasswordReset(User user, String token) {
-        String actionUrl = buildActionUrl("/forgot-password", token);
+        String actionUrl = buildActionUrl("/reset-password", token);
         String message = """
                 Xin chao,
 
@@ -71,6 +71,22 @@ public class AuthEmailService {
                 """.formatted(actionUrl, token);
 
         sendMessage(user.getEmail(), "Dat lai mat khau - Hotel Booking", message, "password reset", actionUrl);
+    }
+
+    public void sendEmailChangeOtp(User user, String newEmail, String otp) {
+        String currentEmail = user == null || user.getEmail() == null ? "-" : user.getEmail();
+        String message = """
+                Xin chao,
+
+                Chung toi nhan duoc yeu cau doi email dang nhap cho tai khoan Hotel Booking cua ban.
+                Tai khoan hien tai: %s
+                Ma OTP xac nhan doi email: %s
+
+                Ma OTP co hieu luc trong 15 phut.
+                Neu ban khong thuc hien yeu cau nay, vui long bo qua email.
+                """.formatted(currentEmail, otp);
+
+        sendMessage(newEmail, "OTP doi email - Hotel Booking", message, "email change OTP", newEmail);
     }
 
     private String buildActionUrl(String path, String token) {

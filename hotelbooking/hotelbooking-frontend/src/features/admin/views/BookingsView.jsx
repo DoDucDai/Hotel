@@ -146,8 +146,10 @@
  selectedPaymentStatus !== (booking.paymentStatus || "PENDING");
  const selectedBookingStatus =
  bookingStatusDrafts[booking.id] || booking.rawStatus || "CONFIRMED";
+ const noteValue = bookingStatusNotes[booking.id] ?? booking.note ?? "";
  const bookingStatusDirty =
- selectedBookingStatus !== (booking.rawStatus || "CONFIRMED");
+ selectedBookingStatus !== (booking.rawStatus || "CONFIRMED") ||
+ noteValue.trim() !== String(booking.note || "").trim();
 
  return (
  <tr key={booking.id}>
@@ -244,7 +246,7 @@
  <input
  type="text"
  className="admin-inline-input"
- value={bookingStatusNotes[booking.id] || ""}
+ value={noteValue}
  onChange={(event) =>
  handleBookingStatusNoteChange(booking.id, event.target.value)
  }

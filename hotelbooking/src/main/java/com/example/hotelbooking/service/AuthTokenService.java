@@ -30,13 +30,17 @@ public class AuthTokenService {
     }
 
     public AuthActionToken createToken(User user, AuthActionType type, Duration ttl) {
+        return createToken(user, type, ttl, null);
+    }
+
+    public AuthActionToken createToken(User user, AuthActionType type, Duration ttl, String tokenEmail) {
         authActionTokenRepository.deleteByUserIdAndType(user.getId(), type);
 
         AuthActionToken token = new AuthActionToken();
         token.setUserId(user.getId());
-        token.setEmail(user.getEmail());
+        token.setEmail(resolveTokenEmail(user, tokenEmail));
         token.setType(type);
-        token.setToken(type == AuthActionType.PASSWORD_RESET
+        token.setToken(type == AuthActionType.PASSWORD_RESET || type == AuthActionType.EMAIL_CHANGE
                 ? generateSixDigitOtp()
                 : UUID.randomUUID().toString());
         token.setCreatedAt(Instant.now());
@@ -77,6 +81,14 @@ public class AuthTokenService {
         }
 
         return value.trim();
+    }
+
+    private String resolveTokenEmail(User user, String tokenEmail) {
+        if (tokenEmail != null && !tokenEmail.isBlank()) {
+            return tokenEmail.trim().toLowerCase();
+        }
+
+        return user.getEmail();
     }
 
     private String generateSixDigitOtp() {

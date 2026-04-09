@@ -12,7 +12,11 @@
  profileMessage,
  profileSaving,
  handleEmailSave,
- setEmail,
+ handleEmailInputChange,
+ emailOtp,
+ emailOtpSent,
+ handleEmailOtpChange,
+ handleVerifyEmailOtp,
  emailMessage,
  emailSaving,
  dashboard,
@@ -146,7 +150,7 @@
  <article className="admin-account-card">
  <h2>Cài đặt email đăng nhập</h2>
  <p className="admin-account-note">
- Email này được dùng để đăng nhập và nhận link đặt lại mật khẩu.
+ Đổi email đăng nhập bằng OTP gửi về email mới. Email chỉ được cập nhật sau khi xác thực OTP.
  </p>
 
  <form className="admin-account-form" onSubmit={handleEmailSave}>
@@ -155,7 +159,7 @@
  <input
  type="email"
  value={email}
- onChange={(event) => setEmail(event.target.value)}
+ onChange={(event) => handleEmailInputChange(event.target.value)}
  placeholder="admin@email.com"
  required
  />
@@ -172,8 +176,35 @@
  className="admin-save-btn secondary"
  disabled={emailSaving}
  >
- {emailSaving ? "Đang cập nhật..." : "Cập nhật email"}
+ {emailSaving ? "Đang gửi..." : emailOtpSent ? "Gửi lại OTP" : "Gửi OTP xác nhận"}
  </button>
+
+ {emailOtpSent ? (
+ <div className="admin-email-otp-block">
+ <label>
+ <span>Mã OTP 6 số</span>
+ <input
+ value={emailOtp}
+ onChange={(event) => handleEmailOtpChange(event.target.value)}
+ placeholder="Nhập OTP đã gửi qua email"
+ autoComplete="one-time-code"
+ inputMode="numeric"
+ maxLength={6}
+ />
+ </label>
+ <p className="admin-email-otp-hint">
+ Sau khi xác nhận OTP, hệ thống sẽ cập nhật email admin và cấp access token mới.
+ </p>
+ <button
+ type="button"
+ className="admin-save-btn"
+ disabled={emailSaving}
+ onClick={handleVerifyEmailOtp}
+ >
+ {emailSaving ? "Đang xác nhận..." : "Xác nhận OTP và đổi email"}
+ </button>
+ </div>
+ ) : null}
  </form>
 
  <ul className="admin-info-list">

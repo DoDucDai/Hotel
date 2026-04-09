@@ -1,5 +1,6 @@
 ﻿import { useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { useToast } from "../components/ToastProvider";
 import "./AdminDashboard.css";
@@ -15,6 +16,7 @@ import UsersView from "../features/admin/views/UsersView";
 
 function AdminDashboard() {
  const navigate = useNavigate();
+ const location = useLocation();
  const toast = useToast();
  const profileRef = useRef(null);
 
@@ -24,6 +26,7 @@ function AdminDashboard() {
  profileOpen,
  setProfileOpen,
  activeView,
+ setActiveView,
  sectionOpen,
  setSectionOpen,
  loading,
@@ -38,7 +41,8 @@ function AdminDashboard() {
  profileData,
  setProfileData,
  email,
- setEmail,
+ emailOtp,
+ emailOtpSent,
  profileSaving,
  emailSaving,
  profileMessage,
@@ -103,7 +107,10 @@ function AdminDashboard() {
  resetBookingFilters,
  handleLogout,
  handleProfileSave,
+ handleEmailInputChange,
+ handleEmailOtpChange,
  handleEmailSave,
+ handleVerifyEmailOtp,
  handleCouponFieldChange,
  resetCouponForm,
  closeConfirmDialog,
@@ -149,6 +156,26 @@ function AdminDashboard() {
  getAvatarText,
  adminUserRoleOptions,
  } = useAdminDashboardState({ navigate, toast, profileRef });
+
+ useEffect(() => {
+ const requestedView = new URLSearchParams(location.search).get("view");
+ const allowedViews = [
+ "overview",
+ "hotels",
+ "bookings",
+ "users",
+ "coupons",
+ "disputes",
+ "logs",
+ "account",
+ ];
+
+ if (!requestedView || !allowedViews.includes(requestedView)) {
+ return;
+ }
+
+ setActiveView(requestedView);
+ }, [location.search, setActiveView]);
 
  const renderOverview = () => (
  <OverviewView
@@ -307,7 +334,11 @@ function AdminDashboard() {
  profileMessage={profileMessage}
  profileSaving={profileSaving}
  handleEmailSave={handleEmailSave}
- setEmail={setEmail}
+ handleEmailInputChange={handleEmailInputChange}
+ emailOtp={emailOtp}
+ emailOtpSent={emailOtpSent}
+ handleEmailOtpChange={handleEmailOtpChange}
+ handleVerifyEmailOtp={handleVerifyEmailOtp}
  emailMessage={emailMessage}
  emailSaving={emailSaving}
  dashboard={dashboard}
@@ -497,9 +528,6 @@ function AdminDashboard() {
 
  <div className="admin-link-group">
  <p className="admin-link-title">Quick Links</p>
- <button type="button" className="admin-link-btn" onClick={() => navigate("/")}>
-   Về trang chủ
- </button>
  <button type="button" className="admin-link-btn" onClick={() => navigate("/hotels")}>
  Xem website
  </button>

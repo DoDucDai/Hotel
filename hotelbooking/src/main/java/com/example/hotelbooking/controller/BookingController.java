@@ -93,14 +93,18 @@ public class BookingController {
         bookingService.deleteBooking(id, authenticationEmailResolver.requireEmail(authentication));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/room/{roomId}")
-    public List<Booking> getBookingsByRoom(@PathVariable String roomId) {
-        return bookingService.getBookingsByRoom(roomId);
+    public List<Booking> getBookingsByRoom(
+            @PathVariable String roomId,
+            Authentication authentication) {
+        return bookingService.getBookingsByRoom(roomId, authenticationEmailResolver.requireEmail(authentication));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/revenue")
-    public double getRevenue() {
-        return bookingService.getTotalRevenue();
+    public double getRevenue(Authentication authentication) {
+        return bookingService.getTotalRevenue(authenticationEmailResolver.requireEmail(authentication));
     }
 
     @GetMapping("/my")

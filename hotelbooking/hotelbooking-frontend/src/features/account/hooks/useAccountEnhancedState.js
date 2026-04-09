@@ -1,5 +1,10 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import { getMyAccount, updateMyEmail, updateMyProfile } from "../../../services/accountService";
+import {
+  getMyAccount,
+  requestMyEmailChangeOtp,
+  updateMyProfile,
+  verifyMyEmailChangeOtp,
+} from "../../../services/accountService";
 import {
   cancelBooking,
   createDispute,
@@ -62,6 +67,10 @@ async function enrichBookings(bookingList) {
   });
 }
 
+function normalizeEmailValue(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
 export default function useAccountEnhancedState({ location, navigate, toast }) {
   const [activeTab, setActiveTab] = useState(resolveInitialTab(location.state));
 
@@ -76,6 +85,9 @@ export default function useAccountEnhancedState({ location, navigate, toast }) {
 
   const [profile, setProfile] = useState(initialProfile);
   const [email, setEmail] = useState("");
+  const [emailOtp, setEmailOtp] = useState("");
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+  const [emailOtpTarget, setEmailOtpTarget] = useState("");
   const [bookings, setBookings] = useState([]);
   const [wishlistItems, setWishlistItems] = useState([]);
   const [disputes, setDisputes] = useState([]);
@@ -129,8 +141,14 @@ export default function useAccountEnhancedState({ location, navigate, toast }) {
             gender: user.gender || "",
             dateOfBirth: user.dateOfBirth || "",
             citizenId: user.citizenId || "",
+            bankProvider: user.bankProvider || "",
+            bankAccountName: user.bankAccountName || "",
+            bankAccountNumber: user.bankAccountNumber || "",
           });
           setEmail(user.email || "");
+          setEmailOtp("");
+          setEmailOtpSent(false);
+          setEmailOtpTarget("");
           setBookings(enrichedBookings);
           setWishlistItems(normalizeWishlist(wishlistRes?.data));
           setDisputes(normalizeDisputes(disputesRes?.data));
@@ -212,6 +230,9 @@ export default function useAccountEnhancedState({ location, navigate, toast }) {
         gender: user.gender || "",
         dateOfBirth: user.dateOfBirth || "",
         citizenId: user.citizenId || "",
+        bankProvider: user.bankProvider || "",
+        bankAccountName: user.bankAccountName || "",
+        bankAccountNumber: user.bankAccountNumber || "",
       });
       toast.success("Đã lưu thông tin profile");
     } catch (error) {
@@ -222,12 +243,64 @@ export default function useAccountEnhancedState({ location, navigate, toast }) {
     }
   };
 
+  const handleEmailInputChange = (nextValue) => {
+    const normalizedNextEmail = normalizeEmailValue(nextValue);
+    setEmail(nextValue);
+
+    if (emailOtpSent && normalizeEmailValue(emailOtpTarget) !== normalizedNextEmail) {
+      setEmailOtp("");
+      setEmailOtpSent(false);
+      setEmailOtpTarget("");
+    }
+  };
+
   const handleSaveEmail = async (event) => {
     event.preventDefault();
+
+    const targetEmail = normalizeEmailValue(email);
+    if (!targetEmail) {
+      toast.error("Vui lòng nhập email mới");
+      return;
+    }
+
     setEmailSaving(true);
 
     try {
-      const res = await updateMyEmail(email);
+      const res = await requestMyEmailChangeOtp(targetEmail);
+      setEmailOtpSent(true);
+      setEmailOtpTarget(targetEmail);
+      setEmailOtp("");
+      toast.success(res?.data?.message || "Đã gửi OTP xác nhận đổi email");
+    } catch (error) {
+      console.error("Cannot request email change OTP", error);
+      toast.error(error?.response?.data?.message || "Không thể gửi OTP đổi email");
+    } finally {
+      setEmailSaving(false);
+    }
+  };
+
+  const handleConfirmEmailOtp = async () => {
+    const targetEmail = normalizeEmailValue(email);
+    const otp = String(emailOtp || "").trim();
+
+    if (!targetEmail) {
+      toast.error("Vui lòng nhập email mới");
+      return;
+    }
+
+    if (!emailOtpSent || normalizeEmailValue(emailOtpTarget) !== targetEmail) {
+      toast.error("Vui lòng gửi OTP cho email hiện tại trước");
+      return;
+    }
+
+    if (!/^\d{6}$/.test(otp)) {
+      toast.error("Mã OTP phải gồm đúng 6 chữ số");
+      return;
+    }
+
+    setEmailSaving(true);
+    try {
+      const res = await verifyMyEmailChangeOtp(targetEmail, otp);
       const data = res?.data || {};
       const user = data.user || {};
 
@@ -239,19 +312,25 @@ export default function useAccountEnhancedState({ location, navigate, toast }) {
         localStorage.setItem("role", data.role);
       }
 
-      setEmail(user.email || email);
+      setEmail(user.email || targetEmail);
+      setEmailOtp("");
+      setEmailOtpSent(false);
+      setEmailOtpTarget("");
       setProfile((prev) => ({
         ...prev,
         name: user.name ?? prev.name,
         gender: user.gender ?? prev.gender,
         dateOfBirth: user.dateOfBirth ?? prev.dateOfBirth,
         citizenId: user.citizenId ?? prev.citizenId,
+        bankProvider: user.bankProvider ?? prev.bankProvider,
+        bankAccountName: user.bankAccountName ?? prev.bankAccountName,
+        bankAccountNumber: user.bankAccountNumber ?? prev.bankAccountNumber,
       }));
 
-      toast.success("Đã đổi email thành công");
+      toast.success(data?.message || "Đã đổi email thành công");
     } catch (error) {
-      console.error("Cannot change email", error);
-      toast.error(error?.response?.data?.message || "Đổi email thất bại");
+      console.error("Cannot verify email change OTP", error);
+      toast.error(error?.response?.data?.message || "Xác nhận OTP thất bại");
     } finally {
       setEmailSaving(false);
     }
@@ -366,7 +445,10 @@ export default function useAccountEnhancedState({ location, navigate, toast }) {
     profile,
     setProfile,
     email,
-    setEmail,
+    handleEmailInputChange,
+    emailOtp,
+    setEmailOtp,
+    emailOtpSent,
     bookings,
     sortedBookings,
     selectedBooking,
@@ -391,6 +473,7 @@ export default function useAccountEnhancedState({ location, navigate, toast }) {
     handleProfileChange,
     handleSaveProfile,
     handleSaveEmail,
+    handleConfirmEmailOtp,
     handleSubmitBookingAction,
     handleRemoveWishlist,
     handleSubmitDispute,

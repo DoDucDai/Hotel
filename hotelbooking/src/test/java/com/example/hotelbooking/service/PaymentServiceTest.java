@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.example.hotelbooking.dto.PaymentCheckoutResponse;
+import com.example.hotelbooking.dto.PaymentInstructionsResponse;
 import com.example.hotelbooking.dto.SandboxPaymentWebhookRequest;
 import com.example.hotelbooking.model.Booking;
 import com.example.hotelbooking.model.BookingStatus;
@@ -27,6 +28,7 @@ import com.example.hotelbooking.model.Role;
 import com.example.hotelbooking.model.User;
 import com.example.hotelbooking.repository.BookingRepository;
 import com.example.hotelbooking.repository.PaymentWebhookEventRepository;
+import com.example.hotelbooking.repository.RoomRepository;
 import com.example.hotelbooking.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,6 +39,9 @@ class PaymentServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private RoomRepository roomRepository;
 
     @Mock
     private PaymentWebhookEventRepository paymentWebhookEventRepository;
@@ -53,6 +58,7 @@ class PaymentServiceTest {
         paymentService = new PaymentService(
                 bookingRepository,
                 userRepository,
+                roomRepository,
                 paymentWebhookEventRepository,
                 auditLogService,
                 notificationService);
@@ -142,5 +148,53 @@ class PaymentServiceTest {
         assertEquals(PaymentStatus.PAID.name(), first.get("paymentStatus"));
         assertEquals(Boolean.TRUE, second.get("duplicate"));
         assertEquals(Boolean.FALSE, second.get("applied"));
+    }
+
+    @Test
+    void getPaymentInstructionsIgnoresRoomScopedPayoutForNonAdmin() {
+        initPaymentService();
+
+        User requester = new User();
+        requester.setId("user-1");
+        requester.setEmail("user@example.com");
+        requester.setRole(Role.USER);
+
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(requester));
+
+        PaymentInstructionsResponse response = paymentService.getPaymentInstructions("room-1", "user@example.com");
+
+        assertEquals("MB Bank", response.getBankTransfer().getProviderName());
+        assertEquals("123456789", response.getBankTransfer().getAccountNumber());
+    }
+
+    @Test
+    void getPaymentInstructionsAllowsRoomScopedPayoutForAdmin() {
+        initPaymentService();
+
+        User admin = new User();
+        admin.setId("admin-1");
+        admin.setEmail("admin@example.com");
+        admin.setRole(Role.ADMIN);
+
+        User host = new User();
+        host.setId("host-1");
+        host.setName("Host Name");
+        host.setBankProvider("BIDV");
+        host.setBankAccountName("HOST PAYOUT");
+        host.setBankAccountNumber("999888777");
+
+        com.example.hotelbooking.model.Room room = new com.example.hotelbooking.model.Room();
+        room.setId("room-1");
+        room.setOwnerId("host-1");
+
+        when(userRepository.findByEmail("admin@example.com")).thenReturn(Optional.of(admin));
+        when(roomRepository.findById("room-1")).thenReturn(Optional.of(room));
+        when(userRepository.findById("host-1")).thenReturn(Optional.of(host));
+
+        PaymentInstructionsResponse response = paymentService.getPaymentInstructions("room-1", "admin@example.com");
+
+        assertEquals("BIDV", response.getBankTransfer().getProviderName());
+        assertEquals("HOST PAYOUT", response.getBankTransfer().getAccountName());
+        assertEquals("999888777", response.getBankTransfer().getAccountNumber());
     }
 }

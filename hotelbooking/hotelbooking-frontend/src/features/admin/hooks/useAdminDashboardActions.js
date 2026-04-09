@@ -1,4 +1,8 @@
-﻿import { updateMyEmail, updateMyProfile } from "../../../services/accountService";
+﻿import {
+ requestMyEmailChangeOtp,
+ updateMyProfile,
+ verifyMyEmailChangeOtp,
+} from "../../../services/accountService";
 import {
  createAdminCoupon,
  createAdminUser,
@@ -19,6 +23,8 @@ import {
  toCouponFormState,
 } from "../adminDashboardUtils";
 
+const normalizeEmailValue = (value) => String(value || "").trim().toLowerCase();
+
 export default function useAdminDashboardActions({
  navigate,
  toast,
@@ -33,6 +39,12 @@ export default function useAdminDashboardActions({
  setProfileData,
  setEmail,
  email,
+ setEmailOtp,
+ emailOtp,
+ emailOtpSent,
+ setEmailOtpSent,
+ emailOtpTarget,
+ setEmailOtpTarget,
  setAccountMeta,
  setEmailSaving,
  setEmailMessage,
@@ -79,8 +91,14 @@ export default function useAdminDashboardActions({
  setDisputes,
 }) {
  const openView = (view) => {
- setActiveView(view);
+ const normalizedView = String(view || "").trim();
+ if (!normalizedView) {
+ return;
+ }
+
+ setActiveView(normalizedView);
  setSidebarOpen(false);
+ navigate(`/admin?view=${encodeURIComponent(normalizedView)}`, { replace: true });
  };
 
  const handleHotelFilterChange = (event) => {
@@ -160,13 +178,81 @@ export default function useAdminDashboardActions({
  }
  };
 
+ const handleEmailInputChange = (nextEmail) => {
+ const normalizedEmail = normalizeEmailValue(nextEmail);
+ setEmail(nextEmail);
+ setEmailMessage(null);
+
+ if (emailOtpSent && normalizeEmailValue(emailOtpTarget) !== normalizedEmail) {
+ setEmailOtp("");
+ setEmailOtpSent(false);
+ setEmailOtpTarget("");
+ }
+ };
+
+ const handleEmailOtpChange = (nextOtp) => {
+ const normalizedOtp = String(nextOtp || "").replace(/\D/g, "").slice(0, 6);
+ setEmailOtp(normalizedOtp);
+ setEmailMessage(null);
+ };
+
  const handleEmailSave = async (event) => {
  event.preventDefault();
+ const targetEmail = normalizeEmailValue(email);
+
+ if (!targetEmail) {
+ toast.error("Vui lòng nhập email mới");
+ return;
+ }
+
  setEmailSaving(true);
  setEmailMessage(null);
 
  try {
- const res = await updateMyEmail(email);
+ const res = await requestMyEmailChangeOtp(targetEmail);
+ const message = res?.data?.message || "Đã gửi OTP xác nhận đổi email admin";
+
+ setEmailOtpSent(true);
+ setEmailOtpTarget(targetEmail);
+ setEmailOtp("");
+ setEmailMessage({ type: "success", text: message });
+ toast.success(message);
+ } catch (saveError) {
+ console.error("Cannot request admin email OTP", saveError);
+ const message =
+ saveError?.response?.data?.message ||
+ "Không thể gửi OTP đổi email. Vui lòng thử lại.";
+ setEmailMessage({ type: "error", text: message });
+ toast.error(message);
+ } finally {
+ setEmailSaving(false);
+ }
+ };
+
+ const handleVerifyEmailOtp = async () => {
+ const targetEmail = normalizeEmailValue(email);
+ const otp = String(emailOtp || "").trim();
+
+ if (!targetEmail) {
+ toast.error("Vui lòng nhập email mới");
+ return;
+ }
+
+ if (!emailOtpSent || normalizeEmailValue(emailOtpTarget) !== targetEmail) {
+ toast.error("Vui lòng gửi OTP cho email hiện tại trước");
+ return;
+ }
+
+ if (!/^\d{6}$/.test(otp)) {
+ toast.error("Mã OTP phải gồm đúng 6 chữ số");
+ return;
+ }
+
+ setEmailSaving(true);
+ setEmailMessage(null);
+
+ try {
+ const res = await verifyMyEmailChangeOtp(targetEmail, otp);
  const data = res?.data || {};
  const user = data.user || {};
 
@@ -178,7 +264,10 @@ export default function useAdminDashboardActions({
  localStorage.setItem("role", data.role);
  }
 
- setEmail(user.email || email);
+ setEmail(user.email || targetEmail);
+ setEmailOtp("");
+ setEmailOtpSent(false);
+ setEmailOtpTarget("");
  setProfileData((prev) => ({
  ...prev,
  name: user.name ?? prev.name,
@@ -195,13 +284,14 @@ export default function useAdminDashboardActions({
  emailVerifiedAt: user.emailVerifiedAt ?? prev.emailVerifiedAt,
  }));
 
- setEmailMessage({ type: "success", text: "Đã cập nhật email admin." });
- toast.success("Đã cập nhật email admin");
+ const message = data?.message || "Đã cập nhật email admin thành công.";
+ setEmailMessage({ type: "success", text: message });
+ toast.success(message);
  } catch (saveError) {
- console.error("Cannot update admin email", saveError);
+ console.error("Cannot verify admin email OTP", saveError);
  const message =
  saveError?.response?.data?.message ||
- "Cập nhật email thất bại. Vui lòng thử lại.";
+ "Xác nhận OTP thất bại. Vui lòng thử lại.";
  setEmailMessage({ type: "error", text: message });
  toast.error(message);
  } finally {
@@ -296,8 +386,7 @@ export default function useAdminDashboardActions({
  setCouponForm(toCouponFormState(coupon));
  setEditingCouponId(coupon?.id || null);
  setCouponMessage(null);
- setActiveView("coupons");
- setSidebarOpen(false);
+ openView("coupons");
  };
 
  const handleCouponSubmit = async (event) => {
@@ -377,8 +466,7 @@ export default function useAdminDashboardActions({
  setUserForm(toAdminUserFormState(user));
  setEditingUserId(user?.id || null);
  setUserMessage(null);
- setActiveView("users");
- setSidebarOpen(false);
+ openView("users");
  };
 
  const performUserDelete = async (user) => {
@@ -588,8 +676,10 @@ export default function useAdminDashboardActions({
  const handleBookingStatusUpdate = async (booking) => {
  const nextStatus = bookingStatusDrafts[booking.id] || booking.rawStatus || "CONFIRMED";
  const currentStatus = booking.rawStatus || "CONFIRMED";
+ const nextNote = (bookingStatusNotes[booking.id] ?? booking.note ?? "").trim();
+ const currentNote = (booking.note || "").trim();
 
- if (!booking?.id || nextStatus === currentStatus) {
+ if (!booking?.id || (nextStatus === currentStatus && nextNote === currentNote)) {
  return;
  }
 
@@ -598,7 +688,7 @@ export default function useAdminDashboardActions({
  try {
  const res = await updateAdminBookingStatus(booking.id, {
  status: nextStatus,
- note: bookingStatusNotes[booking.id] || "",
+ note: nextNote,
  });
 
  const updatedBooking = res?.data;
@@ -722,7 +812,10 @@ export default function useAdminDashboardActions({
  resetBookingFilters,
  handleLogout,
  handleProfileSave,
+ handleEmailInputChange,
+ handleEmailOtpChange,
  handleEmailSave,
+ handleVerifyEmailOtp,
  handleCouponFieldChange,
  resetCouponForm,
  closeConfirmDialog,

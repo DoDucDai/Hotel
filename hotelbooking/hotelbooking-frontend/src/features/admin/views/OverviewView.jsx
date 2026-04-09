@@ -17,6 +17,20 @@
  couponSummary,
  openView,
 }) {
+ const activeOccupancyRows = occupancyRows.filter(
+ (hotel) => Number(hotel?.occupancy || 0) > 0
+ );
+ const occupancyDisplayRows = activeOccupancyRows.slice(0, 6);
+ const hasActiveOccupancy = occupancyDisplayRows.length > 0;
+
+ const formatOccupancyPercent = (value) => {
+ const normalized = Number(value || 0);
+ return `${normalized.toLocaleString("vi-VN", {
+ minimumFractionDigits: 0,
+ maximumFractionDigits: 1,
+ })}%`;
+ };
+
  return (
  <>
  <section className="kpi-grid">
@@ -79,24 +93,34 @@
  <div>
  <p className="panel-tag">Hiệu suất lấp đầy</p>
  <h2>Top hotel lấp đầy cao nhất</h2>
+ <p className="occupancy-caption">
+ {hasActiveOccupancy
+ ? `${occupancyDisplayRows.length} hotel đang có khách lưu trú`
+ : "Hiện chưa có khách check-in, tỷ lệ lấp đầy đang ở mức 0%"}
+ </p>
  </div>
  </div>
 
  <div className="occupancy-list">
- {occupancyRows.length ? (
- occupancyRows.map((hotel) => (
+ {hasActiveOccupancy ? (
+ occupancyDisplayRows.map((hotel) => (
  <div key={hotel.id} className="occupancy-row">
  <div className="occupancy-title">
  <span>{hotel.name || "Khách sạn"}</span>
- <strong>{hotel.occupancy}%</strong>
+ <strong>{formatOccupancyPercent(hotel.occupancy)}</strong>
  </div>
+ <p className="occupancy-meta">
+ {hotel.activeStays || 0}/{hotel.totalRooms || 0} phòng đang ở
+ </p>
  <div className="progress">
- <span style={{ width: `${hotel.occupancy}%` }} />
+ <span style={{ width: `${Math.max(Number(hotel.occupancy || 0), 2)}%` }} />
  </div>
  </div>
  ))
  ) : (
- <div className="admin-empty-state">Chưa có dữ liệu occupancy theo hotel.</div>
+ <div className="admin-empty-state occupancy-empty">
+ Hệ thống chưa ghi nhận khách đang lưu trú theo thời gian thực.
+ </div>
  )}
  </div>
  </article>

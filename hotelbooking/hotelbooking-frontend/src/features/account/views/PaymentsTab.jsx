@@ -6,7 +6,7 @@ import {
   getPaymentMethodLabel,
   getPaymentProviderLabel,
   normalizePaymentInstructions,
-} from "../../../utils/paymentPresentation";
+} from "../../../utils/paymentPresentationSafe";
 
 export default function PaymentsTab({
   sortedBookings,
@@ -23,13 +23,29 @@ export default function PaymentsTab({
   refreshDisputes,
 }) {
   const [paymentInstructions, setPaymentInstructions] = useState({});
+  const [instructionBookingId, setInstructionBookingId] = useState("");
+
+  const selectedInstructionBooking = useMemo(() => {
+    if (!sortedBookings.length) {
+      return null;
+    }
+
+    return sortedBookings.find((booking) => booking.id === instructionBookingId) || sortedBookings[0];
+  }, [instructionBookingId, sortedBookings]);
 
   useEffect(() => {
     let isMounted = true;
 
     const fetchPaymentInstructions = async () => {
+      if (!selectedInstructionBooking?.roomId) {
+        if (isMounted) {
+          setPaymentInstructions({});
+        }
+        return;
+      }
+
       try {
-        const response = await getPaymentInstructions();
+        const response = await getPaymentInstructions(selectedInstructionBooking?.roomId);
         if (isMounted) {
           setPaymentInstructions(normalizePaymentInstructions(response?.data));
         }
@@ -43,7 +59,7 @@ export default function PaymentsTab({
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [selectedInstructionBooking?.roomId]);
 
   const instructionCards = useMemo(
     () => [paymentInstructions.bankTransfer, paymentInstructions.eWallet].filter(Boolean),
@@ -56,6 +72,22 @@ export default function PaymentsTab({
         <h2>Lịch sử thanh toán và tranh chấp</h2>
         <span>{sortedBookings.length} giao dịch</span>
       </div>
+
+      {sortedBookings.length ? (
+        <label className="payments-reference-select">
+          <span>Tài khoản nhận cọc theo booking</span>
+          <select
+            value={selectedInstructionBooking?.id || ""}
+            onChange={(event) => setInstructionBookingId(event.target.value)}
+          >
+            {sortedBookings.map((booking) => (
+              <option key={`instruction-booking-${booking.id}`} value={booking.id}>
+                {booking.hotel?.name || "-"} - {booking.room?.name || "-"} - {formatDate(booking.checkInDate)}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
 
       {instructionCards.length ? (
         <div className="payments-reference-grid">

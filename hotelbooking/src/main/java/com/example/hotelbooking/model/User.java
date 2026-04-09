@@ -25,6 +25,12 @@ public class User {
 
     private String citizenId;
 
+    private String bankProvider;
+
+    private String bankAccountName;
+
+    private String bankAccountNumber;
+
     private Boolean emailVerified;
 
     private String emailVerifiedAt;
@@ -101,6 +107,30 @@ public class User {
 
     public void setCitizenId(String citizenId) {
         this.citizenId = citizenId;
+    }
+
+    public String getBankProvider() {
+        return bankProvider;
+    }
+
+    public void setBankProvider(String bankProvider) {
+        this.bankProvider = bankProvider;
+    }
+
+    public String getBankAccountName() {
+        return bankAccountName;
+    }
+
+    public void setBankAccountName(String bankAccountName) {
+        this.bankAccountName = bankAccountName;
+    }
+
+    public String getBankAccountNumber() {
+        return bankAccountNumber;
+    }
+
+    public void setBankAccountNumber(String bankAccountNumber) {
+        this.bankAccountNumber = bankAccountNumber;
     }
 
     public Boolean getEmailVerified() {

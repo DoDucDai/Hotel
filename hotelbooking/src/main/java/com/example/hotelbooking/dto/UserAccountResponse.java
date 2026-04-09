@@ -12,6 +12,9 @@ public class UserAccountResponse {
     private String gender;
     private String dateOfBirth;
     private String citizenId;
+    private String bankProvider;
+    private String bankAccountName;
+    private String bankAccountNumber;
     private boolean emailVerified;
     private String emailVerifiedAt;
 
@@ -24,6 +27,9 @@ public class UserAccountResponse {
         response.setGender(user.getGender());
         response.setDateOfBirth(user.getDateOfBirth());
         response.setCitizenId(user.getCitizenId());
+        response.setBankProvider(user.getBankProvider());
+        response.setBankAccountName(user.getBankAccountName());
+        response.setBankAccountNumber(user.getBankAccountNumber());
         response.setEmailVerified(Boolean.TRUE.equals(user.getEmailVerified()));
         response.setEmailVerifiedAt(user.getEmailVerifiedAt());
         return response;
@@ -83,6 +89,30 @@ public class UserAccountResponse {
 
     public void setCitizenId(String citizenId) {
         this.citizenId = citizenId;
+    }
+
+    public String getBankProvider() {
+        return bankProvider;
+    }
+
+    public void setBankProvider(String bankProvider) {
+        this.bankProvider = bankProvider;
+    }
+
+    public String getBankAccountName() {
+        return bankAccountName;
+    }
+
+    public void setBankAccountName(String bankAccountName) {
+        this.bankAccountName = bankAccountName;
+    }
+
+    public String getBankAccountNumber() {
+        return bankAccountNumber;
+    }
+
+    public void setBankAccountNumber(String bankAccountNumber) {
+        this.bankAccountNumber = bankAccountNumber;
     }
 
     public boolean isEmailVerified() {

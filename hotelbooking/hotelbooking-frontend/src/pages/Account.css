@@ -12,13 +12,14 @@
  #f1f6ff;
  color: var(--ink);
  min-height: 100vh;
- margin: -2rem;
- padding: calc(88px + 2rem) 0 64px;
+ margin: 0;
+ padding: 104px 0 64px;
+ overflow-x: clip;
  font-family: "Be Vietnam Pro", "Segoe UI", Tahoma, sans-serif;
 }
 
 .account-shell {
- width: min(1240px, calc(100% - 40px));
+ width: min(1240px, calc(100% - 24px));
  margin: 0 auto;
 }
 
@@ -139,6 +140,7 @@
  display: grid;
  grid-template-columns: repeat(2, minmax(0, 1fr));
  gap: 14px;
+ align-items: start;
 }
 
 .profile-section {
@@ -146,6 +148,7 @@
  border-radius: 14px;
  background: #fafdff;
  padding: 14px;
+ min-width: 0;
 }
 
 .profile-section h3 {
@@ -203,6 +206,24 @@
 .account-form textarea {
  min-height: 104px;
  resize: vertical;
+}
+
+.profile-bank-grid {
+ display: grid;
+ grid-template-columns: 1fr 1fr;
+ gap: 10px;
+}
+
+.email-otp-row {
+ display: grid;
+ gap: 10px;
+}
+
+.email-otp-hint {
+ margin: 0;
+ color: #607596;
+ font-size: 0.84rem;
+ line-height: 1.6;
 }
 
 .save-btn {
@@ -591,11 +612,36 @@
  line-height: 1.65;
 }
 
+.payments-reference-select {
+ display: grid;
+ gap: 7px;
+ max-width: 520px;
+}
+
+.payments-reference-select span {
+ color: #304f83;
+ font-size: 0.82rem;
+ font-weight: 700;
+ text-transform: uppercase;
+ letter-spacing: 0.03em;
+}
+
+.payments-reference-select select {
+ width: 100%;
+ border: 1px solid #d5e1f8;
+ border-radius: 12px;
+ background: #ffffff;
+ color: var(--ink);
+ font-size: 0.92rem;
+ padding: 10px 12px;
+ outline: none;
+}
+
 .payments-grid {
  display: grid;
- grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.95fr);
+ grid-template-columns: minmax(0, 1.55fr) minmax(0, 0.95fr);
  gap: 14px;
- align-items: flex-start;
+ align-items: start;
 }
 
 .payments-panel {
@@ -604,11 +650,17 @@
  background: #fafdff;
  padding: 14px;
  min-width: 0;
+ align-self: start;
 }
 
 .payments-panel h3 {
  margin: 0;
  font-size: 1rem;
+}
+
+.payments-panel .account-form,
+.payments-panel .account-form label {
+ min-width: 0;
 }
 
 .payments-table {
@@ -735,9 +787,15 @@
  gap: 8px;
 }
 
+@media (max-width: 1080px) {
+ .payments-grid {
+  grid-template-columns: 1fr;
+ }
+}
+
 @media (max-width: 900px) {
  .account-page {
- padding-top: calc(76px + 2rem);
+ padding-top: 90px;
  }
 
  .profile-card {
@@ -775,6 +833,10 @@
 
  .action-field-row {
  grid-template-columns: 1fr;
+ }
+
+ .profile-bank-grid {
+  grid-template-columns: 1fr;
  }
 
  .payments-reference-details {

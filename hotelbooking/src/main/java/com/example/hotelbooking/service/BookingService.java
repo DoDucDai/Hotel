@@ -320,6 +320,9 @@ public class BookingService {
         }
 
         booking.setStatus(nextStatus);
+        if (safeRequest.getNote() != null) {
+            booking.setNote(trimToNull(safeRequest.getNote()));
+        }
         booking.setUpdatedAt(LocalDateTime.now());
 
         if (nextStatus == BookingStatus.CHECKED_IN && booking.getCheckedInAt() == null) {
@@ -363,7 +366,12 @@ public class BookingService {
         bookingRepository.deleteById(requireNonBlank(id, "Booking id is required"));
     }
 
-    public List<Booking> getBookingsByRoom(String roomId) {
+    public List<Booking> getBookingsByRoom(String roomId, String email) {
+        User user = getCurrentUser(email);
+        if (user.getRole() != Role.ADMIN) {
+            throw new ForbiddenException("Ban khong co quyen xem booking theo room");
+        }
+
         return bookingRepository.findByRoomId(requireNonBlank(roomId, "Room id is required"));
     }
 
@@ -385,7 +393,12 @@ public class BookingService {
         return bookingRepository.findByUserId(user.getId());
     }
 
-    public double getTotalRevenue() {
+    public double getTotalRevenue(String email) {
+        User user = getCurrentUser(email);
+        if (user.getRole() != Role.ADMIN) {
+            throw new ForbiddenException("Ban khong co quyen xem doanh thu he thong");
+        }
+
         return bookingRepository.findAll()
                 .stream()
                 .mapToDouble(this::resolveRevenueContribution)

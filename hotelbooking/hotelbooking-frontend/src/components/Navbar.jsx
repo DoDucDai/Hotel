@@ -19,7 +19,7 @@ export default function Navbar() {
 
  const isLoggedIn = Boolean(localStorage.getItem("accessToken"));
  const role = localStorage.getItem("role");
- const accountPath = role === "ADMIN" ? "/admin" : "/account";
+ const accountPath = role === "ADMIN" ? "/admin?view=account" : "/account";
 
  const navItems = useMemo(
  () => [

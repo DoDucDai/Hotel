@@ -56,8 +56,11 @@ public class PaymentController {
     }
 
     @GetMapping("/instructions")
-    public PaymentInstructionsResponse getPaymentInstructions() {
-        return paymentService.getPaymentInstructions();
+    public PaymentInstructionsResponse getPaymentInstructions(
+            @RequestParam(required = false) String roomId,
+            Authentication authentication) {
+        String requesterEmail = authenticationEmailResolver.requireEmail(authentication);
+        return paymentService.getPaymentInstructions(roomId, requesterEmail);
     }
 
     @GetMapping(value = "/sandbox/checkout", produces = MediaType.TEXT_HTML_VALUE)

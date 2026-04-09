@@ -20,6 +20,14 @@ function normalizeNotifications(payload) {
   return [];
 }
 
+function sortNotifications(items) {
+  return [...items].sort((left, right) => {
+    const leftTime = new Date(left?.createdAt || 0).getTime() || 0;
+    const rightTime = new Date(right?.createdAt || 0).getTime() || 0;
+    return rightTime - leftTime;
+  });
+}
+
 function formatDateTime(value) {
   if (!value) {
     return "-";
@@ -49,13 +57,14 @@ export default function Notifications() {
     () => notifications.filter((item) => !item.read).length,
     [notifications]
   );
+  const totalCount = notifications.length;
 
   const loadNotifications = async () => {
     try {
       setLoading(true);
       setError("");
       const res = await getMyNotifications();
-      setNotifications(normalizeNotifications(res?.data));
+      setNotifications(sortNotifications(normalizeNotifications(res?.data)));
     } catch (loadError) {
       console.error("Cannot load notifications", loadError);
       setError("Không thể tải danh sách thông báo. Vui lòng thử lại.");
@@ -113,22 +122,40 @@ export default function Notifications() {
     <main className="notifications-page">
       <section className="notifications-shell">
         <header className="notifications-header">
-          <div>
-            <p className="notifications-tag">Notification center</p>
+          <div className="notifications-header-main">
+            <p className="notifications-tag">Trung tâm thông báo</p>
             <h1>Thông báo của bạn</h1>
             <p>Theo dõi cập nhật booking, payment, tranh chấp và thông tin quan trọng khác.</p>
+            <div className="notifications-summary">
+              <div className="notifications-stat">
+                <span>Tổng thông báo</span>
+                <strong>{totalCount}</strong>
+              </div>
+              <div className="notifications-stat unread">
+                <span>Chưa đọc</span>
+                <strong>{unreadCount}</strong>
+              </div>
+            </div>
           </div>
           <div className="notifications-actions">
-            <button type="button" className="btn-outline" onClick={() => navigate(backPath)}>
+            <button
+              type="button"
+              className="notifications-btn notifications-btn-outline"
+              onClick={() => navigate(backPath)}
+            >
               Quay lại
             </button>
             <button
               type="button"
-              className="btn-primary"
+              className="notifications-btn notifications-btn-primary"
               onClick={handleMarkAll}
               disabled={markingAll || unreadCount === 0}
             >
-              {markingAll ? "Đang cập nhật..." : `Đánh dấu đã đọc (${unreadCount})`}
+              {markingAll
+                ? "Đang cập nhật..."
+                : unreadCount > 0
+                ? `Đánh dấu tất cả đã đọc (${unreadCount})`
+                : "Đã đọc hết"}
             </button>
           </div>
         </header>
@@ -138,7 +165,11 @@ export default function Notifications() {
         ) : error ? (
           <div className="notifications-state error">
             <p>{error}</p>
-            <button type="button" className="btn-primary" onClick={loadNotifications}>
+            <button
+              type="button"
+              className="notifications-btn notifications-btn-primary"
+              onClick={loadNotifications}
+            >
               Thử tải lại
             </button>
           </div>
@@ -163,7 +194,7 @@ export default function Notifications() {
                 {!item.read ? (
                   <button
                     type="button"
-                    className="btn-outline small"
+                    className="notifications-btn notifications-btn-outline small"
                     disabled={markingId === item.id}
                     onClick={() => handleMarkAsRead(item.id)}
                   >

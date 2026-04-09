@@ -186,6 +186,7 @@ class BusinessFlowIntegrationTest {
                 hostAccessService,
                 hotelRepository,
                 roomRepository,
+                bookingRepository,
                 roomInventoryService,
                 auditLogService,
                 uploadStorageService);
@@ -194,6 +195,7 @@ class BusinessFlowIntegrationTest {
                 hostAccessService,
                 hotelRepository,
                 roomRepository,
+                bookingRepository,
                 roomInventoryService,
                 auditLogService,
                 uploadStorageService);
@@ -212,6 +214,7 @@ class BusinessFlowIntegrationTest {
         paymentService = new PaymentService(
                 bookingRepository,
                 userRepository,
+                roomRepository,
                 paymentWebhookEventRepository,
                 auditLogService,
                 notificationService);

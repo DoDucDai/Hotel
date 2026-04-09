@@ -27,10 +27,12 @@ import com.example.hotelbooking.model.BookingStatus;
 import com.example.hotelbooking.model.PaymentMethod;
 import com.example.hotelbooking.model.PaymentStatus;
 import com.example.hotelbooking.model.PaymentWebhookEvent;
+import com.example.hotelbooking.model.Room;
 import com.example.hotelbooking.model.Role;
 import com.example.hotelbooking.model.User;
 import com.example.hotelbooking.repository.BookingRepository;
 import com.example.hotelbooking.repository.PaymentWebhookEventRepository;
+import com.example.hotelbooking.repository.RoomRepository;
 import com.example.hotelbooking.repository.UserRepository;
 
 @Service
@@ -42,6 +44,7 @@ public class PaymentService {
 
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
+    private final RoomRepository roomRepository;
     private final PaymentWebhookEventRepository paymentWebhookEventRepository;
     private final AuditLogService auditLogService;
     private final NotificationService notificationService;
@@ -76,11 +79,13 @@ public class PaymentService {
     public PaymentService(
             BookingRepository bookingRepository,
             UserRepository userRepository,
+            RoomRepository roomRepository,
             PaymentWebhookEventRepository paymentWebhookEventRepository,
             AuditLogService auditLogService,
             NotificationService notificationService) {
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
+        this.roomRepository = roomRepository;
         this.paymentWebhookEventRepository = paymentWebhookEventRepository;
         this.auditLogService = auditLogService;
         this.notificationService = notificationService;
@@ -117,21 +122,42 @@ public class PaymentService {
         response.setAmount(amount);
         response.setCurrency("VND");
         response.setPaymentMethod(booking.getPaymentMethod().name());
-        response.setInstruction(buildPaymentInstruction(booking.getPaymentMethod(), booking.getId()));
+        response.setInstruction(
+                buildPaymentInstruction(
+                        booking.getPaymentMethod(),
+                        booking.getId(),
+                        resolvePayoutUserForBooking(booking)));
 
         return response;
     }
 
     public PaymentInstructionsResponse getPaymentInstructions() {
+        return getPaymentInstructions(null);
+    }
+
+    public PaymentInstructionsResponse getPaymentInstructions(String roomId) {
+        return getPaymentInstructions(roomId, null);
+    }
+
+    public PaymentInstructionsResponse getPaymentInstructions(String roomId, String requesterEmail) {
+        User requester = resolveUserByEmail(requesterEmail);
+        User payoutOwner = null;
+        if (requester != null && requester.getRole() == Role.ADMIN) {
+            payoutOwner = resolvePayoutUserForRoomId(roomId);
+        }
+
         PaymentInstructionsResponse response = new PaymentInstructionsResponse();
-        response.setBankTransfer(buildPaymentInstruction(PaymentMethod.BANK_TRANSFER, null));
-        response.setEWallet(buildPaymentInstruction(PaymentMethod.E_WALLET, null));
+        response.setBankTransfer(buildPaymentInstruction(PaymentMethod.BANK_TRANSFER, null, payoutOwner));
+        response.setEWallet(buildPaymentInstruction(PaymentMethod.E_WALLET, null, null));
         return response;
     }
 
     public PaymentInstructionResponse getInstructionForBooking(String bookingId) {
         Booking booking = getBookingById(bookingId);
-        return buildPaymentInstruction(booking.getPaymentMethod(), booking.getId());
+        return buildPaymentInstruction(
+                booking.getPaymentMethod(),
+                booking.getId(),
+                resolvePayoutUserForBooking(booking));
     }
 
     public Map<String, Object> processSandboxWebhook(SandboxPaymentWebhookRequest request) {
@@ -278,7 +304,10 @@ public class PaymentService {
         return SANDBOX_PROVIDER + ":" + transactionRef;
     }
 
-    private PaymentInstructionResponse buildPaymentInstruction(PaymentMethod paymentMethod, String bookingId) {
+    private PaymentInstructionResponse buildPaymentInstruction(
+            PaymentMethod paymentMethod,
+            String bookingId,
+            User payoutOwner) {
         PaymentMethod safeMethod = paymentMethod == null ? PaymentMethod.PAY_AT_HOTEL : paymentMethod;
         PaymentInstructionResponse response = new PaymentInstructionResponse();
         response.setMethod(safeMethod.name());
@@ -286,6 +315,14 @@ public class PaymentService {
         response.setTransferContent(buildTransferContent(bookingId));
 
         if (safeMethod == PaymentMethod.BANK_TRANSFER) {
+            if (hasHostPayoutBankAccount(payoutOwner)) {
+                response.setProviderName(coalesce(nonBlankTrim(payoutOwner.getBankProvider()), manualBankProvider));
+                response.setAccountName(resolveHostBankAccountName(payoutOwner));
+                response.setAccountNumber(nonBlankTrim(payoutOwner.getBankAccountNumber()));
+                response.setNote("Chuyen khoan vao STK cua chu khach san va giu nguyen noi dung de doi soat booking.");
+                return response;
+            }
+
             response.setProviderName(manualBankProvider);
             response.setAccountName(manualBankAccountName);
             response.setAccountNumber(manualBankAccountNumber);
@@ -304,6 +341,73 @@ public class PaymentService {
         response.setProviderName("Thanh toan tai khach san");
         response.setNote("Ban thanh toan truc tiep khi check-in tai khach san.");
         return response;
+    }
+
+    private User resolvePayoutUserForBooking(Booking booking) {
+        if (booking == null) {
+            return null;
+        }
+
+        return resolvePayoutUserForRoomId(booking.getRoomId());
+    }
+
+    private User resolvePayoutUserForRoomId(String roomId) {
+        String normalizedRoomId = nonBlankTrim(roomId);
+        if (normalizedRoomId == null) {
+            return null;
+        }
+
+        Room room = roomRepository.findById(normalizedRoomId).orElse(null);
+        if (room == null) {
+            return null;
+        }
+
+        String ownerId = nonBlankTrim(room.getOwnerId());
+        if (ownerId == null) {
+            return null;
+        }
+
+        return userRepository.findById(ownerId).orElse(null);
+    }
+
+    private User resolveUserByEmail(String email) {
+        String normalizedEmail = nonBlankTrim(email);
+        if (normalizedEmail == null) {
+            return null;
+        }
+
+        return userRepository.findByEmail(normalizedEmail.toLowerCase()).orElse(null);
+    }
+
+    private boolean hasHostPayoutBankAccount(User payoutOwner) {
+        if (payoutOwner == null) {
+            return false;
+        }
+
+        return nonBlankTrim(resolveHostBankAccountName(payoutOwner)) != null
+                && nonBlankTrim(payoutOwner.getBankAccountNumber()) != null;
+    }
+
+    private String resolveHostBankAccountName(User payoutOwner) {
+        String accountName = nonBlankTrim(payoutOwner.getBankAccountName());
+        if (accountName != null) {
+            return accountName;
+        }
+
+        return nonBlankTrim(payoutOwner.getName());
+    }
+
+    private String nonBlankTrim(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String normalized = value.trim();
+        return normalized.isBlank() ? null : normalized;
+    }
+
+    private String coalesce(String primary, String fallback) {
+        return primary == null ? fallback : primary;
     }
 
     private String getPaymentMethodLabel(PaymentMethod paymentMethod) {

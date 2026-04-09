@@ -16,7 +16,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.example.hotelbooking.dto.UpdateBookingStatusRequest;
+import com.example.hotelbooking.exception.ForbiddenException;
 import com.example.hotelbooking.model.Booking;
+import com.example.hotelbooking.model.BookingStatus;
 import com.example.hotelbooking.model.Role;
 import com.example.hotelbooking.model.User;
 import com.example.hotelbooking.repository.BookingRepository;
@@ -123,5 +126,67 @@ class BookingServiceTest {
 
         assertEquals("Ban khong co quyen thao tac booking nay", ex.getMessage());
         verify(bookingRepository, never()).deleteById("booking-1");
+    }
+
+    @Test
+    void updateBookingStatusPersistsNoteWhenProvided() {
+        User admin = new User();
+        admin.setId("admin-id");
+        admin.setEmail("admin@example.com");
+        admin.setRole(Role.ADMIN);
+
+        Booking booking = new Booking();
+        booking.setId("booking-1");
+        booking.setUserId("user-1");
+        booking.setStatus(BookingStatus.CONFIRMED);
+        booking.setNote("Old note");
+
+        UpdateBookingStatusRequest request = new UpdateBookingStatusRequest();
+        request.setStatus(BookingStatus.CHECKED_IN);
+        request.setNote("  Guest da check-in luc 14:00  ");
+
+        when(userRepository.findByEmail("admin@example.com")).thenReturn(Optional.of(admin));
+        when(bookingRepository.findById("booking-1")).thenReturn(Optional.of(booking));
+        when(bookingRepository.save(booking)).thenReturn(booking);
+
+        Booking updated = bookingService.updateBookingStatus("booking-1", "admin@example.com", request);
+
+        assertEquals(BookingStatus.CHECKED_IN, updated.getStatus());
+        assertEquals("Guest da check-in luc 14:00", updated.getNote());
+        verify(bookingRepository).save(booking);
+    }
+
+    @Test
+    void getBookingsByRoomFailsWhenUserIsNotAdmin() {
+        User user = new User();
+        user.setId("user-id");
+        user.setEmail("user@example.com");
+        user.setRole(Role.USER);
+
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+
+        ForbiddenException ex = assertThrows(
+                ForbiddenException.class,
+                () -> bookingService.getBookingsByRoom("room-1", "user@example.com"));
+
+        assertEquals("Ban khong co quyen xem booking theo room", ex.getMessage());
+        verify(bookingRepository, never()).findByRoomId(anyString());
+    }
+
+    @Test
+    void getTotalRevenueFailsWhenUserIsNotAdmin() {
+        User user = new User();
+        user.setId("user-id");
+        user.setEmail("user@example.com");
+        user.setRole(Role.USER);
+
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+
+        ForbiddenException ex = assertThrows(
+                ForbiddenException.class,
+                () -> bookingService.getTotalRevenue("user@example.com"));
+
+        assertEquals("Ban khong co quyen xem doanh thu he thong", ex.getMessage());
+        verify(bookingRepository, never()).findAll();
     }
 }

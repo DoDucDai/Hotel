@@ -3,6 +3,9 @@
   gender: "",
   dateOfBirth: "",
   citizenId: "",
+  bankProvider: "",
+  bankAccountName: "",
+  bankAccountNumber: "",
 };
 
 export const currencyFormatter = new Intl.NumberFormat("vi-VN", {
