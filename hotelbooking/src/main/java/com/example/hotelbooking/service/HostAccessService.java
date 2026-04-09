@@ -1,5 +1,8 @@
 package com.example.hotelbooking.service;
 
+import java.util.Objects;
+
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.hotelbooking.exception.BadRequestException;
@@ -21,30 +24,31 @@ public class HostAccessService {
         this.userRepository = userRepository;
     }
 
-    public User requireCurrentUser(String email) {
+    public @NonNull User requireCurrentUser(String email) {
         String normalizedEmail = requireEmail(email);
-        return userRepository.findByEmail(normalizedEmail)
+        User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new NotFoundException("User not found"));
+        return Objects.requireNonNull(user, "User is required");
     }
 
-    public String requireEmail(String email) {
+    public @NonNull String requireEmail(String email) {
         if (email == null || email.isBlank()) {
             throw new UnauthorizedException("Unauthorized");
         }
 
-        return email.trim().toLowerCase();
+        return Objects.requireNonNull(email, "Email is required").trim().toLowerCase();
     }
 
     public boolean isAdmin(User user) {
         return user != null && user.getRole() == Role.ADMIN;
     }
 
-    public String requireUserId(User user) {
+    public @NonNull String requireUserId(User user) {
         if (user == null || user.getId() == null || user.getId().isBlank()) {
             throw new UnauthorizedException("Current user id is missing");
         }
 
-        return user.getId();
+        return Objects.requireNonNull(user.getId(), "User id is required");
     }
 
     public void assertHotelOwner(User user, Hotel hotel) {
@@ -67,7 +71,7 @@ public class HostAccessService {
         }
     }
 
-    public String requireNonBlank(String value, String message) {
+    public @NonNull String requireNonBlank(String value, @NonNull String message) {
         if (value == null || value.isBlank()) {
             throw new BadRequestException(message);
         }

@@ -3,7 +3,9 @@ package com.example.hotelbooking.service;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.hotelbooking.dto.RoomInventoryDayDTO;
@@ -113,7 +115,7 @@ public class RoomInventoryService {
     }
 
     public RoomInventoryBlock saveBlock(RoomInventoryBlock block) {
-        return roomInventoryBlockRepository.save(block);
+        return roomInventoryBlockRepository.save(Objects.requireNonNull(block, "Inventory block is required"));
     }
 
     public RoomInventoryBlock getBlockById(String blockId) {
@@ -160,7 +162,7 @@ public class RoomInventoryService {
                 && !date.isAfter(block.getEndDate());
     }
 
-    private String requireNonBlank(String value, String message) {
+    private @NonNull String requireNonBlank(String value, @NonNull String message) {
         if (value == null || value.isBlank()) {
             throw new BadRequestException(message);
         }

@@ -1,5 +1,6 @@
 package com.example.hotelbooking.service;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -44,7 +45,7 @@ public class UploadStorageService {
             validateImage(file);
 
             String originalName = StringUtils.cleanPath(
-                    Objects.toString(file.getOriginalFilename(), "image"));
+                    Objects.requireNonNull(Objects.toString(file.getOriginalFilename(), "image")));
             String safeName = originalName.replaceAll("[^a-zA-Z0-9._-]", "_");
             if (safeName.isBlank()) {
                 safeName = "image";
@@ -57,7 +58,8 @@ public class UploadStorageService {
                     + safeName;
 
             Path destination = uploadRoot.resolve(fileName).normalize();
-            file.transferTo(destination.toFile());
+            File destinationFile = Objects.requireNonNull(destination.toFile(), "Destination file is required");
+            file.transferTo(destinationFile);
             storedUrls.add("/uploads/" + fileName);
         }
 

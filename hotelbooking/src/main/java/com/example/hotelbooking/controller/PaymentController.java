@@ -5,6 +5,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -309,7 +310,8 @@ public class PaymentController {
                 + "/account?focus=payments&paymentStatus=" + encode(paymentStatus)
                 + "&bookingId=" + encode(bookingId);
 
-        return ResponseEntity.status(302).location(URI.create(redirectUrl)).build();
+        URI redirectUri = Objects.requireNonNull(URI.create(redirectUrl), "Redirect URI is required");
+        return ResponseEntity.status(302).location(redirectUri).build();
     }
 
     private String encode(String value) {

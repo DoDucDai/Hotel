@@ -13,6 +13,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.hotelbooking.dto.PaymentInstructionResponse;
@@ -495,7 +496,7 @@ public class PaymentService {
         }
     }
 
-    private String requireNonBlank(String value, String message) {
+    private @NonNull String requireNonBlank(String value, @NonNull String message) {
         if (value == null || value.isBlank()) {
             throw new BadRequestException(message);
         }

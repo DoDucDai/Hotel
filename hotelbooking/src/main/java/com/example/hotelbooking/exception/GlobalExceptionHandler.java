@@ -1,6 +1,7 @@
 package com.example.hotelbooking.exception;
 
 import java.time.Instant;
+import java.util.Objects;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,14 +27,15 @@ public class GlobalExceptionHandler {
     }
 
     private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String message) {
-        String resolvedMessage = (message == null || message.isBlank()) ? status.getReasonPhrase() : message;
+        HttpStatus resolvedStatus = Objects.requireNonNull(status, "HttpStatus is required");
+        String resolvedMessage = (message == null || message.isBlank()) ? resolvedStatus.getReasonPhrase() : message;
 
         return ResponseEntity
-                .status(status)
+                .status(resolvedStatus)
                 .body(new ErrorResponse(
                         resolvedMessage,
                         resolvedMessage,
-                        status.value(),
+                        resolvedStatus.value(),
                         Instant.now()
                 ));
     }

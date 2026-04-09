@@ -1,17 +1,20 @@
 package com.example.hotelbooking.exception;
 
+import java.util.Objects;
+
 import org.springframework.http.HttpStatus;
+import org.springframework.lang.NonNull;
 
 public abstract class ApiException extends RuntimeException {
 
-    private final HttpStatus status;
+    private final @NonNull HttpStatus status;
 
-    protected ApiException(HttpStatus status, String message) {
+    protected ApiException(@NonNull HttpStatus status, String message) {
         super(message);
-        this.status = status;
+        this.status = Objects.requireNonNull(status, "HttpStatus is required");
     }
 
-    public HttpStatus getStatus() {
+    public @NonNull HttpStatus getStatus() {
         return status;
     }
 }

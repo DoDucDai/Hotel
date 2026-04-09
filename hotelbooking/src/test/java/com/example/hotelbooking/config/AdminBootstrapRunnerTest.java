@@ -22,6 +22,7 @@ import com.example.hotelbooking.model.User;
 import com.example.hotelbooking.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("null")
 class AdminBootstrapRunnerTest {
 
     @Mock

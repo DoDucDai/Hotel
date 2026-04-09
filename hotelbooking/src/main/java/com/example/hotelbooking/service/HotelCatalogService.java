@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -230,7 +231,11 @@ public class HotelCatalogService {
             }
 
             double price = Math.max(room.getPrice(), 0);
-            minByHotel.merge(room.getHotelId(), price, Math::min);
+            String hotelId = room.getHotelId();
+            Double currentMin = minByHotel.get(hotelId);
+            if (currentMin == null || price < currentMin) {
+                minByHotel.put(hotelId, price);
+            }
         }
         return minByHotel;
     }
@@ -414,7 +419,7 @@ public class HotelCatalogService {
         return normalized.isEmpty() ? null : normalized;
     }
 
-    private String requireNonBlank(String value, String message) {
+    private @NonNull String requireNonBlank(String value, @NonNull String message) {
         if (value == null || value.isBlank()) {
             throw new BadRequestException(message);
         }

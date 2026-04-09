@@ -3,8 +3,10 @@ package com.example.hotelbooking.service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.hotelbooking.dto.WishlistItemResponse;
@@ -44,7 +46,8 @@ public class WishlistService {
                 .distinct()
                 .toList();
 
-        Map<String, Hotel> hotelsById = hotelRepository.findAllById(hotelIds)
+        Map<String, Hotel> hotelsById = hotelRepository.findAllById(
+                        Objects.requireNonNull(hotelIds, "Hotel ids are required"))
                 .stream()
                 .collect(Collectors.toMap(Hotel::getId, hotel -> hotel));
 
@@ -82,7 +85,7 @@ public class WishlistService {
                 .orElseThrow(() -> new UnauthorizedException("User not found"));
     }
 
-    private String requireNonBlank(String value, String message) {
+    private @NonNull String requireNonBlank(String value, @NonNull String message) {
         if (value == null || value.isBlank()) {
             if ("Unauthorized".equalsIgnoreCase(message)) {
                 throw new UnauthorizedException(message);

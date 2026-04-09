@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.hotelbooking.exception.BadRequestException;
@@ -66,14 +67,14 @@ public class CouponService {
                 .orElseThrow(() -> new NotFoundException("Coupon khong ton tai"));
 
         applyCouponChanges(coupon, payload);
-        return couponRepository.save(coupon);
+        return couponRepository.save(Objects.requireNonNull(coupon));
     }
 
     public void deleteCoupon(String id) {
         Coupon coupon = couponRepository.findById(requireNonBlank(id, "Coupon id is required"))
                 .orElseThrow(() -> new NotFoundException("Coupon khong ton tai"));
 
-        couponRepository.delete(coupon);
+        couponRepository.delete(Objects.requireNonNull(coupon));
     }
 
     public Coupon validateCoupon(String code, double orderAmount) {
@@ -232,7 +233,7 @@ public class CouponService {
         return normalized.isEmpty() ? null : normalized;
     }
 
-    private String requireNonBlank(String value, String message) {
+    private @NonNull String requireNonBlank(String value, @NonNull String message) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(message);
         }

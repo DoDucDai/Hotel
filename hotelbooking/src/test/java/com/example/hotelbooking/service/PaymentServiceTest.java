@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -32,6 +33,7 @@ import com.example.hotelbooking.repository.RoomRepository;
 import com.example.hotelbooking.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("null")
 class PaymentServiceTest {
 
     @Mock
@@ -63,15 +65,17 @@ class PaymentServiceTest {
                 auditLogService,
                 notificationService);
 
-        ReflectionTestUtils.setField(paymentService, "frontendUrl", "http://localhost:5173");
-        ReflectionTestUtils.setField(paymentService, "backendUrl", "http://localhost:8080");
-        ReflectionTestUtils.setField(paymentService, "sandboxSecret", "unit-test-secret-123");
-        ReflectionTestUtils.setField(paymentService, "manualBankProvider", "MB Bank");
-        ReflectionTestUtils.setField(paymentService, "manualBankAccountName", "HOTEL BOOKING");
-        ReflectionTestUtils.setField(paymentService, "manualBankAccountNumber", "123456789");
-        ReflectionTestUtils.setField(paymentService, "manualWalletProvider", "MoMo");
-        ReflectionTestUtils.setField(paymentService, "manualWalletAccountName", "HOTEL BOOKING");
-        ReflectionTestUtils.setField(paymentService, "manualWalletAccountNumber", "123456789");
+        PaymentService initializedPaymentService =
+                Objects.requireNonNull(paymentService, "PaymentService should be initialized");
+        ReflectionTestUtils.setField(initializedPaymentService, "frontendUrl", "http://localhost:5173");
+        ReflectionTestUtils.setField(initializedPaymentService, "backendUrl", "http://localhost:8080");
+        ReflectionTestUtils.setField(initializedPaymentService, "sandboxSecret", "unit-test-secret-123");
+        ReflectionTestUtils.setField(initializedPaymentService, "manualBankProvider", "MB Bank");
+        ReflectionTestUtils.setField(initializedPaymentService, "manualBankAccountName", "HOTEL BOOKING");
+        ReflectionTestUtils.setField(initializedPaymentService, "manualBankAccountNumber", "123456789");
+        ReflectionTestUtils.setField(initializedPaymentService, "manualWalletProvider", "MoMo");
+        ReflectionTestUtils.setField(initializedPaymentService, "manualWalletAccountName", "HOTEL BOOKING");
+        ReflectionTestUtils.setField(initializedPaymentService, "manualWalletAccountNumber", "123456789");
     }
 
     @Test
@@ -118,9 +122,10 @@ class PaymentServiceTest {
         booking.setFinalPrice(500_000);
 
         when(bookingRepository.findById("booking-2")).thenReturn(Optional.of(booking));
-        when(bookingRepository.save(any(Booking.class))).thenAnswer((invocation) -> invocation.getArgument(0));
+        when(bookingRepository.save(any(Booking.class)))
+                .thenAnswer((invocation) -> Objects.requireNonNull(invocation.getArgument(0, Booking.class)));
         when(paymentWebhookEventRepository.save(any(PaymentWebhookEvent.class)))
-                .thenAnswer((invocation) -> invocation.getArgument(0));
+                .thenAnswer((invocation) -> Objects.requireNonNull(invocation.getArgument(0, PaymentWebhookEvent.class)));
         when(userRepository.findByEmail("system@hotelbooking.local")).thenReturn(Optional.empty());
 
         String signature = paymentService.buildSandboxWebhookSignature(

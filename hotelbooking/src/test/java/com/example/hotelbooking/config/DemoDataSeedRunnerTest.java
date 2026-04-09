@@ -38,6 +38,7 @@ import com.example.hotelbooking.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
+@SuppressWarnings("null")
 class DemoDataSeedRunnerTest {
 
     @Mock

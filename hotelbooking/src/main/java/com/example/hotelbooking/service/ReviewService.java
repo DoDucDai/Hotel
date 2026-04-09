@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.hotelbooking.dto.CreateReviewRequest;
@@ -100,10 +101,12 @@ public class ReviewService {
     }
 
     private void refreshHotelRating(String hotelId) {
-        Hotel hotel = hotelRepository.findById(hotelId)
+        String normalizedHotelId = requireNonBlank(hotelId, "Hotel id is required");
+
+        Hotel hotel = hotelRepository.findById(normalizedHotelId)
                 .orElseThrow(() -> new NotFoundException("Hotel khong ton tai"));
 
-        List<Review> reviews = reviewRepository.findByHotelIdOrderByCreatedAtDesc(hotelId);
+        List<Review> reviews = reviewRepository.findByHotelIdOrderByCreatedAtDesc(normalizedHotelId);
         double averageRating = reviews.stream()
                 .mapToInt(Review::getRating)
                 .average()
@@ -143,7 +146,7 @@ public class ReviewService {
         return normalized.isEmpty() ? null : normalized;
     }
 
-    private String requireNonBlank(String value, String message) {
+    private @NonNull String requireNonBlank(String value, @NonNull String message) {
         if (value == null || value.isBlank()) {
             if ("Unauthorized".equalsIgnoreCase(message)) {
                 throw new UnauthorizedException(message);

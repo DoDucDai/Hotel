@@ -115,7 +115,8 @@ public class HostDashboardService {
                 .distinct()
                 .toList();
 
-        Map<String, User> userById = userRepository.findAllById(bookingUserIds)
+        Map<String, User> userById = userRepository.findAllById(
+                        Objects.requireNonNull(bookingUserIds, "Booking user ids are required"))
                 .stream()
                 .filter(account -> account.getId() != null)
                 .collect(Collectors.toMap(User::getId, Function.identity(), (left, right) -> left));

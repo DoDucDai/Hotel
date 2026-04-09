@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.lang.NonNull;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -187,7 +188,7 @@ public class NotificationService {
         return dto;
     }
 
-    private void sendNotificationEmail(String userId, Notification notification) {
+    private void sendNotificationEmail(@NonNull String userId, Notification notification) {
         try {
             User targetUser = userRepository.findById(userId).orElse(null);
             if (targetUser == null || targetUser.getEmail() == null || targetUser.getEmail().isBlank()) {
@@ -223,7 +224,7 @@ public class NotificationService {
                 .orElseThrow(() -> new UnauthorizedException("User not found"));
     }
 
-    private String requireNonBlank(String value, String message) {
+    private @NonNull String requireNonBlank(String value, @NonNull String message) {
         if (value == null || value.isBlank()) {
             if ("Unauthorized".equalsIgnoreCase(message)) {
                 throw new UnauthorizedException(message);

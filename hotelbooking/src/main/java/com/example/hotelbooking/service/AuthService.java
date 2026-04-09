@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 
+import org.springframework.lang.NonNull;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -169,7 +170,8 @@ public class AuthService {
 
     public Map<String, Object> verifyEmail(String token) {
         AuthActionToken authToken = authTokenService.requireValidToken(token, AuthActionType.EMAIL_VERIFICATION);
-        User user = userRepository.findById(authToken.getUserId())
+        String userId = requireNonBlank(authToken.getUserId(), "Token does not contain user id");
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
         user.setEmailVerified(Boolean.TRUE);
@@ -218,7 +220,8 @@ public class AuthService {
                 AuthActionType.PASSWORD_RESET);
         String newPassword = requirePassword(safeRequest.getPassword());
 
-        User user = userRepository.findById(authToken.getUserId())
+        String userId = requireNonBlank(authToken.getUserId(), "Token does not contain user id");
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -228,7 +231,7 @@ public class AuthService {
         return Map.of("message", "Dat lai mat khau thanh cong. Ban co the dang nhap lai");
     }
 
-    private String requireNonBlank(String value, String message) {
+    private @NonNull String requireNonBlank(String value, @NonNull String message) {
         if (value == null || value.isBlank()) {
             throw new BadRequestException(message);
         }

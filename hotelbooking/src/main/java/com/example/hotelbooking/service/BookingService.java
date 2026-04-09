@@ -6,6 +6,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.hotelbooking.dto.CancelBookingRequest;
@@ -215,7 +216,7 @@ public class BookingService {
 
         Booking savedBooking = roomBookingLockService.executeWithLock(booking.getRoomId(), () -> {
             Booking lockedBooking = getBookingById(bookingId);
-            Room room = roomRepository.findById(lockedBooking.getRoomId())
+            Room room = roomRepository.findById(requireNonBlank(lockedBooking.getRoomId(), "Room id is required"))
                     .orElseThrow(() -> new NotFoundException("Room not found"));
             int availableUnits = roomInventoryService.getMinimumAvailableUnits(
                     room,
@@ -481,12 +482,14 @@ public class BookingService {
     }
 
     private Hotel getHotelByRoomId(String roomId) {
-        Room room = roomRepository.findById(roomId).orElse(null);
+        String normalizedRoomId = requireNonBlank(roomId, "Room id is required");
+        Room room = roomRepository.findById(normalizedRoomId).orElse(null);
         if (room == null || room.getHotelId() == null) {
             return null;
         }
 
-        return hotelRepository.findById(room.getHotelId()).orElse(null);
+        String hotelId = room.getHotelId();
+        return hotelRepository.findById(Objects.requireNonNull(hotelId)).orElse(null);
     }
 
     private String trimToNull(String value) {
@@ -498,7 +501,7 @@ public class BookingService {
         return normalized.isEmpty() ? null : normalized;
     }
 
-    private String requireNonBlank(String value, String message) {
+    private @NonNull String requireNonBlank(String value, @NonNull String message) {
         if (value == null || value.isBlank()) {
             if ("Unauthorized".equalsIgnoreCase(message)) {
                 throw new UnauthorizedException(message);

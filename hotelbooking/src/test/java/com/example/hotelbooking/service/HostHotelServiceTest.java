@@ -30,6 +30,7 @@ import com.example.hotelbooking.repository.HotelRepository;
 import com.example.hotelbooking.repository.RoomRepository;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("null")
 class HostHotelServiceTest {
 
     @Mock

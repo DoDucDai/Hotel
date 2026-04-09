@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.hotelbooking.dto.AdminDashboardDTO;
@@ -143,7 +144,7 @@ public class AdminService {
         return Math.max(gross - Math.max(booking.getRefundAmount(), 0), 0);
     }
 
-    private String requireNonBlank(String value, String message) {
+    private @NonNull String requireNonBlank(String value, @NonNull String message) {
         if (value == null || value.isBlank()) {
             if ("Unauthorized".equalsIgnoreCase(message)) {
                 throw new UnauthorizedException(message);

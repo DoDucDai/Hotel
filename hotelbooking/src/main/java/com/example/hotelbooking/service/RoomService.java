@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.springframework.lang.NonNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -40,7 +41,7 @@ public class RoomService {
         this.roomInventoryService = roomInventoryService;
     }
 
-    private String requireNonBlank(String value, String message) {
+    private @NonNull String requireNonBlank(String value, @NonNull String message) {
         if (value == null || value.isBlank()) {
             throw new BadRequestException(message);
         }
@@ -63,7 +64,7 @@ public class RoomService {
             List<RoomDTO> content = visibleRooms.stream()
                     .map(this::toRoomDtoForCatalog)
                     .toList();
-            return new PageImpl<>(content, safePageable, visibleRooms.size());
+            return new PageImpl<>(Objects.requireNonNull(content), safePageable, visibleRooms.size());
         }
 
         int pageSize = Math.max(safePageable.getPageSize(), 1);
@@ -74,7 +75,7 @@ public class RoomService {
         List<RoomDTO> content = visibleRooms.subList(start, end).stream()
                 .map(this::toRoomDtoForCatalog)
                 .toList();
-        return new PageImpl<>(content, safePageable, visibleRooms.size());
+        return new PageImpl<>(Objects.requireNonNull(content), safePageable, visibleRooms.size());
     }
 
     public Room getRoomById(String id) {

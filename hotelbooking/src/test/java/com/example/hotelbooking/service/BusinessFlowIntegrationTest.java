@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
@@ -46,6 +47,7 @@ import com.example.hotelbooking.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
+@SuppressWarnings("null")
 class BusinessFlowIntegrationTest {
 
     @Mock
@@ -218,9 +220,11 @@ class BusinessFlowIntegrationTest {
                 paymentWebhookEventRepository,
                 auditLogService,
                 notificationService);
-        ReflectionTestUtils.setField(paymentService, "backendUrl", "http://localhost:8080");
-        ReflectionTestUtils.setField(paymentService, "frontendUrl", "http://localhost:5173");
-        ReflectionTestUtils.setField(paymentService, "sandboxSecret", "test-sandbox-secret-123");
+        PaymentService initializedPaymentService =
+                Objects.requireNonNull(paymentService, "PaymentService should be initialized");
+        ReflectionTestUtils.setField(initializedPaymentService, "backendUrl", "http://localhost:8080");
+        ReflectionTestUtils.setField(initializedPaymentService, "frontendUrl", "http://localhost:5173");
+        ReflectionTestUtils.setField(initializedPaymentService, "sandboxSecret", "test-sandbox-secret-123");
 
         adminService = new AdminService(
                 userRepository,
@@ -271,14 +275,14 @@ class BusinessFlowIntegrationTest {
                     .findFirst();
         });
         when(userRepository.findById(anyString())).thenAnswer(invocation ->
-                Optional.ofNullable(users.get(invocation.getArgument(0))));
+                Optional.ofNullable(users.get(invocation.getArgument(0, String.class))));
         when(userRepository.findAll()).thenAnswer(invocation -> new ArrayList<>(users.values()));
         when(userRepository.count()).thenAnswer(invocation -> (long) users.size());
 
         when(hotelRepository.findById(anyString())).thenAnswer(invocation ->
-                Optional.ofNullable(hotels.get(invocation.getArgument(0))));
+                Optional.ofNullable(hotels.get(invocation.getArgument(0, String.class))));
         when(hotelRepository.findByOwnerId(anyString())).thenAnswer(invocation -> {
-            String ownerId = invocation.getArgument(0);
+            String ownerId = invocation.getArgument(0, String.class);
             return hotels.values().stream()
                     .filter(hotel -> ownerId.equals(hotel.getOwnerId()))
                     .toList();
@@ -286,7 +290,7 @@ class BusinessFlowIntegrationTest {
         when(hotelRepository.findAll()).thenAnswer(invocation -> new ArrayList<>(hotels.values()));
         when(hotelRepository.count()).thenAnswer(invocation -> (long) hotels.size());
         when(hotelRepository.save(any(Hotel.class))).thenAnswer(invocation -> {
-            Hotel hotel = invocation.getArgument(0);
+            Hotel hotel = Objects.requireNonNull(invocation.getArgument(0, Hotel.class));
             if (hotel.getId() == null || hotel.getId().isBlank()) {
                 hotel.setId("h-" + hotelIdSequence.incrementAndGet());
             }
@@ -294,23 +298,23 @@ class BusinessFlowIntegrationTest {
             return hotel;
         });
         when(roomRepository.findById(anyString())).thenAnswer(invocation ->
-                Optional.ofNullable(rooms.get(invocation.getArgument(0))));
+                Optional.ofNullable(rooms.get(invocation.getArgument(0, String.class))));
         when(roomRepository.findAll()).thenAnswer(invocation -> new ArrayList<>(rooms.values()));
         when(roomRepository.count()).thenAnswer(invocation -> (long) rooms.size());
         when(roomRepository.findByHotelId(anyString())).thenAnswer(invocation -> {
-            String hotelId = invocation.getArgument(0);
+            String hotelId = invocation.getArgument(0, String.class);
             return rooms.values().stream()
                     .filter(room -> hotelId.equals(room.getHotelId()))
                     .toList();
         });
         when(roomRepository.findByOwnerId(anyString())).thenAnswer(invocation -> {
-            String ownerId = invocation.getArgument(0);
+            String ownerId = invocation.getArgument(0, String.class);
             return rooms.values().stream()
                     .filter(room -> ownerId.equals(room.getOwnerId()))
                     .toList();
         });
         when(roomRepository.save(any(Room.class))).thenAnswer(invocation -> {
-            Room room = invocation.getArgument(0);
+            Room room = Objects.requireNonNull(invocation.getArgument(0, Room.class));
             if (room.getId() == null || room.getId().isBlank()) {
                 room.setId("r-" + roomIdSequence.incrementAndGet());
             }
@@ -318,23 +322,23 @@ class BusinessFlowIntegrationTest {
             return room;
         });
         when(bookingRepository.findById(anyString())).thenAnswer(invocation ->
-                Optional.ofNullable(bookings.get(invocation.getArgument(0))));
+                Optional.ofNullable(bookings.get(invocation.getArgument(0, String.class))));
         when(bookingRepository.findAll()).thenAnswer(invocation -> new ArrayList<>(bookings.values()));
         when(bookingRepository.count()).thenAnswer(invocation -> (long) bookings.size());
         when(bookingRepository.findByRoomId(anyString())).thenAnswer(invocation -> {
-            String roomId = invocation.getArgument(0);
+            String roomId = invocation.getArgument(0, String.class);
             return bookings.values().stream()
                     .filter(booking -> roomId.equals(booking.getRoomId()))
                     .toList();
         });
         when(bookingRepository.findByUserId(anyString())).thenAnswer(invocation -> {
-            String userId = invocation.getArgument(0);
+            String userId = invocation.getArgument(0, String.class);
             return bookings.values().stream()
                     .filter(booking -> userId.equals(booking.getUserId()))
                     .toList();
         });
         when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> {
-            Booking booking = invocation.getArgument(0);
+            Booking booking = Objects.requireNonNull(invocation.getArgument(0, Booking.class));
             if (booking.getId() == null || booking.getId().isBlank()) {
                 booking.setId("b-" + bookingIdSequence.incrementAndGet());
             }
@@ -347,7 +351,7 @@ class BusinessFlowIntegrationTest {
                         .filter(event -> invocation.getArgument(0, String.class).equals(event.getEventKey()))
                         .findFirst());
         when(paymentWebhookEventRepository.save(any(PaymentWebhookEvent.class))).thenAnswer(invocation -> {
-            PaymentWebhookEvent event = invocation.getArgument(0);
+            PaymentWebhookEvent event = Objects.requireNonNull(invocation.getArgument(0, PaymentWebhookEvent.class));
             if (event.getId() == null || event.getId().isBlank()) {
                 event.setId("w-" + webhookIdSequence.incrementAndGet());
             }

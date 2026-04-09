@@ -3,8 +3,10 @@ package com.example.hotelbooking.service;
 import java.time.Duration;
 import java.time.Instant;
 import java.security.SecureRandom;
+import java.util.Objects;
 import java.util.UUID;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.example.hotelbooking.exception.BadRequestException;
@@ -60,7 +62,7 @@ public class AuthTokenService {
         }
 
         if (token.getExpiresAt() == null || token.getExpiresAt().isBefore(Instant.now())) {
-            authActionTokenRepository.deleteById(token.getId());
+            authActionTokenRepository.deleteById(requireNonBlank(token.getId(), "Token id is required"));
             throw new UnauthorizedException("Token da het han. Vui long tao yeu cau moi");
         }
 
@@ -75,12 +77,12 @@ public class AuthTokenService {
         authActionTokenRepository.deleteByUserIdAndType(userId, type);
     }
 
-    private String requireNonBlank(String value, String message) {
+    private @NonNull String requireNonBlank(String value, @NonNull String message) {
         if (value == null || value.isBlank()) {
             throw new BadRequestException(message);
         }
 
-        return value.trim();
+        return Objects.requireNonNull(value, "Value is required").trim();
     }
 
     private String resolveTokenEmail(User user, String tokenEmail) {
