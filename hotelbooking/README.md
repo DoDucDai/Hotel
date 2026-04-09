@@ -62,7 +62,7 @@ Feature map:
 - Java 17+
 - Maven (or use `mvnw`)
 - Node.js 18+
-- MongoDB running locally (default: `mongodb://localhost:27017/hotelbooking`)
+- MongoDB (local or Atlas). Default fallback: `mongodb://localhost:27017/hotelbooking`
 
 ## 5. Run Backend
 ```powershell
@@ -88,6 +88,7 @@ Main config files:
 - `src/main/resources/application-local.properties` (local override)
 
 Recommended environment variables:
+- `MONGODB_URI` (Atlas/local connection string)
 - `JWT_SECRET` (required, >= 48 bytes)
 - `ALLOWED_ORIGINS` (comma-separated)
 - `APP_BACKEND_URL` (default `http://localhost:8080`)
@@ -100,6 +101,14 @@ Recommended environment variables:
 Optional project `.env` workflow:
 - Copy `.env.example` -> `.env` and fill local values.
 - `.env` is git-ignored, only `.env.example` is committed.
+
+MongoDB Atlas quick setup (de dung chung voi ban):
+1. Trong Atlas, tao `Database User` rieng cho project (khong dung tai khoan ca nhan).
+2. Vao `Network Access`, add IP may cua ban va ban cua ban (hoac `0.0.0.0/0` cho dev, khong khuyen nghi production).
+3. Dat chung URI trong `.env` cua moi nguoi:
+   `MONGODB_URI=mongodb+srv://<db_user>:<db_password>@<cluster-host>/hotelbooking?retryWrites=true&w=majority`
+4. Cung dung cung database name (`hotelbooking`) neu muon chia se du lieu.
+5. Tuyet doi khong commit URI that/password len git.
 
 Demo seed for local testing:
 - Set `APP_DEMO_SEED_ENABLED=true` and `APP_DEMO_SEED_PASSWORD=Demo123!` in `.env`

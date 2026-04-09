@@ -46,6 +46,7 @@ function Login() {
  const returnToBooking = redirectTo === "/booking";
  const registeredEmail = location.state?.registeredEmail || "";
  const [resendEmail, setResendEmail] = useState(registeredEmail);
+ const verificationTargetEmail = (registeredEmail || resendEmail).trim();
 
  const readAuthError = (error, fallback) =>
  error?.response?.data?.error ||
@@ -81,7 +82,12 @@ function Login() {
  }
  } catch (loginError) {
  console.error("Login failed", loginError);
- toast.error(readAuthError(loginError, "Sai email hoac mật khẩu"));
+ const errorMessage = readAuthError(loginError, "Sai email hoac mật khẩu");
+ const normalizedError = String(errorMessage || "").toLowerCase();
+ if (normalizedError.includes("xac nhan") || normalizedError.includes("verify")) {
+ setResendEmail((email || "").trim());
+ }
+ toast.error(errorMessage);
  } finally {
  setLoading(false);
  }
@@ -158,15 +164,15 @@ function Login() {
  </p>
  </div>
 
- {registeredEmail ? (
+ {verificationTargetEmail ? (
  <div className="login-verification-box">
  <div className="login-verification-head">
  <FaCheckCircle />
   <strong>Kiểm tra email xác nhận</strong>
  </div>
  <p>
-  Tài khoản mới của bạn đã được tạo cho <strong>{registeredEmail}</strong>. Nếu
-  chưa thấy thư, bạn có thể gửi lại email xác nhận ngay tại đây.
+  Tài khoản của bạn đang chờ xác nhận email cho <strong>{verificationTargetEmail}</strong>. Nếu
+   chưa thấy thư, bạn có thể gửi lại email xác nhận ngay tại đây.
  </p>
  <div className="login-inline-actions">
  <button

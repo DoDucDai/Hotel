@@ -89,6 +89,11 @@ public class AuthService {
             throw new UnauthorizedException("Invalid username or password");
         }
 
+        if (!Boolean.TRUE.equals(user.getEmailVerified())) {
+            throw new UnauthorizedException(
+                    "Email chua duoc xac nhan. Vui long kiem tra hop thu va xac nhan truoc khi dang nhap");
+        }
+
         String accessToken = JwtUtil.generateToken(
                 user.getEmail(),
                 user.getRole().name()
