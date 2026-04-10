@@ -69,6 +69,7 @@ public class BookingService {
     public Booking createBooking(CreateBookingRequest request, String email) {
         CreateBookingRequest safeRequest = Objects.requireNonNull(request, "Booking is required");
         User user = getCurrentUser(email);
+        assertEmailVerifiedForBooking(user);
 
         Room room = roomRepository.findById(requireNonBlank(safeRequest.getRoomId(), "roomId is required"))
                 .orElseThrow(() -> new NotFoundException("Room not found"));
@@ -437,6 +438,16 @@ public class BookingService {
 
         if (!Objects.equals(user.getId(), booking.getUserId())) {
             throw new ForbiddenException("Ban khong co quyen thao tac booking nay");
+        }
+    }
+
+    private void assertEmailVerifiedForBooking(User user) {
+        if (user != null && user.getRole() == Role.ADMIN) {
+            return;
+        }
+
+        if (!Boolean.TRUE.equals(user == null ? null : user.getEmailVerified())) {
+            throw new ForbiddenException("Email chua duoc xac nhan. Vui long xac nhan email truoc khi dat phong");
         }
     }
 

@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.example.hotelbooking.dto.CreateBookingRequest;
 import com.example.hotelbooking.dto.UpdateBookingStatusRequest;
 import com.example.hotelbooking.exception.ForbiddenException;
 import com.example.hotelbooking.model.Booking;
@@ -88,6 +89,27 @@ class BookingServiceTest {
 
         assertEquals(2, bookings.size());
         verify(bookingRepository, never()).findByUserId(anyString());
+    }
+
+    @Test
+    void createBookingFailsWhenEmailNotVerified() {
+        User user = new User();
+        user.setId("user-id");
+        user.setEmail("user@example.com");
+        user.setRole(Role.USER);
+        user.setEmailVerified(Boolean.FALSE);
+
+        CreateBookingRequest request = new CreateBookingRequest();
+        request.setRoomId("room-1");
+
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+
+        ForbiddenException ex = assertThrows(
+                ForbiddenException.class,
+                () -> bookingService.createBooking(request, "user@example.com"));
+
+        assertEquals("Email chua duoc xac nhan. Vui long xac nhan email truoc khi dat phong", ex.getMessage());
+        verify(roomRepository, never()).findById("room-1");
     }
 
     @Test

@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -21,7 +20,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.example.hotelbooking.dto.LoginRequest;
 import com.example.hotelbooking.exception.BadRequestException;
-import com.example.hotelbooking.exception.UnauthorizedException;
 import com.example.hotelbooking.model.AuthActionToken;
 import com.example.hotelbooking.model.AuthActionType;
 import com.example.hotelbooking.model.RefreshToken;
@@ -133,7 +131,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void loginRejectsUnverifiedEmail() {
+    void loginAllowsUnverifiedEmailAndReturnsTokens() {
         AuthService authService = createAuthService();
 
         LoginRequest request = new LoginRequest();
@@ -147,17 +145,21 @@ class AuthServiceTest {
         user.setRole(Role.USER);
         user.setEmailVerified(Boolean.FALSE);
 
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setToken("refresh-token-value");
+        refreshToken.setUserId("u-1");
+
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("secret123", "encoded-secret")).thenReturn(true);
+        when(refreshTokenService.createRefreshToken("u-1")).thenReturn(refreshToken);
 
-        UnauthorizedException ex = assertThrows(
-                UnauthorizedException.class,
-                () -> authService.login(request));
+        Map<String, Object> response = authService.login(request);
 
-        assertEquals(
-                "Email chua duoc xac nhan. Vui long kiem tra hop thu va xac nhan truoc khi dang nhap",
-                ex.getMessage());
-        verify(refreshTokenService, never()).createRefreshToken("u-1");
+        assertEquals("USER", response.get("role"));
+        assertEquals("refresh-token-value", response.get("refreshToken"));
+        assertEquals(Boolean.FALSE, response.get("emailVerified"));
+        assertTrue(response.get("accessToken") instanceof String);
+        assertTrue(!((String) response.get("accessToken")).isBlank());
     }
 
     @Test

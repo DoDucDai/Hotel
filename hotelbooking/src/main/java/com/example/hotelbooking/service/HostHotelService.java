@@ -68,6 +68,7 @@ public class HostHotelService {
 
         Hotel payload = hotel;
         User user = hostAccessService.requireCurrentUser(email);
+        hostAccessService.assertEmailVerifiedForAction(user, "dang phong");
         validateHotelInput(payload);
 
         Hotel newHotel = new Hotel();

@@ -51,6 +51,20 @@ public class HostAccessService {
         return Objects.requireNonNull(user.getId(), "User id is required");
     }
 
+    public void assertEmailVerifiedForAction(User user, String actionLabel) {
+        if (isAdmin(user)) {
+            return;
+        }
+
+        if (!Boolean.TRUE.equals(user == null ? null : user.getEmailVerified())) {
+            String normalizedAction = actionLabel == null || actionLabel.isBlank()
+                    ? "thuc hien thao tac nay"
+                    : actionLabel.trim();
+            throw new ForbiddenException(
+                    "Email chua duoc xac nhan. Vui long xac nhan email truoc khi " + normalizedAction);
+        }
+    }
+
     public void assertHotelOwner(User user, Hotel hotel) {
         if (isAdmin(user)) {
             return;

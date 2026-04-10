@@ -66,6 +66,7 @@ public class HostRoomService {
 
         Room payload = room;
         User user = hostAccessService.requireCurrentUser(email);
+        hostAccessService.assertEmailVerifiedForAction(user, "dang phong");
         validateRoomInput(payload);
 
         String hotelId = hostAccessService.requireNonBlank(payload.getHotelId(), "hotelId is required");

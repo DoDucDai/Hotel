@@ -2,6 +2,8 @@ package com.example.hotelbooking.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -18,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.example.hotelbooking.exception.BadRequestException;
+import com.example.hotelbooking.exception.ForbiddenException;
 import com.example.hotelbooking.model.Booking;
 import com.example.hotelbooking.model.BookingStatus;
 import com.example.hotelbooking.model.Role;
@@ -106,6 +109,29 @@ class HostRoomServiceTest {
         assertEquals("Room deleted", result.get("message"));
         verify(roomInventoryService).deleteBlocksByRoomId("room-1");
         verify(roomRepository).deleteById("room-1");
+    }
+
+    @Test
+    void createRoomFailsWhenEmailNotVerified() {
+        User host = buildHost();
+        Room payload = new Room();
+        payload.setHotelId("hotel-1");
+        payload.setName("Deluxe");
+        payload.setCapacity(2);
+        payload.setPrice(1000000);
+        payload.setTotalUnits(1);
+
+        when(hostAccessService.requireCurrentUser("host@example.com")).thenReturn(host);
+        doThrow(new ForbiddenException("Email chua duoc xac nhan. Vui long xac nhan email truoc khi dang phong"))
+                .when(hostAccessService)
+                .assertEmailVerifiedForAction(host, "dang phong");
+
+        ForbiddenException ex = assertThrows(
+                ForbiddenException.class,
+                () -> hostRoomService.createRoom(payload, "host@example.com"));
+
+        assertEquals("Email chua duoc xac nhan. Vui long xac nhan email truoc khi dang phong", ex.getMessage());
+        verify(roomRepository, never()).save(any(Room.class));
     }
 
     private User buildHost() {
