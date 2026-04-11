@@ -68,7 +68,7 @@ public class SecurityConfig {
                                 "/auth/forgot-password",
                                 "/auth/reset-password")
                         .permitAll()
-                        .requestMatchers(
+                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/auth/verify-email",
                                 "/auth/reset-password/validate")
