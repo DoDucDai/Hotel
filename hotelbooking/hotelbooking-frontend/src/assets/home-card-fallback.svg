@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-label="Hotel Fallback">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#184ea7"/>
+      <stop offset="100%" stop-color="#25a8b5"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.96"/>
+      <stop offset="100%" stop-color="#e8f4ff" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="700" fill="url(#bg)"/>
+  <circle cx="1040" cy="120" r="170" fill="#ffffff" fill-opacity="0.12"/>
+  <circle cx="140" cy="580" r="210" fill="#ffffff" fill-opacity="0.08"/>
+
+  <rect x="170" y="130" width="860" height="440" rx="30" fill="url(#card)"/>
+  <rect x="210" y="190" width="380" height="290" rx="22" fill="#cde5ff"/>
+  <path d="M210 430 L320 312 L405 388 L470 338 L590 480 H210 Z" fill="#78acd9"/>
+  <circle cx="500" cy="250" r="42" fill="#8fc4ef"/>
+
+  <rect x="640" y="220" width="320" height="34" rx="10" fill="#89b6e3"/>
+  <rect x="640" y="276" width="260" height="24" rx="9" fill="#b2d2f1"/>
+  <rect x="640" y="324" width="290" height="24" rx="9" fill="#b2d2f1"/>
+  <rect x="640" y="372" width="220" height="24" rx="9" fill="#b2d2f1"/>
+  <rect x="640" y="434" width="160" height="48" rx="12" fill="#1a61c2"/>
+
+  <text x="230" y="540" fill="#2b4d78" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="700">
+    Hotel Booking Vietnam
+  </text>
+</svg>

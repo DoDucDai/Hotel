@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 960" role="img" aria-label="Travel Hero">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2453b8"/>
+      <stop offset="45%" stop-color="#2d7be8"/>
+      <stop offset="100%" stop-color="#15a0b1"/>
+    </linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4aa3ec" stop-opacity="0.75"/>
+      <stop offset="100%" stop-color="#1f4b8d" stop-opacity="0.85"/>
+    </linearGradient>
+    <linearGradient id="sunGlow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fff6b1" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#ffd680" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1920" height="960" fill="url(#sky)"/>
+
+  <circle cx="1510" cy="180" r="210" fill="url(#sunGlow)"/>
+  <circle cx="1540" cy="190" r="82" fill="#ffe8a6" fill-opacity="0.92"/>
+
+  <path d="M0 555 C260 475 500 635 760 560 C1030 480 1270 620 1500 560 C1680 515 1820 530 1920 552 V960 H0 Z"
+        fill="url(#water)"/>
+
+  <path d="M0 640 C240 620 400 700 640 664 C880 628 1100 712 1380 666 C1600 631 1770 654 1920 672 V960 H0 Z"
+        fill="#133f84" fill-opacity="0.3"/>
+
+  <g fill="#0f2f5f" fill-opacity="0.7">
+    <rect x="210" y="425" width="64" height="185" rx="6"/>
+    <rect x="284" y="390" width="58" height="220" rx="6"/>
+    <rect x="352" y="360" width="86" height="250" rx="6"/>
+    <rect x="448" y="405" width="70" height="205" rx="6"/>
+    <rect x="530" y="372" width="62" height="238" rx="6"/>
+    <rect x="603" y="428" width="78" height="182" rx="6"/>
+    <rect x="695" y="387" width="52" height="223" rx="6"/>
+  </g>
+
+  <g fill="#ffffff" fill-opacity="0.14">
+    <circle cx="260" cy="182" r="5"/>
+    <circle cx="310" cy="118" r="4"/>
+    <circle cx="406" cy="202" r="4"/>
+    <circle cx="514" cy="126" r="5"/>
+    <circle cx="610" cy="178" r="4"/>
+    <circle cx="710" cy="132" r="5"/>
+    <circle cx="810" cy="192" r="4"/>
+    <circle cx="920" cy="122" r="5"/>
+    <circle cx="1020" cy="178" r="4"/>
+    <circle cx="1160" cy="152" r="5"/>
+  </g>
+</svg>

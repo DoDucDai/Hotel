@@ -1,8 +1,11 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "../components/ToastProvider";
-import { getHotels } from "../services/hotelService";
-import { getRooms, searchRooms } from "../services/roomService";
+import {
+ DEFAULT_HOTELS_PAGE_SIZE,
+ getHotels,
+} from "../services/hotelService";
+import { searchRooms } from "../services/roomService";
 import {
  addToWishlist,
  getMyWishlist,
@@ -15,14 +18,42 @@ import {
  buildInitialHotelFilters,
  currencyFormatter,
  FALLBACK_IMAGE,
- HOTELS_PER_PAGE,
  normalizeHotels,
- normalizeRooms,
  normalizeWishlist,
  toNonNegativeNumber,
  toPositiveInt,
 } from "../features/hotels/hotelsPageUtils";
 import "./Hotels.css";
+
+function toApiSort(sortBy) {
+ const normalized = String(sortBy || "").trim().toLowerCase();
+
+ if (normalized === "name-desc") {
+ return "name_desc";
+ }
+
+ if (normalized === "city-asc") {
+ return "city_asc";
+ }
+
+ if (normalized === "city-desc") {
+ return "city_desc";
+ }
+
+ if (normalized === "price-asc") {
+ return "price_asc";
+ }
+
+ if (normalized === "price-desc") {
+ return "price_desc";
+ }
+
+ if (normalized === "rating-desc") {
+ return "rating_desc";
+ }
+
+ return "name_asc";
+}
 
 export default function HotelsEnhanced() {
  const navigate = useNavigate();
@@ -31,10 +62,11 @@ export default function HotelsEnhanced() {
  const isLoggedIn = Boolean(localStorage.getItem("accessToken"));
 
  const [hotels, setHotels] = useState([]);
- const [rooms, setRooms] = useState([]);
  const [loading, setLoading] = useState(true);
  const [error, setError] = useState("");
  const [sortBy, setSortBy] = useState("name-asc");
+ const [totalPages, setTotalPages] = useState(1);
+ const [totalElements, setTotalElements] = useState(0);
 
  const [filters, setFilters] = useState(() => {
  const prefill = location.state?.prefillFilters || {};
@@ -64,41 +96,76 @@ export default function HotelsEnhanced() {
  }));
  }, [location.state]);
 
+ const catalogParams = useMemo(() => {
+ const normalizedDestination = filters.destination.trim();
+ const minPrice = toNonNegativeNumber(filters.priceMin);
+ const maxPrice = toNonNegativeNumber(filters.priceMax);
+ const minRating = Number(filters.minRating || 0);
+ const minStars = Number(filters.minStars || 0);
+
+ return {
+ page: Math.max(currentPage - 1, 0),
+ size: DEFAULT_HOTELS_PAGE_SIZE,
+ destination: normalizedDestination || undefined,
+ minPrice: minPrice == null ? undefined : minPrice,
+ maxPrice: maxPrice == null ? undefined : maxPrice,
+ minRating: minRating > 0 ? minRating : undefined,
+ minStars: minStars > 0 ? minStars : undefined,
+ amenity: filters.amenity === "all" ? undefined : filters.amenity,
+ freeCancellation: filters.freeCancellationOnly ? true : undefined,
+ sortBy: toApiSort(sortBy),
+ };
+ }, [
+ currentPage,
+ filters.amenity,
+ filters.destination,
+ filters.freeCancellationOnly,
+ filters.minRating,
+ filters.minStars,
+ filters.priceMax,
+ filters.priceMin,
+ sortBy,
+ ]);
+
  useEffect(() => {
  let isMounted = true;
-
- const fetchCatalog = async () => {
+ const timeoutId = setTimeout(async () => {
  try {
  setLoading(true);
- const [hotelsRes, roomsRes] = await Promise.all([getHotels(0, 200), getRooms(0, 2000)]);
- const hotelList = normalizeHotels(hotelsRes?.data);
- const roomList = normalizeRooms(roomsRes?.data);
+ const hotelsRes = await getHotels(catalogParams);
+ const payload = hotelsRes?.data || {};
+ const hotelList = normalizeHotels(payload);
 
- if (isMounted) {
- setHotels(hotelList);
- setRooms(roomList);
- setError("");
+ if (!isMounted) {
+ return;
  }
+
+ const nextTotalPagesRaw = Number(payload.totalPages || 0);
+ const nextTotalPages = Math.max(nextTotalPagesRaw, 1);
+ setHotels(hotelList);
+ setTotalPages(nextTotalPages);
+ setTotalElements(Number(payload.totalElements || 0));
+ setError("");
  } catch (fetchError) {
  console.error(fetchError);
  if (isMounted) {
  setHotels([]);
- setRooms([]);
- setError("Không thể tải danh sách khách sạn. Vui lòng thử lại sau.");
+ setTotalPages(1);
+ setTotalElements(0);
+ setError("Khong the tai danh sach khach san. Vui long thu lai sau.");
  }
  } finally {
  if (isMounted) {
  setLoading(false);
  }
  }
- };
-
- fetchCatalog();
+ }, 220);
 
  return () => {
  isMounted = false;
+ clearTimeout(timeoutId);
  };
- }, []);
+ }, [catalogParams]);
 
  useEffect(() => {
  if (!isLoggedIn) {
@@ -139,19 +206,32 @@ export default function HotelsEnhanced() {
  const fetchAvailableRooms = async () => {
  if (!hotels.length) {
  setRoomAvailability({});
+ setAvailabilityError("");
  return;
  }
 
  const guests = toPositiveInt(filters.guests, 1);
+ const roomNeed = toPositiveInt(filters.roomCount, 1);
  const checkIn = filters.checkIn || "";
  const checkOut = filters.checkOut || "";
  const minPrice = filters.priceMin === "" ? "" : Number(filters.priceMin);
  const maxPrice = filters.priceMax === "" ? "" : Number(filters.priceMax);
  const amenity = filters.amenity === "all" ? "" : filters.amenity;
+ const shouldCheckAvailability =
+ guests > 1 ||
+ roomNeed > 1 ||
+ Boolean(checkIn) ||
+ Boolean(checkOut);
+
+ if (!shouldCheckAvailability) {
+ setRoomAvailability({});
+ setAvailabilityError("");
+ return;
+ }
 
  if (checkIn && checkOut && new Date(checkOut) <= new Date(checkIn)) {
  setRoomAvailability({});
- setAvailabilityError("Ngày trả phòng phải sau ngày nhận phòng.");
+ setAvailabilityError("Ngay tra phong phai sau ngay nhan phong.");
  return;
  }
 
@@ -166,11 +246,11 @@ export default function HotelsEnhanced() {
  amenity,
  sortBy: "availability_desc",
  });
- const availableRooms = normalizeRooms(res?.data);
+ const availableRooms = Array.isArray(res?.data) ? res.data : [];
 
  if (isMounted) {
  const countByHotel = availableRooms.reduce((acc, room) => {
- const hotelId = room.hotelId;
+ const hotelId = String(room?.hotelId || "");
  if (!hotelId) {
  return acc;
  }
@@ -189,7 +269,7 @@ export default function HotelsEnhanced() {
  console.error(fetchError);
  if (isMounted) {
  setRoomAvailability({});
- setAvailabilityError("Chưa tải được dữ liệu phòng theo bộ lọc hiện tại.");
+ setAvailabilityError("Chua tai duoc du lieu phong theo bo loc hien tai.");
  }
  } finally {
  if (isMounted) {
@@ -210,34 +290,13 @@ export default function HotelsEnhanced() {
  filters.guests,
  filters.priceMax,
  filters.priceMin,
- hotels.length,
+ filters.roomCount,
+ hotels,
  ]);
-
- const roomStatsByHotel = useMemo(() => {
- return rooms.reduce((acc, room) => {
- if (!room?.hotelId) {
- return acc;
- }
-
- const current = acc[room.hotelId] || {
- count: 0,
- minRoomPrice: Number.POSITIVE_INFINITY,
- };
-
- current.count += 1;
- current.minRoomPrice = Math.min(current.minRoomPrice, Number(room.price || 0));
- acc[room.hotelId] = current;
- return acc;
- }, {});
- }, [rooms]);
 
  const hotelCards = useMemo(() => {
  return hotels.map((hotel, index) => {
  const hotelId = String(hotel.id || hotel._id || `${hotel.name}-${index}`);
- const stats = roomStatsByHotel[hotelId] || {
- count: 0,
- minRoomPrice: Number.POSITIVE_INFINITY,
- };
 
  return {
  ...hotel,
@@ -246,112 +305,42 @@ export default function HotelsEnhanced() {
  averageRating: Number(hotel.averageRating || 0),
  reviewCount: Number(hotel.reviewCount || 0),
  amenities: Array.isArray(hotel.amenities) ? hotel.amenities : [],
- roomCount: stats.count,
- minRoomPrice: Number.isFinite(stats.minRoomPrice) ? stats.minRoomPrice : 0,
+ roomCount: Number(hotel.roomCount || 0),
+ minRoomPrice: Number(hotel.minRoomPrice || 0),
  availableRoomCount: roomAvailability[hotelId] || 0,
  isWishlisted: wishlistIds.includes(hotelId),
  };
  });
- }, [hotels, roomAvailability, roomStatsByHotel, wishlistIds]);
+ }, [hotels, roomAvailability, wishlistIds]);
 
  const amenityOptions = useMemo(() => {
  const uniqueAmenities = new Set();
  hotelCards.forEach((hotel) => {
  hotel.amenities.forEach((amenity) => uniqueAmenities.add(amenity));
  });
+
+ if (filters.amenity !== "all") {
+ uniqueAmenities.add(filters.amenity);
+ }
+
  return [...uniqueAmenities].sort((a, b) => a.localeCompare(b, "vi"));
- }, [hotelCards]);
+ }, [filters.amenity, hotelCards]);
+
+ const needsClientAvailabilityFilter = useMemo(() => {
+ const guests = toPositiveInt(filters.guests, 1);
+ const roomNeed = toPositiveInt(filters.roomCount, 1);
+ return guests > 1 || roomNeed > 1 || Boolean(filters.checkIn) || Boolean(filters.checkOut);
+ }, [filters.checkIn, filters.checkOut, filters.guests, filters.roomCount]);
 
  const filteredHotels = useMemo(() => {
- const destination = filters.destination.trim().toLowerCase();
  const roomNeed = toPositiveInt(filters.roomCount, 1);
- const guests = toPositiveInt(filters.guests, 1);
- const useRoomFilter =
- guests > 1 ||
- roomNeed > 1 ||
- Boolean(filters.checkIn) ||
- Boolean(filters.checkOut);
- const priceMin = toNonNegativeNumber(filters.priceMin);
- const priceMax = toNonNegativeNumber(filters.priceMax);
- const minRating = Number(filters.minRating || 0);
- const minStars = Number(filters.minStars || 0);
- const freeCancellationOnly = Boolean(filters.freeCancellationOnly);
 
- const matched = hotelCards.filter((hotel) => {
- const name = hotel.name?.toLowerCase() || "";
- const city = hotel.city?.toLowerCase() || "";
- const address = hotel.address?.toLowerCase() || "";
-
- const textMatch =
- !destination ||
- name.includes(destination) ||
- city.includes(destination) ||
- address.includes(destination);
-
- const roomMatch = !useRoomFilter || hotel.availableRoomCount >= roomNeed;
- const ratingMatch = hotel.averageRating >= minRating;
- const starsMatch = hotel.starRating >= minStars;
- const amenityMatch =
- filters.amenity === "all" || hotel.amenities.includes(filters.amenity);
- const freeCancellationMatch =
- !freeCancellationOnly || Number(hotel.freeCancellationBeforeDays || 0) > 0;
+ return hotelCards.filter((hotel) => {
+ const roomMatch = !needsClientAvailabilityFilter || hotel.availableRoomCount >= roomNeed;
  const wishlistMatch = !filters.wishlistOnly || hotel.isWishlisted;
- const minPriceMatch = priceMin == null || hotel.minRoomPrice >= priceMin;
- const maxPriceMatch = priceMax == null || hotel.minRoomPrice <= priceMax;
-
- return (
- textMatch &&
- roomMatch &&
- ratingMatch &&
- starsMatch &&
- amenityMatch &&
- freeCancellationMatch &&
- wishlistMatch &&
- minPriceMatch &&
- maxPriceMatch
- );
+ return roomMatch && wishlistMatch;
  });
-
- const sorted = [...matched];
-
- if (sortBy === "name-asc") {
- sorted.sort((a, b) => (a.name || "").localeCompare(b.name || "", "vi"));
- } else if (sortBy === "name-desc") {
- sorted.sort((a, b) => (b.name || "").localeCompare(a.name || "", "vi"));
- } else if (sortBy === "city-asc") {
- sorted.sort((a, b) => (a.city || "").localeCompare(b.city || "", "vi"));
- } else if (sortBy === "city-desc") {
- sorted.sort((a, b) => (b.city || "").localeCompare(a.city || "", "vi"));
- } else if (sortBy === "price-asc") {
- sorted.sort(
- (a, b) =>
- (a.minRoomPrice || Number.POSITIVE_INFINITY) -
- (b.minRoomPrice || Number.POSITIVE_INFINITY)
- );
- } else if (sortBy === "price-desc") {
- sorted.sort((a, b) => (b.minRoomPrice || 0) - (a.minRoomPrice || 0));
- } else if (sortBy === "rating-desc") {
- sorted.sort(
- (a, b) =>
- (b.averageRating || 0) - (a.averageRating || 0) ||
- (b.reviewCount || 0) - (a.reviewCount || 0)
- );
- }
-
- return sorted;
- }, [filters, hotelCards, sortBy]);
-
- const totalPages = useMemo(() => {
- if (!filteredHotels.length) {
- return 1;
- }
- return Math.ceil(filteredHotels.length / HOTELS_PER_PAGE);
- }, [filteredHotels.length]);
-
- const paginatedHotels = useMemo(() => {
- const startIndex = (currentPage - 1) * HOTELS_PER_PAGE;
- return filteredHotels.slice(startIndex, startIndex + HOTELS_PER_PAGE);
- }, [currentPage, filteredHotels]);
+ }, [filters.roomCount, filters.wishlistOnly, hotelCards, needsClientAvailabilityFilter]);
 
  const paginationPages = useMemo(() => {
  const pages = new Set([1, totalPages, currentPage, currentPage - 1, currentPage + 1]);
@@ -372,7 +361,11 @@ export default function HotelsEnhanced() {
  });
  }, [totalPages]);
 
- const totalHotels = hotels.length;
+ const totalHotels = totalElements;
+ const filteredHotelsCount =
+ filters.wishlistOnly || needsClientAvailabilityFilter
+ ? filteredHotels.length
+ : totalElements;
 
  const handleFilterChange = (event) => {
  const { name, value, type, checked } = event.target;
@@ -409,15 +402,15 @@ export default function HotelsEnhanced() {
  if (alreadySaved) {
  await removeFromWishlist(normalizedHotelId);
  setWishlistIds((prev) => prev.filter((id) => id !== normalizedHotelId));
- toast.success("Đã xóa khỏi danh sách yêu thích");
+ toast.success("Da xoa khoi danh sach yeu thich");
  } else {
  await addToWishlist(normalizedHotelId);
  setWishlistIds((prev) => [...prev, normalizedHotelId]);
- toast.success("Đã thêm vào wishlist");
+ toast.success("Da them vao wishlist");
  }
  } catch (wishlistError) {
  console.error("Cannot update wishlist", wishlistError);
- toast.error("Không thể cập nhật wishlist");
+ toast.error("Khong the cap nhat wishlist");
  }
  };
 
@@ -439,7 +432,7 @@ export default function HotelsEnhanced() {
  <main className="hotels-page">
  <HotelsHeroSection
  totalHotels={totalHotels}
- filteredHotelsCount={filteredHotels.length}
+ filteredHotelsCount={filteredHotelsCount}
  filters={filters}
  handleFilterChange={handleFilterChange}
  resetFilters={resetFilters}
@@ -460,7 +453,7 @@ export default function HotelsEnhanced() {
  loading={loading}
  error={error}
  filteredHotels={filteredHotels}
- paginatedHotels={paginatedHotels}
+ paginatedHotels={filteredHotels}
  navigateToDetail={navigateToDetail}
  FALLBACK_IMAGE={FALLBACK_IMAGE}
  handleWishlistToggle={handleWishlistToggle}
@@ -479,4 +472,3 @@ export default function HotelsEnhanced() {
  </main>
  );
 }
-

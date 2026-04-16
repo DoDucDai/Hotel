@@ -1,10 +1,16 @@
 import axiosClient from "../utils/axiosClient";
 
-export const getHotels = (pageOrParams = 0, size = 200, extraParams = {}) => {
+export const DEFAULT_HOTELS_PAGE_SIZE = 9;
+
+export const getHotels = (
+ pageOrParams = 0,
+ size = DEFAULT_HOTELS_PAGE_SIZE,
+ extraParams = {}
+) => {
  let params;
 
  if (typeof pageOrParams === "object" && pageOrParams !== null) {
- params = { page: 0, size: 200, ...pageOrParams };
+ params = { page: 0, size: DEFAULT_HOTELS_PAGE_SIZE, ...pageOrParams };
  } else {
  params = { page: pageOrParams, size, ...extraParams };
  }

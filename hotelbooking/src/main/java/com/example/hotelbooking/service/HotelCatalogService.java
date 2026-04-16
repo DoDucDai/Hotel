@@ -3,40 +3,46 @@ package com.example.hotelbooking.service;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.bson.Document;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.hotelbooking.dto.HotelCatalogItemDTO;
 import com.example.hotelbooking.exception.BadRequestException;
 import com.example.hotelbooking.exception.NotFoundException;
 import com.example.hotelbooking.model.Hotel;
 import com.example.hotelbooking.model.HotelApprovalStatus;
-import com.example.hotelbooking.model.Room;
 import com.example.hotelbooking.repository.HotelRepository;
-import com.example.hotelbooking.repository.RoomRepository;
 
 @Service
 public class HotelCatalogService {
 
+    private static final String DEFAULT_SORT_BY = "name_asc";
+    private static final double PRICE_SORT_ASC_SENTINEL = 9_999_999_999_999d;
+
     private final HotelRepository hotelRepository;
-    private final RoomRepository roomRepository;
     private final UploadStorageService uploadStorageService;
+    private final MongoTemplate mongoTemplate;
 
     public HotelCatalogService(
             HotelRepository hotelRepository,
-            RoomRepository roomRepository,
-            UploadStorageService uploadStorageService) {
+            UploadStorageService uploadStorageService,
+            MongoTemplate mongoTemplate) {
         this.hotelRepository = hotelRepository;
-        this.roomRepository = roomRepository;
         this.uploadStorageService = uploadStorageService;
+        this.mongoTemplate = mongoTemplate;
     }
 
     public Map<String, Object> getPublicHotels(
@@ -52,37 +58,77 @@ public class HotelCatalogService {
             Boolean freeCancellation,
             String sortBy) {
 
-        List<Hotel> allPublicHotels = hotelRepository.findAll()
-                .stream()
-                .filter(this::isPublicHotel)
-                .toList();
-
-        Map<String, Double> minRoomPriceByHotel = buildMinRoomPriceByHotel();
-
-        List<Hotel> filtered = allPublicHotels.stream()
-                .filter((hotel) -> matchesDestination(hotel, destination))
-                .filter((hotel) -> matchesCity(hotel, city))
-                .filter((hotel) -> matchesPriceRange(hotel, minPriceByHotelValue(minRoomPriceByHotel, hotel), minPrice, maxPrice))
-                .filter((hotel) -> hotel.getStarRating() >= normalizeMinStars(minStars))
-                .filter((hotel) -> hotel.getAverageRating() >= normalizeMinRating(minRating))
-                .filter((hotel) -> matchesAmenity(hotel, amenity))
-                .filter((hotel) -> !Boolean.TRUE.equals(freeCancellation)
-                        || Math.max(hotel.getFreeCancellationBeforeDays(), 0) > 0)
-                .sorted(buildSortComparator(sortBy, minRoomPriceByHotel))
-                .toList();
-
         int safePage = Math.max(page, 0);
         int safeSize = Math.max(size, 1);
-        int start = Math.min(safePage * safeSize, filtered.size());
-        int end = Math.min(start + safeSize, filtered.size());
-        List<Hotel> content = filtered.subList(start, end);
-        int totalPages = filtered.isEmpty() ? 0 : (int) Math.ceil((double) filtered.size() / safeSize);
+        String normalizedSort = normalizeSortBy(sortBy);
+
+        List<AggregationOperation> operations = new ArrayList<>();
+        operations.add((context) -> new Document("$match", buildPublicHotelMatch(
+                destination,
+                city,
+                minStars,
+                minRating,
+                amenity,
+                freeCancellation)));
+
+        operations.add((context) -> new Document("$lookup", new Document("from", "rooms")
+                .append("localField", "_id")
+                .append("foreignField", "hotelId")
+                .append("as", "rooms")));
+
+        operations.add((context) -> new Document("$addFields", new Document("roomCount",
+                new Document("$size", new Document("$ifNull", List.of("$rooms", List.of()))))
+                .append("minRoomPrice", new Document("$min", "$rooms.price"))));
+
+        Document priceRangeMatch = buildPriceRangeMatch(minPrice, maxPrice);
+        if (!priceRangeMatch.isEmpty()) {
+            operations.add((context) -> new Document("$match", priceRangeMatch));
+        }
+
+        Document effectivePriceField = buildEffectivePriceField(normalizedSort);
+        if (!effectivePriceField.isEmpty()) {
+            operations.add((context) -> new Document("$addFields", effectivePriceField));
+        }
+
+        long skip = (long) safePage * safeSize;
+        Document sortDocument = buildSortDocument(normalizedSort);
+        Document projection = buildCatalogProjection();
+
+        operations.add((context) -> new Document("$facet", new Document("content", List.of(
+                new Document("$sort", sortDocument),
+                new Document("$skip", skip),
+                new Document("$limit", safeSize),
+                new Document("$project", projection)))
+                .append("metadata", List.of(new Document("$count", "totalElements")))));
+
+        Aggregation aggregation = Aggregation.newAggregation(operations);
+        AggregationResults<Document> aggregationResults = mongoTemplate.aggregate(
+                aggregation,
+                "hotels",
+                Document.class);
+
+        Document resultDocument = aggregationResults.getUniqueMappedResult();
+        List<Document> rawContent = resultDocument == null
+                ? List.of()
+                : resultDocument.getList("content", Document.class, List.of());
+
+        List<Document> metadata = resultDocument == null
+                ? List.of()
+                : resultDocument.getList("metadata", Document.class, List.of());
+
+        long totalElements = metadata.isEmpty() ? 0L : toLong(metadata.get(0).get("totalElements"));
+        int totalPages = totalElements == 0L ? 0 : (int) Math.ceil((double) totalElements / safeSize);
+
+        List<HotelCatalogItemDTO> content = rawContent.stream()
+                .map(this::toCatalogItem)
+                .toList();
 
         return Map.of(
                 "content", content,
                 "totalPages", totalPages,
-                "totalElements", filtered.size(),
-                "currentPage", safePage);
+                "totalElements", totalElements,
+                "currentPage", safePage,
+                "pageSize", safeSize);
     }
 
     public Hotel getPublicHotelById(String id) {
@@ -223,115 +269,183 @@ public class HotelCatalogService {
         return hotelRepository.save(hotel);
     }
 
-    private Map<String, Double> buildMinRoomPriceByHotel() {
-        Map<String, Double> minByHotel = new HashMap<>();
-        for (Room room : roomRepository.findAll()) {
-            if (room == null || room.getHotelId() == null || room.getHotelId().isBlank()) {
-                continue;
-            }
+    private Document buildPublicHotelMatch(
+            String destination,
+            String city,
+            Integer minStars,
+            Double minRating,
+            String amenity,
+            Boolean freeCancellation) {
+        List<Document> filters = new ArrayList<>();
+        // Backward-compatible public visibility:
+        // old documents may not have approvalStatus persisted, but are treated as APPROVED by model defaults.
+        filters.add(new Document("$or", List.of(
+                new Document("approvalStatus", HotelApprovalStatus.APPROVED.name()),
+                new Document("approvalStatus", null),
+                new Document("approvalStatus", new Document("$exists", false)))));
 
-            double price = Math.max(room.getPrice(), 0);
-            String hotelId = room.getHotelId();
-            Double currentMin = minByHotel.get(hotelId);
-            if (currentMin == null || price < currentMin) {
-                minByHotel.put(hotelId, price);
-            }
-        }
-        return minByHotel;
-    }
-
-    private double minPriceByHotelValue(Map<String, Double> minByHotel, Hotel hotel) {
-        if (hotel == null || hotel.getId() == null) {
-            return Double.POSITIVE_INFINITY;
-        }
-
-        return minByHotel.getOrDefault(hotel.getId(), Double.POSITIVE_INFINITY);
-    }
-
-    private Comparator<Hotel> buildSortComparator(String sortBy, Map<String, Double> minRoomPriceByHotel) {
-        String normalizedSort = sortBy == null ? "name_asc" : sortBy.trim().toLowerCase();
-
-        if ("price_desc".equals(normalizedSort)) {
-            return Comparator
-                    .comparingDouble((Hotel hotel) -> minPriceByHotelValue(minRoomPriceByHotel, hotel))
-                    .reversed()
-                    .thenComparing(Hotel::getName, Comparator.nullsLast(String::compareToIgnoreCase));
+        String destinationKeyword = trimToNull(destination);
+        if (destinationKeyword != null) {
+            Pattern pattern = containsPattern(destinationKeyword);
+            filters.add(new Document("$or", List.of(
+                    new Document("name", new Document("$regex", pattern)),
+                    new Document("city", new Document("$regex", pattern)),
+                    new Document("address", new Document("$regex", pattern)))));
         }
 
-        if ("price_asc".equals(normalizedSort)) {
-            return Comparator
-                    .comparingDouble((Hotel hotel) -> minPriceByHotelValue(minRoomPriceByHotel, hotel))
-                    .thenComparing(Hotel::getName, Comparator.nullsLast(String::compareToIgnoreCase));
+        String cityKeyword = trimToNull(city);
+        if (cityKeyword != null) {
+            filters.add(new Document("city", new Document("$regex", containsPattern(cityKeyword))));
         }
 
-        if ("rating_desc".equals(normalizedSort)) {
-            return Comparator
-                    .comparingDouble(Hotel::getAverageRating)
-                    .reversed()
-                    .thenComparing(Comparator.comparingLong(Hotel::getReviewCount).reversed())
-                    .thenComparing(Hotel::getName, Comparator.nullsLast(String::compareToIgnoreCase));
+        int normalizedMinStars = normalizeMinStars(minStars);
+        if (normalizedMinStars > 0) {
+            filters.add(new Document("starRating", new Document("$gte", normalizedMinStars)));
         }
 
-        if ("name_desc".equals(normalizedSort)) {
-            return Comparator.comparing(Hotel::getName, Comparator.nullsLast(String::compareToIgnoreCase)).reversed();
+        double normalizedMinRating = normalizeMinRating(minRating);
+        if (normalizedMinRating > 0) {
+            filters.add(new Document("averageRating", new Document("$gte", normalizedMinRating)));
         }
 
-        return Comparator.comparing(Hotel::getName, Comparator.nullsLast(String::compareToIgnoreCase));
-    }
-
-    private boolean matchesDestination(Hotel hotel, String destination) {
-        String keyword = trimToNull(destination);
-        if (keyword == null) {
-            return true;
-        }
-
-        String normalized = keyword.toLowerCase();
-
-        return containsIgnoreCase(hotel.getName(), normalized)
-                || containsIgnoreCase(hotel.getCity(), normalized)
-                || containsIgnoreCase(hotel.getAddress(), normalized);
-    }
-
-    private boolean matchesCity(Hotel hotel, String city) {
-        String keyword = trimToNull(city);
-        if (keyword == null) {
-            return true;
-        }
-
-        return containsIgnoreCase(hotel.getCity(), keyword.toLowerCase());
-    }
-
-    private boolean matchesPriceRange(Hotel hotel, double minHotelPrice, Double minPrice, Double maxPrice) {
-        if (hotel == null) {
-            return false;
-        }
-
-        if (minPrice == null && maxPrice == null) {
-            return true;
-        }
-
-        if (!Double.isFinite(minHotelPrice)) {
-            return false;
-        }
-
-        if (minPrice != null && minHotelPrice < Math.max(minPrice, 0)) {
-            return false;
-        }
-
-        return maxPrice == null || minHotelPrice <= Math.max(maxPrice, 0);
-    }
-
-    private boolean matchesAmenity(Hotel hotel, String amenity) {
         String amenityKeyword = trimToNull(amenity);
-        if (amenityKeyword == null || "all".equalsIgnoreCase(amenityKeyword)) {
-            return true;
+        if (amenityKeyword != null && !"all".equalsIgnoreCase(amenityKeyword)) {
+            String exactAmenity = "^" + Pattern.quote(amenityKeyword) + "$";
+            filters.add(new Document("amenities", new Document("$regex", Pattern.compile(exactAmenity, Pattern.CASE_INSENSITIVE))));
         }
 
-        String normalized = amenityKeyword.toLowerCase();
-        return hotel.getAmenities().stream()
-                .filter(Objects::nonNull)
-                .map(value -> value.trim().toLowerCase())
-                .anyMatch(value -> value.equals(normalized));
+        if (Boolean.TRUE.equals(freeCancellation)) {
+            filters.add(new Document("freeCancellationBeforeDays", new Document("$gt", 0)));
+        }
+
+        if (filters.size() == 1) {
+            return filters.get(0);
+        }
+
+        return new Document("$and", filters);
+    }
+
+    private Pattern containsPattern(String keyword) {
+        return Pattern.compile(Pattern.quote(keyword), Pattern.CASE_INSENSITIVE);
+    }
+
+    private Document buildPriceRangeMatch(Double minPrice, Double maxPrice) {
+        Double normalizedMinPrice = normalizePrice(minPrice);
+        Double normalizedMaxPrice = normalizePrice(maxPrice);
+
+        if (normalizedMinPrice == null && normalizedMaxPrice == null) {
+            return new Document();
+        }
+
+        Document conditions = new Document("$ne", null);
+        if (normalizedMinPrice != null) {
+            conditions.append("$gte", normalizedMinPrice);
+        }
+        if (normalizedMaxPrice != null) {
+            conditions.append("$lte", normalizedMaxPrice);
+        }
+
+        return new Document("minRoomPrice", conditions);
+    }
+
+    private Document buildEffectivePriceField(String normalizedSortBy) {
+        if ("price_asc".equals(normalizedSortBy)) {
+            return new Document("effectiveMinRoomPrice", new Document("$ifNull", List.of("$minRoomPrice", PRICE_SORT_ASC_SENTINEL)));
+        }
+
+        if ("price_desc".equals(normalizedSortBy)) {
+            return new Document("effectiveMinRoomPrice", new Document("$ifNull", List.of("$minRoomPrice", -1)));
+        }
+
+        return new Document();
+    }
+
+    private Document buildSortDocument(String normalizedSortBy) {
+        if ("price_desc".equals(normalizedSortBy)) {
+            return new Document("effectiveMinRoomPrice", -1).append("name", 1);
+        }
+
+        if ("price_asc".equals(normalizedSortBy)) {
+            return new Document("effectiveMinRoomPrice", 1).append("name", 1);
+        }
+
+        if ("rating_desc".equals(normalizedSortBy)) {
+            return new Document("averageRating", -1)
+                    .append("reviewCount", -1)
+                    .append("name", 1);
+        }
+
+        if ("city_desc".equals(normalizedSortBy)) {
+            return new Document("city", -1).append("name", 1);
+        }
+
+        if ("city_asc".equals(normalizedSortBy)) {
+            return new Document("city", 1).append("name", 1);
+        }
+
+        if ("name_desc".equals(normalizedSortBy)) {
+            return new Document("name", -1);
+        }
+
+        return new Document("name", 1);
+    }
+
+    private Document buildCatalogProjection() {
+        return new Document("_id", 1)
+                .append("ownerId", 1)
+                .append("name", 1)
+                .append("address", 1)
+                .append("city", 1)
+                .append("imageUrl", 1)
+                .append("imageUrls", 1)
+                .append("starRating", 1)
+                .append("amenities", 1)
+                .append("averageRating", 1)
+                .append("reviewCount", 1)
+                .append("freeCancellationBeforeDays", 1)
+                .append("lateCancellationRefundRate", 1)
+                .append("minRoomPrice", 1)
+                .append("roomCount", 1);
+    }
+
+    private HotelCatalogItemDTO toCatalogItem(Document source) {
+        HotelCatalogItemDTO item = new HotelCatalogItemDTO();
+
+        item.setId(readString(source.get("_id")));
+        item.setOwnerId(readString(source.get("ownerId")));
+        item.setName(readString(source.get("name")));
+        item.setAddress(readString(source.get("address")));
+        item.setCity(readString(source.get("city")));
+        item.setImageUrl(readString(source.get("imageUrl")));
+        item.setImageUrls(readStringList(source.get("imageUrls")));
+        item.setStarRating(toInt(source.get("starRating")));
+        item.setAmenities(readStringList(source.get("amenities")));
+        item.setAverageRating(toDouble(source.get("averageRating")));
+        item.setReviewCount(toLong(source.get("reviewCount")));
+        item.setFreeCancellationBeforeDays(toInt(source.get("freeCancellationBeforeDays")));
+        item.setLateCancellationRefundRate(toInt(source.get("lateCancellationRefundRate")));
+        item.setMinRoomPrice(toDouble(source.get("minRoomPrice")));
+        item.setRoomCount(toInt(source.get("roomCount")));
+
+        return item;
+    }
+
+    private String normalizeSortBy(String sortBy) {
+        if (sortBy == null || sortBy.isBlank()) {
+            return DEFAULT_SORT_BY;
+        }
+
+        String normalized = sortBy.trim().toLowerCase().replace('-', '_');
+        if ("name_desc".equals(normalized)
+                || "city_asc".equals(normalized)
+                || "city_desc".equals(normalized)
+                || "price_asc".equals(normalized)
+                || "price_desc".equals(normalized)
+                || "rating_desc".equals(normalized)) {
+            return normalized;
+        }
+
+        return DEFAULT_SORT_BY;
     }
 
     private int normalizeMinStars(Integer minStars) {
@@ -348,6 +462,14 @@ public class HotelCatalogService {
         }
 
         return Math.min(Math.max(minRating, 0), 5);
+    }
+
+    private Double normalizePrice(Double value) {
+        if (value == null || !Double.isFinite(value)) {
+            return null;
+        }
+
+        return Math.max(value, 0);
     }
 
     private int normalizeStarRating(int starRating) {
@@ -419,6 +541,76 @@ public class HotelCatalogService {
         return normalized.isEmpty() ? null : normalized;
     }
 
+    private String readString(Object value) {
+        if (value == null) {
+            return null;
+        }
+
+        String normalized = value.toString().trim();
+        return normalized.isEmpty() ? null : normalized;
+    }
+
+    private List<String> readStringList(Object value) {
+        if (!(value instanceof List<?> sourceValues)) {
+            return List.of();
+        }
+
+        return sourceValues.stream()
+                .filter(Objects::nonNull)
+                .map(Object::toString)
+                .map(String::trim)
+                .filter((text) -> !text.isEmpty())
+                .toList();
+    }
+
+    private double toDouble(Object value) {
+        if (value instanceof Number numberValue) {
+            return numberValue.doubleValue();
+        }
+
+        if (value == null) {
+            return 0;
+        }
+
+        try {
+            return Double.parseDouble(value.toString());
+        } catch (NumberFormatException exception) {
+            return 0;
+        }
+    }
+
+    private long toLong(Object value) {
+        if (value instanceof Number numberValue) {
+            return numberValue.longValue();
+        }
+
+        if (value == null) {
+            return 0;
+        }
+
+        try {
+            return Long.parseLong(value.toString());
+        } catch (NumberFormatException exception) {
+            return 0;
+        }
+    }
+
+    private int toInt(Object value) {
+        if (value instanceof Number numberValue) {
+            return numberValue.intValue();
+        }
+
+        if (value == null) {
+            return 0;
+        }
+
+        try {
+            return Integer.parseInt(value.toString());
+        } catch (NumberFormatException exception) {
+            return 0;
+        }
+    }
+
     private @NonNull String requireNonBlank(String value, @NonNull String message) {
         if (value == null || value.isBlank()) {
             throw new BadRequestException(message);
@@ -426,12 +618,5 @@ public class HotelCatalogService {
 
         return value;
     }
-
-    private boolean containsIgnoreCase(String value, String keywordLowerCase) {
-        if (value == null || keywordLowerCase == null) {
-            return false;
-        }
-
-        return value.toLowerCase().contains(keywordLowerCase);
-    }
 }
+

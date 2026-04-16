@@ -1,22 +1,26 @@
 package com.example.hotelbooking.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
 
+import org.bson.Document;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 
-import com.example.hotelbooking.model.Hotel;
-import com.example.hotelbooking.model.HotelApprovalStatus;
-import com.example.hotelbooking.model.Room;
+import com.example.hotelbooking.dto.HotelCatalogItemDTO;
 import com.example.hotelbooking.repository.HotelRepository;
-import com.example.hotelbooking.repository.RoomRepository;
 
 @ExtendWith(MockitoExtension.class)
 class HotelCatalogServiceTest {
@@ -25,108 +29,85 @@ class HotelCatalogServiceTest {
     private HotelRepository hotelRepository;
 
     @Mock
-    private RoomRepository roomRepository;
+    private UploadStorageService uploadStorageService;
 
     @Mock
-    private UploadStorageService uploadStorageService;
+    private MongoTemplate mongoTemplate;
 
     private HotelCatalogService hotelCatalogService;
 
     @BeforeEach
     void setUp() {
-        hotelCatalogService = new HotelCatalogService(hotelRepository, roomRepository, uploadStorageService);
+        hotelCatalogService = new HotelCatalogService(hotelRepository, uploadStorageService, mongoTemplate);
     }
 
     @Test
-    void getPublicHotelsAppliesPriceAndStarFilters() {
-        Hotel lowStarHotel = new Hotel();
-        lowStarHotel.setId("h1");
-        lowStarHotel.setName("Budget Inn");
-        lowStarHotel.setCity("Ha Noi");
-        lowStarHotel.setStarRating(2);
-        lowStarHotel.setApprovalStatus(HotelApprovalStatus.APPROVED);
+    void getPublicHotelsMapsCatalogItemsFromAggregationResult() {
+        Document hotelDoc = new Document("_id", "h2")
+                .append("name", "Luxury Stay")
+                .append("city", "Ha Noi")
+                .append("starRating", 5)
+                .append("averageRating", 4.8)
+                .append("reviewCount", 120L)
+                .append("amenities", List.of("Wifi", "Pool"))
+                .append("minRoomPrice", 1_500_000d)
+                .append("roomCount", 4)
+                .append("freeCancellationBeforeDays", 3)
+                .append("lateCancellationRefundRate", 50);
 
-        Hotel luxuryHotel = new Hotel();
-        luxuryHotel.setId("h2");
-        luxuryHotel.setName("Luxury Stay");
-        luxuryHotel.setCity("Ha Noi");
-        luxuryHotel.setStarRating(5);
-        luxuryHotel.setAverageRating(4.8);
-        luxuryHotel.setApprovalStatus(HotelApprovalStatus.APPROVED);
+        Document aggregationPayload = new Document("content", List.of(hotelDoc))
+                .append("metadata", List.of(new Document("totalElements", 1L)));
 
-        Room cheapRoom = new Room();
-        cheapRoom.setHotelId("h1");
-        cheapRoom.setPrice(400_000);
+        AggregationResults<Document> mockedResult = new AggregationResults<>(
+                List.of(aggregationPayload),
+                new Document("ok", 1));
 
-        Room expensiveRoom = new Room();
-        expensiveRoom.setHotelId("h2");
-        expensiveRoom.setPrice(1_500_000);
-
-        when(hotelRepository.findAll()).thenReturn(List.of(lowStarHotel, luxuryHotel));
-        when(roomRepository.findAll()).thenReturn(List.of(cheapRoom, expensiveRoom));
+        when(mongoTemplate.aggregate(any(Aggregation.class), eq("hotels"), eq(Document.class)))
+                .thenReturn(mockedResult);
 
         Map<String, Object> response = hotelCatalogService.getPublicHotels(
                 0,
                 10,
                 null,
                 null,
-                1_000_000.0,
                 null,
-                4,
-                4.0,
+                null,
+                null,
+                null,
                 null,
                 null,
                 "rating_desc");
 
         @SuppressWarnings("unchecked")
-        List<Hotel> content = (List<Hotel>) response.get("content");
+        List<HotelCatalogItemDTO> content = (List<HotelCatalogItemDTO>) response.get("content");
 
-        assertEquals(1, content.size());
+        assertFalse(content.isEmpty());
         assertEquals("h2", content.get(0).getId());
-        assertEquals(1, response.get("totalElements"));
+        assertEquals(4, content.get(0).getRoomCount());
+        assertEquals(1_500_000d, content.get(0).getMinRoomPrice());
+        assertEquals(1L, response.get("totalElements"));
+        assertEquals(1, response.get("totalPages"));
+        assertEquals(0, response.get("currentPage"));
     }
 
     @Test
-    void getPublicHotelsSortsByRatingDescThenReviewCountDesc() {
-        Hotel highReview = new Hotel();
-        highReview.setId("h1");
-        highReview.setName("High Review");
-        highReview.setApprovalStatus(HotelApprovalStatus.APPROVED);
-        highReview.setAverageRating(4.8);
-        highReview.setReviewCount(120);
+    void getPublicHotelsCalculatesTotalPagesFromTotalElementsAndSize() {
+        Document hotelOne = new Document("_id", "h1").append("name", "A");
+        Document hotelTwo = new Document("_id", "h2").append("name", "B");
 
-        Hotel lowReview = new Hotel();
-        lowReview.setId("h2");
-        lowReview.setName("Low Review");
-        lowReview.setApprovalStatus(HotelApprovalStatus.APPROVED);
-        lowReview.setAverageRating(4.8);
-        lowReview.setReviewCount(30);
+        Document aggregationPayload = new Document("content", List.of(hotelOne, hotelTwo))
+                .append("metadata", List.of(new Document("totalElements", 5L)));
 
-        Hotel lowerRating = new Hotel();
-        lowerRating.setId("h3");
-        lowerRating.setName("Lower Rating");
-        lowerRating.setApprovalStatus(HotelApprovalStatus.APPROVED);
-        lowerRating.setAverageRating(4.2);
-        lowerRating.setReviewCount(500);
+        AggregationResults<Document> mockedResult = new AggregationResults<>(
+                List.of(aggregationPayload),
+                new Document("ok", 1));
 
-        Room room1 = new Room();
-        room1.setHotelId("h1");
-        room1.setPrice(900_000);
-
-        Room room2 = new Room();
-        room2.setHotelId("h2");
-        room2.setPrice(850_000);
-
-        Room room3 = new Room();
-        room3.setHotelId("h3");
-        room3.setPrice(700_000);
-
-        when(hotelRepository.findAll()).thenReturn(List.of(lowReview, lowerRating, highReview));
-        when(roomRepository.findAll()).thenReturn(List.of(room1, room2, room3));
+        when(mongoTemplate.aggregate(any(Aggregation.class), eq("hotels"), eq(Document.class)))
+                .thenReturn(mockedResult);
 
         Map<String, Object> response = hotelCatalogService.getPublicHotels(
-                0,
-                10,
+                1,
+                2,
                 null,
                 null,
                 null,
@@ -135,14 +116,14 @@ class HotelCatalogServiceTest {
                 null,
                 null,
                 null,
-                "rating_desc");
+                "unknown");
 
         @SuppressWarnings("unchecked")
-        List<Hotel> content = (List<Hotel>) response.get("content");
+        List<HotelCatalogItemDTO> content = (List<HotelCatalogItemDTO>) response.get("content");
 
-        assertEquals(3, content.size());
-        assertEquals("h1", content.get(0).getId());
-        assertEquals("h2", content.get(1).getId());
-        assertEquals("h3", content.get(2).getId());
+        assertEquals(2, content.size());
+        assertEquals(3, response.get("totalPages"));
+        assertEquals(1, response.get("currentPage"));
     }
 }
+

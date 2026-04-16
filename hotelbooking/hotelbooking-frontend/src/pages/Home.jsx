@@ -1,19 +1,42 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
- FALLBACK_IMAGE,
+ FiBriefcase,
+ FiCalendar,
+ FiCheckCircle,
+ FiCompass,
+ FiGlobe,
+ FiMapPin,
+ FiMoon,
+ FiShield,
+ FiStar,
+ FiSun,
+ FiTag,
+ FiTrendingUp,
+ FiUsers,
+} from "react-icons/fi";
+import {
  currencyFormatter,
  normalizeHotels,
- normalizeRooms,
  toPositiveInt,
 } from "../features/hotels/hotelsPageUtils";
 import { getHotels } from "../services/hotelService";
-import { getRooms, searchRooms } from "../services/roomService";
+import { searchRooms } from "../services/roomService";
+import homeCardFallback from "../assets/home-card-fallback.svg";
+import homeHeroTravel from "../assets/home-hero-travel.svg";
 import { addDaysToDateInput, formatDateInputLocal } from "../utils/dateInput";
 import { getPrimaryImage } from "../utils/imageHelpers";
 import "./Home.css";
 
 const STAR = String.fromCodePoint(9733);
+const SEED_IMAGE_MARKER = "seed_hotel_";
+
+const STAY_OPTIONS = [
+ { key: "business", label: "Cong tac", icon: FiBriefcase },
+ { key: "family", label: "Gia dinh", icon: FiUsers },
+ { key: "resort", label: "Nghi duong", icon: FiSun },
+ { key: "weekend", label: "Cuoi tuan", icon: FiMoon },
+];
 
 function mapHotelId(hotel, index) {
  return String(hotel.id || hotel._id || `${hotel.name || "hotel"}-${index}`);
@@ -58,11 +81,23 @@ function buildSearchContext(destination, guests, roomCount, checkIn, checkOut) {
  };
 }
 
+function isUsableHeroImage(value) {
+ if (typeof value !== "string" || value.trim().length === 0) {
+ return false;
+ }
+
+ const normalized = value.trim().toLowerCase();
+ return (
+ !normalized.startsWith("data:image") &&
+ !normalized.includes(SEED_IMAGE_MARKER) &&
+ !normalized.includes("fallback")
+ );
+}
+
 export default function Home() {
  const navigate = useNavigate();
 
  const [hotels, setHotels] = useState([]);
- const [rooms, setRooms] = useState([]);
  const [loading, setLoading] = useState(true);
  const [error, setError] = useState("");
 
@@ -73,12 +108,10 @@ export default function Home() {
 
  const [destination, setDestination] = useState("");
  const [checkIn, setCheckIn] = useState(() => formatDateInputLocal());
- const [checkOut, setCheckOut] = useState(() =>
- buildDefaultCheckOut(formatDateInputLocal())
- );
+ const [checkOut, setCheckOut] = useState(() => buildDefaultCheckOut(formatDateInputLocal()));
  const [guests, setGuests] = useState("2");
  const [roomCount, setRoomCount] = useState("1");
- const [stayType, setStayType] = useState("hotel");
+ const [stayType, setStayType] = useState("business");
  const [activeCity, setActiveCity] = useState("all");
  const [formError, setFormError] = useState("");
 
@@ -88,29 +121,21 @@ export default function Home() {
  const fetchCatalog = async () => {
  try {
  setLoading(true);
- const [hotelsRes, roomsRes] = await Promise.allSettled([
- getHotels(0, 200),
- getRooms(0, 2000),
- ]);
-
- if (hotelsRes.status !== "fulfilled") {
- throw hotelsRes.reason;
- }
-
- const parsedHotels = normalizeHotels(hotelsRes.value?.data);
- const parsedRooms =
- roomsRes.status === "fulfilled" ? normalizeRooms(roomsRes.value?.data) : [];
+ const hotelsRes = await getHotels({
+ page: 0,
+ size: 40,
+ sortBy: "rating_desc",
+ });
+ const parsedHotels = normalizeHotels(hotelsRes?.data);
 
  if (isMounted) {
  setHotels(parsedHotels);
- setRooms(parsedRooms);
  setError("");
  }
  } catch (fetchError) {
  console.error("Cannot load home data", fetchError);
  if (isMounted) {
  setHotels([]);
- setRooms([]);
  setError("Khong the tai du lieu khach san. Vui long thu lai sau.");
  }
  } finally {
@@ -170,7 +195,7 @@ export default function Home() {
  sortBy: "availability_desc",
  });
 
- const availableRooms = normalizeRooms(res?.data);
+ const availableRooms = Array.isArray(res?.data) ? res.data : [];
  const countByHotel = availableRooms.reduce((acc, room) => {
  const hotelId = String(room?.hotelId || "");
  if (!hotelId) {
@@ -210,36 +235,9 @@ export default function Home() {
  };
  }, [checkIn, checkOut, guests, hotels.length]);
 
- const roomStatsByHotel = useMemo(() => {
- return rooms.reduce((acc, room) => {
- const hotelId = String(room?.hotelId || "");
- if (!hotelId) {
- return acc;
- }
-
- const current = acc[hotelId] || {
- roomTypeCount: 0,
- minRoomPrice: Number.POSITIVE_INFINITY,
- maxCapacity: 0,
- };
-
- current.roomTypeCount += 1;
- current.minRoomPrice = Math.min(current.minRoomPrice, Number(room.price || 0));
- current.maxCapacity = Math.max(current.maxCapacity, Number(room.capacity || 0));
-
- acc[hotelId] = current;
- return acc;
- }, {});
- }, [rooms]);
-
  const hotelsWithStats = useMemo(() => {
  return hotels.map((hotel, index) => {
  const hotelId = mapHotelId(hotel, index);
- const roomStats = roomStatsByHotel[hotelId] || {
- roomTypeCount: 0,
- minRoomPrice: Number.POSITIVE_INFINITY,
- maxCapacity: 0,
- };
 
  return {
  ...hotel,
@@ -250,14 +248,13 @@ export default function Home() {
  reviewCount: Number(hotel.reviewCount || 0),
  freeCancellationBeforeDays: Number(hotel.freeCancellationBeforeDays || 0),
  amenities: Array.isArray(hotel.amenities) ? hotel.amenities : [],
- roomTypeCount: Number(roomStats.roomTypeCount || 0),
- maxCapacity: Number(roomStats.maxCapacity || 0),
- minRoomPrice: Number.isFinite(roomStats.minRoomPrice) ? roomStats.minRoomPrice : 0,
+ roomTypeCount: Number(hotel.roomCount || 0),
+ minRoomPrice: Number(hotel.minRoomPrice || 0),
  availableRoomCount: Number(availabilityMap[hotelId] || 0),
- image: getPrimaryImage(hotel, FALLBACK_IMAGE, { includeNameFallback: true }),
+ image: getPrimaryImage(hotel, homeCardFallback, { includeNameFallback: true }),
  };
  });
- }, [availabilityMap, hotels, roomStatsByHotel]);
+ }, [availabilityMap, hotels]);
 
  const cityInsights = useMemo(() => {
  const cityMap = new Map();
@@ -343,34 +340,67 @@ export default function Home() {
  ? ratedHotels.reduce((sum, hotel) => sum + hotel.averageRating, 0) / ratedHotels.length
  : 0;
 
- const totalRoomTypes = Object.values(roomStatsByHotel).reduce(
- (sum, stats) => sum + Number(stats.roomTypeCount || 0),
+ const totalRoomTypes = hotelsWithStats.reduce(
+ (sum, hotel) => sum + Number(hotel.roomTypeCount || 0),
  0
  );
 
  return [
  {
  id: "hotels",
+ icon: FiMapPin,
  label: "Khach san dang mo ban",
  value: `${hotelsWithStats.length}+`,
  },
  {
  id: "cities",
- label: "Thanh pho co san",
+ icon: FiGlobe,
+ label: "Thanh pho co du lieu",
  value: `${cityInsights.length}+`,
  },
  {
  id: "rooms",
- label: "Loai phong",
+ icon: FiCompass,
+ label: "Loai phong kha dung",
  value: `${totalRoomTypes || hotelsWithStats.length}+`,
  },
  {
  id: "rating",
- label: "Diem trung binh",
+ icon: FiStar,
+ label: "Diem danh gia TB",
  value: avgRating ? avgRating.toFixed(1) : "Moi",
  },
  ];
- }, [cityInsights.length, hotelsWithStats, roomStatsByHotel]);
+ }, [cityInsights.length, hotelsWithStats]);
+
+ const trustHighlights = useMemo(() => {
+ const availabilityStatus = availabilityLoading
+ ? "Dang cap nhat phong trong"
+ : availabilityFetched
+ ? "Da doi chieu phong theo lich o"
+ : "Kiem tra phong trong theo ngay";
+
+ return [
+ {
+ id: "verified",
+ icon: FiShield,
+ title: "Danh muc tin cay",
+ copy: `${hotelsWithStats.length} khach san dang mo ban`,
+ },
+ {
+ id: "coverage",
+ icon: FiGlobe,
+ title: "Do phu diem den",
+ copy: `${cityInsights.length} thanh pho co du lieu gia`,
+ },
+ {
+ id: "availability",
+ icon: FiCheckCircle,
+ title: "Phong trong",
+ copy: availabilityStatus,
+ },
+ ];
+ }, [availabilityFetched, availabilityLoading, cityInsights.length, hotelsWithStats.length]);
 
  const popularAmenities = useMemo(() => {
  const amenityMap = new Map();
@@ -452,6 +482,52 @@ export default function Home() {
 
  const featuredHotels = useMemo(() => filteredHotels.slice(0, 8), [filteredHotels]);
 
+ const heroImage = useMemo(() => {
+ const candidates = [
+ cityInsights[0]?.image,
+ cityInsights[1]?.image,
+ featuredHotels[0]?.image,
+ featuredHotels[1]?.image,
+ ];
+
+ const preferred = candidates.find(isUsableHeroImage);
+ return preferred || homeHeroTravel;
+ }, [cityInsights, featuredHotels]);
+
+ const priceInsightRows = useMemo(() => {
+ return cityInsights.slice(0, 6).map((city) => ({
+ city: city.city,
+ hotels: city.hotelCount,
+ rating: city.averageRating,
+ minPrice: city.minPrice,
+ }));
+ }, [cityInsights]);
+
+ const marketSummary = useMemo(() => {
+ const pricedHotels = hotelsWithStats.filter((hotel) => Number(hotel.minRoomPrice) > 0);
+ const avgNightPrice = pricedHotels.length
+ ? pricedHotels.reduce((sum, hotel) => sum + Number(hotel.minRoomPrice || 0), 0) / pricedHotels.length
+ : 0;
+
+ const freeCancellationHotels = hotelsWithStats.filter(
+ (hotel) => Number(hotel.freeCancellationBeforeDays || 0) > 0
+ ).length;
+
+ const reviewedHotels = hotelsWithStats.filter((hotel) => Number(hotel.reviewCount || 0) > 0).length;
+
+ const availableUnits = hotelsWithStats.reduce(
+ (sum, hotel) => sum + Number(hotel.availableRoomCount || 0),
+ 0
+ );
+
+ return {
+ avgNightPrice,
+ freeCancellationHotels,
+ reviewedHotels,
+ availableUnits,
+ };
+ }, [hotelsWithStats]);
+
  const navigateToHotels = (overrideDestination = "") => {
  const resolvedDestination =
  overrideDestination || (activeCity !== "all" ? activeCity : destination.trim());
@@ -499,7 +575,7 @@ export default function Home() {
  setCheckOut(buildDefaultCheckOut(currentDate));
  setGuests("2");
  setRoomCount("1");
- setStayType("hotel");
+ setStayType("business");
  setFormError("");
  };
 
@@ -526,38 +602,26 @@ export default function Home() {
 
  return (
  <div className="home-page">
- <section className="home-shell home-hero-section">
- <div className="home-hero-intro">
- <div className="home-service-tabs" role="tablist" aria-label="Loai luu tru">
- {[
- { key: "hotel", label: "Khach san" },
- { key: "resort", label: "Resort" },
- { key: "apartment", label: "Can ho" },
- { key: "villa", label: "Villa" },
- ].map((tab) => (
- <button
- key={tab.key}
- type="button"
- role="tab"
- aria-selected={stayType === tab.key}
- className={`home-service-tab ${stayType === tab.key ? "active" : ""}`}
- onClick={() => setStayType(tab.key)}
- >
- {tab.label}
- </button>
- ))}
- </div>
+ <section className="home-shell home-hero-shell">
+ <div className="home-hero-backdrop">
+ <img src={heroImage} alt="Travel destination" />
+ <div className="home-hero-overlay" />
 
- <p className="home-kicker">Du lieu dong bo tu trang Hotels</p>
- <h1>Dat khach san nhanh, tim dung phong theo nhu cau chi trong vai thao tac</h1>
- <p className="home-hero-copy">
- Trang chu nay su dung cung nguon du lieu va bo loc voi trang Hotels, nen ket qua ban
- thay o day va khi chuyen trang se thong nhat voi nhau.
+ <div className="home-hero-grid">
+ <div className="home-hero-content">
+ <p className="home-hero-badge">Trai nghiem dat phong thong minh</p>
+ <h1>Tim noi luu tru ly tuong, khop lich trinh va ngan sach cua ban</h1>
+ <p>
+ Bo loc va tim kiem duoc ket noi truc tiep voi du lieu khach san thuc te. Ban co the
+ so sanh gia, danh gia va tinh trang phong trong ngay tai trang chu.
  </p>
 
- <div className="home-stat-grid">
+ <div className="home-hero-metrics">
  {quickStats.map((stat) => (
- <article key={stat.id} className="home-stat-card">
+ <article key={stat.id} className="home-hero-metric">
+ <span className="home-hero-metric-icon" aria-hidden="true">
+ <stat.icon />
+ </span>
  <strong>{stat.value}</strong>
  <span>{stat.label}</span>
  </article>
@@ -565,19 +629,31 @@ export default function Home() {
  </div>
  </div>
 
- <form className="home-search-card" onSubmit={handleSearchSubmit}>
- <h2>Tim phong theo lich o</h2>
- <p>
- Dien thong tin mot lan, he thong se truyen sang trang Hotels voi filter da dien san.
- </p>
+ <aside className="home-search-panel" aria-label="Tim kiem khach san">
+ <div className="home-product-tabs" role="tablist" aria-label="Loai chuyen di">
+ {STAY_OPTIONS.map((tab) => (
+ <button
+ key={tab.key}
+ type="button"
+ role="tab"
+ aria-selected={stayType === tab.key}
+ className={`home-product-tab ${stayType === tab.key ? "active" : ""}`}
+ onClick={() => setStayType(tab.key)}
+ >
+ <tab.icon aria-hidden="true" />
+ {tab.label}
+ </button>
+ ))}
+ </div>
 
+ <form className="home-search-form" onSubmit={handleSearchSubmit}>
  <div className="home-search-grid">
  <label className="home-search-field home-search-field-wide">
- <span>Diem den hoac ten khach san</span>
+ <span>Diem den / ten khach san</span>
  <input
  type="text"
  value={destination}
- placeholder="Vi du: Da Nang, Muong Thanh, Quan 1"
+ placeholder="Nhap thanh pho, khu vuc hoac ten khach san"
  onChange={(event) => setDestination(event.target.value)}
  />
  </label>
@@ -636,26 +712,48 @@ export default function Home() {
  Dat lai
  </button>
  </div>
+
+ <p className="home-search-disclaimer">
+ Gia hien thi la gia moi dem va co the thay doi theo ngay o, loai phong, chinh sach.
+ </p>
  </form>
+
+ <div className="home-trust-inline" aria-label="Thong tin nhanh">
+ {trustHighlights.map((item) => (
+ <article key={item.id} className="home-trust-item">
+ <p className="home-trust-title">
+ <item.icon aria-hidden="true" />
+ <span>{item.title}</span>
+ </p>
+ <p className="home-trust-copy">{item.copy}</p>
+ </article>
+ ))}
+ </div>
+ </aside>
+ </div>
+ </div>
  </section>
 
  <section className="home-shell home-section">
  <div className="home-section-head">
  <div>
- <p className="home-section-kicker">Uu dai tu du lieu gia</p>
- <h2>Lua chon gia tot dang co tren he thong</h2>
+ <p className="home-section-kicker">
+ <FiTag aria-hidden="true" />
+ <span>Deal gia tot</span>
+ </p>
+ <h2>Lua chon phu hop ngan sach cua ban</h2>
  </div>
  <button type="button" className="home-section-link" onClick={() => navigateToHotels()}>
- Xem danh sach Hotels
+ Xem toan bo khach san
  </button>
  </div>
 
  {bestValueHotels.length ? (
- <div className="home-offer-grid">
+ <div className="home-deal-grid">
  {bestValueHotels.map((hotel) => (
  <article
  key={hotel.hotelId}
- className="home-offer-card"
+ className="home-deal-card"
  role="button"
  tabIndex={0}
  onClick={() => openHotelDetail(hotel)}
@@ -666,29 +764,39 @@ export default function Home() {
  }
  }}
  >
- <div className="home-offer-media">
+ <div className="home-deal-media">
+ <span className="home-media-badge">Gia tot</span>
  <img
  src={hotel.image}
  alt={hotel.name || "Hotel image"}
  onError={(event) => {
  event.currentTarget.onerror = null;
- event.currentTarget.src = FALLBACK_IMAGE;
+ event.currentTarget.src = homeCardFallback;
  }}
  />
  </div>
- <div className="home-offer-content">
+ <div className="home-deal-content">
+ <div className="home-deal-top">
  <p>{hotel.city || "Dia diem"}</p>
+ <span className="home-deal-rating">
+ {hotel.averageRating ? hotel.averageRating.toFixed(1) : "Moi"}
+ </span>
+ </div>
  <h3>{hotel.name || "Khach san"}</h3>
+ <p className="home-deal-meta">
+ {availabilityFetched
+ ? `${hotel.availableRoomCount} phong trong`
+ : `${hotel.roomTypeCount} loai phong`}
+ {hotel.freeCancellationBeforeDays > 0 ? " · Huy mien phi" : " · Xac nhan nhanh"}
+ </p>
+ <div className="home-deal-foot">
  <strong>
  {hotel.minRoomPrice
  ? `${currencyFormatter.format(hotel.minRoomPrice)} / dem`
  : "Dang cap nhat gia"}
  </strong>
- <span>
- {hotel.averageRating
- ? `${hotel.averageRating.toFixed(1)} diem - ${hotel.reviewCount} danh gia`
- : "Chua co danh gia"}
- </span>
+ <span className="home-deal-cta">Xem chi tiet</span>
+ </div>
  </div>
  </article>
  ))}
@@ -701,8 +809,11 @@ export default function Home() {
  <section className="home-shell home-section">
  <div className="home-section-head">
  <div>
- <p className="home-section-kicker">Cam hung diem den</p>
- <h2>Thanh pho co nhieu lua chon khach san</h2>
+ <p className="home-section-kicker">
+ <FiMapPin aria-hidden="true" />
+ <span>Diem den pho bien</span>
+ </p>
+ <h2>Cac thanh pho duoc dat nhieu</h2>
  </div>
  <span className="home-result-pill">{cityInsights.length} thanh pho</span>
  </div>
@@ -724,12 +835,13 @@ export default function Home() {
  }}
  >
  <div className="home-city-media">
+ <span className="home-media-badge">Pho bien</span>
  <img
- src={city.image || FALLBACK_IMAGE}
+ src={city.image || homeCardFallback}
  alt={city.city}
  onError={(event) => {
  event.currentTarget.onerror = null;
- event.currentTarget.src = FALLBACK_IMAGE;
+ event.currentTarget.src = homeCardFallback;
  }}
  />
  </div>
@@ -758,8 +870,11 @@ export default function Home() {
  <section className="home-shell home-section">
  <div className="home-section-head">
  <div>
- <p className="home-section-kicker">Nhieu lua chon khach san</p>
- <h2>Card du lieu thuc tu trang Hotels</h2>
+ <p className="home-section-kicker">
+ <FiCalendar aria-hidden="true" />
+ <span>De xuat theo lich o</span>
+ </p>
+ <h2>Khach san phu hop voi bo loc hien tai</h2>
  </div>
  <span className="home-result-pill">{filteredHotels.length} ket qua</span>
  </div>
@@ -784,7 +899,7 @@ export default function Home() {
  ) : availabilityError ? (
  <p className="home-inline-note warning">{availabilityError}</p>
  ) : (
- <p className="home-inline-note">Du lieu phong dang dong bo voi bo loc ngay o hien tai.</p>
+ <p className="home-inline-note">Ket qua da duoc doi chieu theo lich o va so khach hien tai.</p>
  )}
 
  {loading ? (
@@ -819,10 +934,10 @@ export default function Home() {
  alt={hotel.name || "Hotel image"}
  onError={(event) => {
  event.currentTarget.onerror = null;
- event.currentTarget.src = FALLBACK_IMAGE;
+ event.currentTarget.src = homeCardFallback;
  }}
  />
- <span className="home-hotel-city">{hotel.city || "Dia diem noi bat"}</span>
+ <span className="home-hotel-city">{hotel.city || "Dia diem"}</span>
  </div>
 
  <div className="home-hotel-body">
@@ -879,40 +994,95 @@ export default function Home() {
 
  <section className="home-shell home-insight-layout">
  <article className="home-insight-panel">
- <p className="home-section-kicker">Tien nghi duoc tim nhieu</p>
- <h2>Ban do tien nghi tu du lieu hotels</h2>
+ <p className="home-section-kicker">
+ <FiCompass aria-hidden="true" />
+ <span>Thong tin gia theo diem den</span>
+ </p>
+ <h2>Gia tham khao de len ke hoach dat phong</h2>
+
+ <div className="home-price-rows">
+ {priceInsightRows.map((row) => (
+ <div key={row.city} className="home-price-row">
+ <div>
+ <strong>{row.city}</strong>
+ <span>{row.hotels} khach san</span>
+ </div>
+ <div>
+ <span>{row.rating ? `${row.rating.toFixed(1)} diem` : "Moi"}</span>
+ <strong>{row.minPrice ? `Tu ${currencyFormatter.format(row.minPrice)}` : "Dang cap nhat"}</strong>
+ </div>
+ </div>
+ ))}
+ {!priceInsightRows.length ? (
+ <p className="home-empty-text">Chua du du lieu gia theo diem den.</p>
+ ) : null}
+ </div>
+ </article>
+
+ <article className="home-insight-panel">
+ <p className="home-section-kicker">
+ <FiTrendingUp aria-hidden="true" />
+ <span>Chi so thi truong</span>
+ </p>
+ <h2>So lieu thuc te de ban quyet dinh nhanh hon</h2>
+
+ <div className="home-market-grid">
+ <article className="home-market-item">
+ <span className="home-market-icon" aria-hidden="true">
+ <FiTag />
+ </span>
+ <div>
+ <p>Gia trung binh moi dem</p>
+ <strong>
+ {marketSummary.avgNightPrice
+ ? currencyFormatter.format(marketSummary.avgNightPrice)
+ : "Dang cap nhat"}
+ </strong>
+ </div>
+ </article>
+
+ <article className="home-market-item">
+ <span className="home-market-icon" aria-hidden="true">
+ <FiShield />
+ </span>
+ <div>
+ <p>Khach san co huy mien phi</p>
+ <strong>{marketSummary.freeCancellationHotels} khach san</strong>
+ </div>
+ </article>
+
+ <article className="home-market-item">
+ <span className="home-market-icon" aria-hidden="true">
+ <FiStar />
+ </span>
+ <div>
+ <p>Khach san co danh gia</p>
+ <strong>{marketSummary.reviewedHotels} khach san</strong>
+ </div>
+ </article>
+
+ <article className="home-market-item">
+ <span className="home-market-icon" aria-hidden="true">
+ <FiCheckCircle />
+ </span>
+ <div>
+ <p>Tong phong kha dung hien tai</p>
+ <strong>
+ {availabilityFetched
+ ? `${marketSummary.availableUnits} phong`
+ : "Can chon lich o de cap nhat"}
+ </strong>
+ </div>
+ </article>
+ </div>
+
  {popularAmenities.length ? (
  <div className="home-amenity-cloud">
  {popularAmenities.map((item) => (
  <span key={item.name}>{`${item.name} (${item.count})`}</span>
  ))}
  </div>
- ) : (
- <p className="home-empty-text">Chua co du lieu tien nghi de phan tich.</p>
- )}
- </article>
-
- <article className="home-insight-panel">
- <p className="home-section-kicker">Ly do nen dat phong</p>
- <h2>Nhung gi project hien dang ho tro</h2>
- <div className="home-reason-list">
- <div>
- <h3>Bo loc lien thong</h3>
- <p>Du lieu va bo loc Home to Hotels to Detail duoc giu thong nhat.</p>
- </div>
- <div>
- <h3>Gia theo room thuc</h3>
- <p>Gia "tu" tren Home lay tu bang room cua tung khach san.</p>
- </div>
- <div>
- <h3>Theo doi kha dung</h3>
- <p>Neu co ngay o hop le, Home se cap nhat so phong kha dung tu searchRooms.</p>
- </div>
- <div>
- <h3>Responsive day du</h3>
- <p>Toan bo section da duoc toi uu cho desktop, tablet va mobile.</p>
- </div>
- </div>
+ ) : null}
  </article>
  </section>
  </div>
