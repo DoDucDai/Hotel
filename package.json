@@ -1,0 +1,10 @@
+{
+  "name": "hotelbooking-workspace",
+  "version": "1.0.0",
+  "description": "Workspace root package",
+  "scripts": {
+    "dev": "cd hotelbooking && npm run dev",
+    "dev:be": "cd hotelbooking && npm run dev:be",
+    "dev:fe": "cd hotelbooking && npm run dev:fe"
+  }
+}

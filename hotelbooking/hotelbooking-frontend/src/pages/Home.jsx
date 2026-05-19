@@ -32,10 +32,10 @@ const STAR = String.fromCodePoint(9733);
 const SEED_IMAGE_MARKER = "seed_hotel_";
 
 const STAY_OPTIONS = [
- { key: "business", label: "Cong tac", icon: FiBriefcase },
- { key: "family", label: "Gia dinh", icon: FiUsers },
- { key: "resort", label: "Nghi duong", icon: FiSun },
- { key: "weekend", label: "Cuoi tuan", icon: FiMoon },
+ { key: "business", label: "Công tác", icon: FiBriefcase },
+ { key: "family", label: "Gia đình", icon: FiUsers },
+ { key: "resort", label: "Nghỉ dưỡng", icon: FiSun },
+ { key: "weekend", label: "Cuối tuần", icon: FiMoon },
 ];
 
 function mapHotelId(hotel, index) {
@@ -318,20 +318,20 @@ export default function Home() {
  }, [cityInsights]);
 
  const bestValueHotels = useMemo(() => {
- return hotelsWithStats
- .filter((hotel) => hotel.minRoomPrice > 0)
- .sort((a, b) => {
- if (a.minRoomPrice !== b.minRoomPrice) {
- return a.minRoomPrice - b.minRoomPrice;
- }
-
- if (b.averageRating !== a.averageRating) {
- return b.averageRating - a.averageRating;
- }
-
- return (a.name || "").localeCompare(b.name || "", "vi");
- })
- .slice(0, 4);
+  const priced = hotelsWithStats.filter((hotel) => hotel.minRoomPrice > 0);
+  const source = priced.length > 0 ? priced : hotelsWithStats;
+  return source
+   .slice()
+   .sort((a, b) => {
+    if (a.minRoomPrice !== b.minRoomPrice) {
+     return (a.minRoomPrice || 99999999) - (b.minRoomPrice || 99999999);
+    }
+    if (b.averageRating !== a.averageRating) {
+     return b.averageRating - a.averageRating;
+    }
+    return (a.name || "").localeCompare(b.name || "", "vi");
+   })
+   .slice(0, 4);
  }, [hotelsWithStats]);
 
  const quickStats = useMemo(() => {
@@ -349,54 +349,54 @@ export default function Home() {
  {
  id: "hotels",
  icon: FiMapPin,
- label: "Khach san dang mo ban",
+ label: "Khách sạn đang mở bán",
  value: `${hotelsWithStats.length}+`,
  },
  {
  id: "cities",
  icon: FiGlobe,
- label: "Thanh pho co du lieu",
+ label: "Thành phố có dữ liệu",
  value: `${cityInsights.length}+`,
  },
  {
  id: "rooms",
  icon: FiCompass,
- label: "Loai phong kha dung",
+ label: "Loại phòng khả dụng",
  value: `${totalRoomTypes || hotelsWithStats.length}+`,
  },
  {
  id: "rating",
  icon: FiStar,
- label: "Diem danh gia TB",
- value: avgRating ? avgRating.toFixed(1) : "Moi",
+ label: "Điểm đánh giá TB",
+ value: avgRating ? avgRating.toFixed(1) : "Mới",
  },
  ];
  }, [cityInsights.length, hotelsWithStats]);
 
  const trustHighlights = useMemo(() => {
  const availabilityStatus = availabilityLoading
- ? "Dang cap nhat phong trong"
+ ? "Đang cập nhật phòng trống..."
  : availabilityFetched
- ? "Da doi chieu phong theo lich o"
- : "Kiem tra phong trong theo ngay";
+ ? "Đã đối chiếu phòng theo lịch ở"
+ : "Kiểm tra phòng trống theo ngày";
 
  return [
  {
  id: "verified",
  icon: FiShield,
- title: "Danh muc tin cay",
- copy: `${hotelsWithStats.length} khach san dang mo ban`,
+ title: "Danh mục tin cậy",
+ copy: `${hotelsWithStats.length} khách sạn đang mở bán`,
  },
  {
  id: "coverage",
  icon: FiGlobe,
- title: "Do phu diem den",
- copy: `${cityInsights.length} thanh pho co du lieu gia`,
+ title: "Độ phủ điểm đến",
+ copy: `${cityInsights.length} thành phố có dữ liệu giá`,
  },
  {
  id: "availability",
  icon: FiCheckCircle,
- title: "Phong trong",
+ title: "Phòng trống",
  copy: availabilityStatus,
  },
  ];
@@ -609,11 +609,10 @@ export default function Home() {
 
  <div className="home-hero-grid">
  <div className="home-hero-content">
- <p className="home-hero-badge">Trai nghiem dat phong thong minh</p>
- <h1>Tim noi luu tru ly tuong, khop lich trinh va ngan sach cua ban</h1>
+ <p className="home-hero-badge">Trải nghiệm đặt phòng thông minh</p>
+ <h1>Tìm nơi lưu trú lý tưởng, khớp lịch trình và ngân sách của bạn</h1>
  <p>
- Bo loc va tim kiem duoc ket noi truc tiep voi du lieu khach san thuc te. Ban co the
- so sanh gia, danh gia va tinh trang phong trong ngay tai trang chu.
+ Bộ lọc và tìm kiếm được kết nối trực tiếp với dữ liệu thực tế. Bạn có thể dễ dàng so sánh giá phòng, đánh giá từ khách hàng và tình trạng phòng trống ngay tại trang chủ.
  </p>
 
  <div className="home-hero-metrics">
@@ -649,17 +648,17 @@ export default function Home() {
  <form className="home-search-form" onSubmit={handleSearchSubmit}>
  <div className="home-search-grid">
  <label className="home-search-field home-search-field-wide">
- <span>Diem den / ten khach san</span>
+ <span>Điểm đến / tên khách sạn</span>
  <input
  type="text"
  value={destination}
- placeholder="Nhap thanh pho, khu vuc hoac ten khach san"
+ placeholder="Nhập thành phố, khu vực hoặc tên khách sạn"
  onChange={(event) => setDestination(event.target.value)}
  />
  </label>
 
  <label className="home-search-field">
- <span>Nhan phong</span>
+ <span>Nhận phòng</span>
  <input
  type="date"
  value={checkIn}
@@ -669,7 +668,7 @@ export default function Home() {
  </label>
 
  <label className="home-search-field">
- <span>Tra phong</span>
+ <span>Trả phòng</span>
  <input
  type="date"
  value={checkOut}
@@ -679,7 +678,7 @@ export default function Home() {
  </label>
 
  <label className="home-search-field home-search-field-compact">
- <span>Khach</span>
+ <span>Khách</span>
  <input
  type="number"
  min="1"
@@ -689,7 +688,7 @@ export default function Home() {
  </label>
 
  <label className="home-search-field home-search-field-compact">
- <span>Phong</span>
+ <span>Phòng</span>
  <input
  type="number"
  min="1"
@@ -703,18 +702,18 @@ export default function Home() {
 
  <div className="home-search-actions">
  <button type="submit" className="home-btn-primary">
- Tim khach san
+ Tìm khách sạn
  </button>
  <button type="button" className="home-btn-soft" onClick={() => navigateToHotels()}>
- Xem tat ca
+ Xem tất cả
  </button>
  <button type="button" className="home-btn-ghost" onClick={handleReset}>
- Dat lai
+ Đặt lại
  </button>
  </div>
 
  <p className="home-search-disclaimer">
- Gia hien thi la gia moi dem va co the thay doi theo ngay o, loai phong, chinh sach.
+ Giá hiển thị là giá mỗi đêm và có thể thay đổi theo ngày ở, loại phòng, chính sách.
  </p>
  </form>
 
@@ -739,12 +738,12 @@ export default function Home() {
  <div>
  <p className="home-section-kicker">
  <FiTag aria-hidden="true" />
- <span>Deal gia tot</span>
+ <span>Ưu đãi giá tốt</span>
  </p>
- <h2>Lua chon phu hop ngan sach cua ban</h2>
+ <h2>Lựa chọn phù hợp ngân sách của bạn</h2>
  </div>
  <button type="button" className="home-section-link" onClick={() => navigateToHotels()}>
- Xem toan bo khach san
+ Xem toàn bộ khách sạn
  </button>
  </div>
 
@@ -765,7 +764,7 @@ export default function Home() {
  }}
  >
  <div className="home-deal-media">
- <span className="home-media-badge">Gia tot</span>
+ <span className="home-media-badge">Ưu đãi lớn</span>
  <img
  src={hotel.image}
  alt={hotel.name || "Hotel image"}
@@ -777,25 +776,25 @@ export default function Home() {
  </div>
  <div className="home-deal-content">
  <div className="home-deal-top">
- <p>{hotel.city || "Dia diem"}</p>
+ <p>{hotel.city || "Địa điểm"}</p>
  <span className="home-deal-rating">
- {hotel.averageRating ? hotel.averageRating.toFixed(1) : "Moi"}
+ {hotel.averageRating ? hotel.averageRating.toFixed(1) : "Mới"}
  </span>
  </div>
- <h3>{hotel.name || "Khach san"}</h3>
+ <h3>{hotel.name || "Khách sạn"}</h3>
  <p className="home-deal-meta">
  {availabilityFetched
- ? `${hotel.availableRoomCount} phong trong`
- : `${hotel.roomTypeCount} loai phong`}
- {hotel.freeCancellationBeforeDays > 0 ? " · Huy mien phi" : " · Xac nhan nhanh"}
+ ? `${hotel.availableRoomCount} phòng trống`
+ : `${hotel.roomTypeCount} loại phòng`}
+ {hotel.freeCancellationBeforeDays > 0 ? " · Hủy miễn phí" : " · Xác nhận nhanh"}
  </p>
  <div className="home-deal-foot">
  <strong>
  {hotel.minRoomPrice
- ? `${currencyFormatter.format(hotel.minRoomPrice)} / dem`
- : "Dang cap nhat gia"}
+ ? `${currencyFormatter.format(hotel.minRoomPrice)} / đêm`
+ : "Liên hệ đặt phòng"}
  </strong>
- <span className="home-deal-cta">Xem chi tiet</span>
+ <span className="home-deal-cta">Xem chi tiết</span>
  </div>
  </div>
  </article>
@@ -811,11 +810,11 @@ export default function Home() {
  <div>
  <p className="home-section-kicker">
  <FiMapPin aria-hidden="true" />
- <span>Diem den pho bien</span>
+ <span>Điểm đến phổ biến</span>
  </p>
- <h2>Cac thanh pho duoc dat nhieu</h2>
+ <h2>Các thành phố được đặt nhiều</h2>
  </div>
- <span className="home-result-pill">{cityInsights.length} thanh pho</span>
+ <span className="home-result-pill">{cityInsights.length} thành phố</span>
  </div>
 
  {cityInsights.length ? (
@@ -835,7 +834,7 @@ export default function Home() {
  }}
  >
  <div className="home-city-media">
- <span className="home-media-badge">Pho bien</span>
+ <span className="home-media-badge">Phổ biến</span>
  <img
  src={city.image || homeCardFallback}
  alt={city.city}
@@ -847,15 +846,15 @@ export default function Home() {
  </div>
  <div className="home-city-content">
  <h3>{city.city}</h3>
- <p>{city.hotelCount} khach san dang mo ban</p>
+ <p>{city.hotelCount} khách sạn đang mở bán</p>
  <div>
  <span>
  {city.averageRating
- ? `${city.averageRating.toFixed(1)} diem trung binh`
- : "Dang cap nhat danh gia"}
+ ? `${city.averageRating.toFixed(1)} điểm trung bình`
+ : "Đang cập nhật đánh giá"}
  </span>
  <strong>
- {city.minPrice ? `Tu ${currencyFormatter.format(city.minPrice)}` : "Gia dang cap nhat"}
+ {city.minPrice ? `Từ ${currencyFormatter.format(city.minPrice)}` : "Giá đang cập nhật"}
  </strong>
  </div>
  </div>
@@ -863,7 +862,7 @@ export default function Home() {
  ))}
  </div>
  ) : (
- <div className="home-empty-state">Chua co du lieu thanh pho de goi y.</div>
+ <div className="home-empty-state">Chưa có dữ liệu thành phố để gợi ý.</div>
  )}
  </section>
 
@@ -872,15 +871,15 @@ export default function Home() {
  <div>
  <p className="home-section-kicker">
  <FiCalendar aria-hidden="true" />
- <span>De xuat theo lich o</span>
+ <span>Đề xuất theo lịch ở</span>
  </p>
- <h2>Khach san phu hop voi bo loc hien tai</h2>
+ <h2>Khách sạn phù hợp với bộ lọc hiện tại</h2>
  </div>
- <span className="home-result-pill">{filteredHotels.length} ket qua</span>
+ <span className="home-result-pill">{filteredHotels.length} kết quả</span>
  </div>
 
  <div className="home-hotels-toolbar">
- <div className="home-city-tabs" role="tablist" aria-label="Loc theo thanh pho">
+ <div className="home-city-tabs" role="tablist" aria-label="Lọc theo thành phố">
  {cityFilterOptions.map((city) => (
  <button
  key={city}
@@ -888,18 +887,18 @@ export default function Home() {
  className={`home-city-tab ${activeCity === city ? "active" : ""}`}
  onClick={() => setActiveCity(city)}
  >
- {city === "all" ? "Tat ca" : city}
+ {city === "all" ? "Tất cả" : city}
  </button>
  ))}
  </div>
  </div>
 
  {availabilityLoading ? (
- <p className="home-inline-note">Dang cap nhat so phong kha dung theo lich da chon...</p>
+ <p className="home-inline-note">Đang cập nhật số phòng khả dụng theo lịch đã chọn...</p>
  ) : availabilityError ? (
  <p className="home-inline-note warning">{availabilityError}</p>
  ) : (
- <p className="home-inline-note">Ket qua da duoc doi chieu theo lich o va so khach hien tai.</p>
+ <p className="home-inline-note">Kết quả đã được đối chiếu theo lịch ở và số khách hiện tại.</p>
  )}
 
  {loading ? (
@@ -996,25 +995,25 @@ export default function Home() {
  <article className="home-insight-panel">
  <p className="home-section-kicker">
  <FiCompass aria-hidden="true" />
- <span>Thong tin gia theo diem den</span>
+ <span>Thông tin giá theo điểm đến</span>
  </p>
- <h2>Gia tham khao de len ke hoach dat phong</h2>
+ <h2>Giá tham khảo để lên kế hoạch đặt phòng</h2>
 
  <div className="home-price-rows">
  {priceInsightRows.map((row) => (
  <div key={row.city} className="home-price-row">
  <div>
  <strong>{row.city}</strong>
- <span>{row.hotels} khach san</span>
+ <span>{row.hotels} khách sạn</span>
  </div>
  <div>
- <span>{row.rating ? `${row.rating.toFixed(1)} diem` : "Moi"}</span>
- <strong>{row.minPrice ? `Tu ${currencyFormatter.format(row.minPrice)}` : "Dang cap nhat"}</strong>
+ <span>{row.rating ? `${row.rating.toFixed(1)} điểm` : "Mới"}</span>
+ <strong>{row.minPrice ? `Từ ${currencyFormatter.format(row.minPrice)}` : "Đang cập nhật"}</strong>
  </div>
  </div>
  ))}
  {!priceInsightRows.length ? (
- <p className="home-empty-text">Chua du du lieu gia theo diem den.</p>
+ <p className="home-empty-text">Chưa đủ dữ liệu giá theo điểm đến.</p>
  ) : null}
  </div>
  </article>
@@ -1022,9 +1021,9 @@ export default function Home() {
  <article className="home-insight-panel">
  <p className="home-section-kicker">
  <FiTrendingUp aria-hidden="true" />
- <span>Chi so thi truong</span>
+ <span>Chỉ số thị trường</span>
  </p>
- <h2>So lieu thuc te de ban quyet dinh nhanh hon</h2>
+ <h2>Số liệu thực tế để bạn quyết định nhanh hơn</h2>
 
  <div className="home-market-grid">
  <article className="home-market-item">
@@ -1032,11 +1031,11 @@ export default function Home() {
  <FiTag />
  </span>
  <div>
- <p>Gia trung binh moi dem</p>
+ <p>Giá trung bình mỗi đêm</p>
  <strong>
  {marketSummary.avgNightPrice
  ? currencyFormatter.format(marketSummary.avgNightPrice)
- : "Dang cap nhat"}
+ : "Đang cập nhật"}
  </strong>
  </div>
  </article>
@@ -1046,8 +1045,8 @@ export default function Home() {
  <FiShield />
  </span>
  <div>
- <p>Khach san co huy mien phi</p>
- <strong>{marketSummary.freeCancellationHotels} khach san</strong>
+ <p>Khách sạn có hủy miễn phí</p>
+ <strong>{marketSummary.freeCancellationHotels} khách sạn</strong>
  </div>
  </article>
 
@@ -1056,8 +1055,8 @@ export default function Home() {
  <FiStar />
  </span>
  <div>
- <p>Khach san co danh gia</p>
- <strong>{marketSummary.reviewedHotels} khach san</strong>
+ <p>Khách sạn có đánh giá</p>
+ <strong>{marketSummary.reviewedHotels} khách sạn</strong>
  </div>
  </article>
 
@@ -1066,11 +1065,11 @@ export default function Home() {
  <FiCheckCircle />
  </span>
  <div>
- <p>Tong phong kha dung hien tai</p>
+ <p>Tổng phòng khả dụng hiện tại</p>
  <strong>
  {availabilityFetched
- ? `${marketSummary.availableUnits} phong`
- : "Can chon lich o de cap nhat"}
+ ? `${marketSummary.availableUnits} phòng`
+ : "Cần chọn lịch ở để cập nhật"}
  </strong>
  </div>
  </article>

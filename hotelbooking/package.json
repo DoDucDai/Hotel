@@ -1,0 +1,13 @@
+{
+  "name": "hotelbooking-root",
+  "version": "1.0.0",
+  "description": "Root package for running backend and frontend",
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail --names \"BE,FE\" --prefix-colors \"bgBlue.bold,bgGreen.bold\" \".\\mvnw.cmd spring-boot:run\" \"npm run dev --prefix hotelbooking-frontend\"",
+    "dev:be": ".\\mvnw.cmd spring-boot:run",
+    "dev:fe": "npm run dev --prefix hotelbooking-frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
