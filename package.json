@@ -1,10 +1,13 @@
 {
-  "name": "hotelbooking-workspace",
+  "name": "hotel-booking-workspace",
   "version": "1.0.0",
-  "description": "Workspace root package",
+  "description": "Monorepo: Hotel Booking — Backend (Spring Boot) + Frontend (React/Vite)",
   "scripts": {
-    "dev": "cd hotelbooking && npm run dev",
-    "dev:be": "cd hotelbooking && npm run dev:be",
-    "dev:fe": "cd hotelbooking && npm run dev:fe"
+    "dev":    "concurrently --kill-others-on-fail --names \"BE,FE\" --prefix-colors \"bgBlue.bold,bgGreen.bold\" \"npm run dev:be\" \"npm run dev:fe\"",
+    "dev:be": "cd backend && .\\mvnw.cmd spring-boot:run",
+    "dev:fe": "npm run dev --prefix frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }

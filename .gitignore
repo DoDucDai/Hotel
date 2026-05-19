@@ -1,0 +1,67 @@
+# ============================================================
+#  ROOT .gitignore — Hotel Booking Monorepo
+# ============================================================
+
+# ─── Design System (reference only, not part of main project) ───
+design-system/
+
+# ─── Backend: Maven Build Outputs ───
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+!backend/**/src/main/**/target/
+!backend/**/src/test/**/target/
+
+# ─── Backend: Maven Local Repository Cache (machine-specific) ───
+backend/.m2/
+
+# ─── Backend: Runtime Uploads ───
+backend/uploads/
+
+# ─── Backend: Environment & Secrets ───
+backend/.env
+backend/.env.*
+!backend/.env.example
+backend/src/main/resources/application-local.properties
+
+# ─── Backend: Runtime Logs ───
+backend/boot*.log
+
+# ─── Frontend: Node Modules & Build Output ───
+frontend/node_modules/
+frontend/dist/
+
+# ─── Frontend: Environment & Secrets ───
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# ─── Root: Workspace orchestration node_modules ───
+node_modules/
+
+# ─── Editor & IDE ───
+.vscode/
+.idea/
+*.iws
+*.iml
+*.ipr
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+.nb-gradle/
+nbbuild/
+nbdist/
+
+# ─── AI Tool Configs (local machine specific) ───
+# .claude/ and .codex/ are kept in repo for shared AI context
+
+# ─── OS Files ───
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ─── Misc ───
+*.log
