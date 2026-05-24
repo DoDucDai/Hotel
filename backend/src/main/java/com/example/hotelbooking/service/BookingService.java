@@ -370,11 +370,14 @@ public class BookingService {
 
     public List<Booking> getBookingsByRoom(String roomId, String email) {
         User user = getCurrentUser(email);
-        if (user.getRole() != Role.ADMIN) {
+        Room room = roomRepository.findById(requireNonBlank(roomId, "Room id is required"))
+                .orElseThrow(() -> new NotFoundException("Room not found"));
+
+        if (user.getRole() != Role.ADMIN && !Objects.equals(user.getId(), room.getOwnerId())) {
             throw new ForbiddenException("Ban khong co quyen xem booking theo room");
         }
 
-        return bookingRepository.findByRoomId(requireNonBlank(roomId, "Room id is required"));
+        return bookingRepository.findByRoomId(room.getId());
     }
 
     public List<Booking> getAllBookings() {

@@ -24,6 +24,13 @@ import com.example.hotelbooking.exception.BadRequestException;
 import com.example.hotelbooking.exception.NotFoundException;
 import com.example.hotelbooking.model.Hotel;
 import com.example.hotelbooking.model.HotelApprovalStatus;
+import com.example.hotelbooking.service.RoomInventoryService;
+import java.time.LocalDate;
+import java.util.Set;
+import com.example.hotelbooking.model.BookingStatus;
+import com.example.hotelbooking.model.Room;
+import com.example.hotelbooking.repository.BookingRepository;
+import com.example.hotelbooking.repository.RoomRepository;
 import com.example.hotelbooking.repository.HotelRepository;
 
 @Service
@@ -35,14 +42,23 @@ public class HotelCatalogService {
     private final HotelRepository hotelRepository;
     private final UploadStorageService uploadStorageService;
     private final MongoTemplate mongoTemplate;
+    private final RoomRepository roomRepository;
+    private final BookingRepository bookingRepository;
+    private final RoomInventoryService roomInventoryService;
 
     public HotelCatalogService(
             HotelRepository hotelRepository,
             UploadStorageService uploadStorageService,
-            MongoTemplate mongoTemplate) {
+            MongoTemplate mongoTemplate,
+            RoomRepository roomRepository,
+            BookingRepository bookingRepository,
+            RoomInventoryService roomInventoryService) {
         this.hotelRepository = hotelRepository;
         this.uploadStorageService = uploadStorageService;
         this.mongoTemplate = mongoTemplate;
+        this.roomRepository = roomRepository;
+        this.bookingRepository = bookingRepository;
+        this.roomInventoryService = roomInventoryService;
     }
 
     public Map<String, Object> getPublicHotels(
@@ -197,8 +213,47 @@ public class HotelCatalogService {
             throw new NotFoundException("Hotel not found");
         }
 
+        List<Room> rooms = roomRepository.findByHotelId(hotelId);
+        if (hasActiveOrUpcomingBookings(rooms)) {
+            throw new BadRequestException("Khong the xoa khach san vi van con booking dang hoat dong hoac sap toi");
+        }
+
+        if (!rooms.isEmpty()) {
+            rooms.forEach((room) -> roomInventoryService.deleteBlocksByRoomId(room.getId()));
+            roomRepository.deleteAll(rooms);
+        }
+
         hotelRepository.deleteById(hotelId);
         return Map.of("message", "Deleted successfully");
+    }
+
+    private boolean hasActiveOrUpcomingBookings(List<Room> rooms) {
+        if (rooms == null || rooms.isEmpty()) {
+            return false;
+        }
+
+        Set<String> roomIds = rooms.stream()
+                .filter(Objects::nonNull)
+                .map(Room::getId)
+                .filter(Objects::nonNull)
+                .filter((value) -> !value.isBlank())
+                .collect(Collectors.toSet());
+
+        if (roomIds.isEmpty()) {
+            return false;
+        }
+
+        LocalDate today = LocalDate.now();
+        return bookingRepository.findByRoomIdIn(List.copyOf(roomIds)).stream()
+                .filter(Objects::nonNull)
+                .filter((booking) -> booking.getStatus() != BookingStatus.CANCELLED)
+                .anyMatch((booking) -> {
+                    if (booking.getCheckOutDate() == null) {
+                        return true;
+                    }
+
+                    return !booking.getCheckOutDate().isBefore(today);
+                });
     }
 
     public Map<String, Object> searchHotel(String city, int page, int size) {

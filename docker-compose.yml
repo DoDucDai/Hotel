@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: hotelbooking-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - hotelbooking-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hotelbooking-backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongodb
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/hotelbooking
+      - ALLOWED_ORIGINS=http://localhost,http://localhost:80,http://127.0.0.1
+    networks:
+      - hotelbooking-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=/api
+    container_name: hotelbooking-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - hotelbooking-network
+
+volumes:
+  mongo-data:
+
+networks:
+  hotelbooking-network:
+    driver: bridge

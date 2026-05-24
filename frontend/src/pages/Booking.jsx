@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "../components/ToastProvider";
 import { getMyAccount } from "../services/accountService";
@@ -8,6 +8,7 @@ import {
  getPaymentInstructions,
 } from "../services/bookingService";
 import { getActiveCoupons } from "../services/couponService";
+import { resendVerificationEmail } from "../services/authService";
 import { resolveBookingContext } from "../features/booking/bookingPageUtils";
 import { addDaysToDateInput, formatDateInputLocal } from "../utils/dateInput";
 import {
@@ -152,6 +153,24 @@ function Booking() {
  const [paymentMethod, setPaymentMethod] = useState("PAY_AT_HOTEL");
 
  const [pageError, setPageError] = useState("");
+ const [resendLoading, setResendLoading] = useState(false);
+
+ const handleResend = async () => {
+   if (!account?.email) {
+     toast.error("Không tìm thấy email tài khoản.");
+     return;
+   }
+   setResendLoading(true);
+   try {
+     await resendVerificationEmail(account.email);
+     toast.success("Đã gửi lại email xác nhận. Vui lòng kiểm tra hộp thư của bạn.");
+   } catch (err) {
+     console.error(err);
+     toast.error(err?.response?.data?.error || "Không thể gửi lại email xác nhận.");
+   } finally {
+     setResendLoading(false);
+   }
+ };
 
  const hasToken = Boolean(localStorage.getItem("accessToken"));
 
@@ -283,9 +302,15 @@ function Booking() {
  return `Áp dụng thành công: ${selectedCoupon.description || selectedCoupon.code}`;
  }, [estimatedOriginalPrice, normalizedCouponCode, selectedCoupon]);
 
- const handleSubmit = async (event) => {
- event.preventDefault();
- setPageError("");
+  const handleSubmit = async (event) => {
+  event.preventDefault();
+  setPageError("");
+
+  if (account && !account.emailVerified) {
+    toast.warning("Tài khoản của bạn chưa được xác thực email. Vui lòng xác thực trước khi đặt phòng.");
+    setPageError("Tài khoản chưa xác thực email. Vui lòng kiểm tra hộp thư hoặc gửi lại mã xác nhận.");
+    return;
+  }
 
  if (!selectedRoom?.id) {
  toast.error("Bạn cần chọn phòng trước khi đặt");
@@ -360,13 +385,59 @@ function Booking() {
  };
 
  return (
- <main className="booking-page">
- <section className="booking-shell">
- <header className="booking-header">
- <div>
- <p className="booking-tag">Xác nhận đặt phòng</p>
- <h1>Thông tin đặt phòng của bạn</h1>
- <p>
+  <main className="booking-page">
+    <style>{`
+      /* Custom premium styling for checkout & savings */
+      .discount-savings.active {
+        color: #34D399 !important;
+        text-shadow: 0 0 8px rgba(52, 211, 153, 0.3);
+        animation: scaleSavings 0.3s ease;
+      }
+      .coupon-badge-glowing {
+        background: rgba(16, 185, 129, 0.12);
+        border: 1px solid rgba(16, 185, 129, 0.25);
+        color: #34D399;
+        font-size: 0.7rem;
+        font-weight: bold;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-left: 8px;
+        display: inline-block;
+        vertical-align: middle;
+      }
+      /* 3D Checkout button glow */
+      .booking-form button[type="submit"] {
+        background: var(--color-primary, #F59E0B);
+        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+        border: none;
+        transition: all 0.3s ease;
+      }
+      .booking-form button[type="submit"]:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
+      }
+      /* Shimmering Skeleton loaders */
+      .booking-skeleton-container .skeleton-line {
+        background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite linear;
+      }
+      @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+      }
+      @keyframes scaleSavings {
+        0% { transform: scale(0.9); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+      }
+    `}</style>
+  <section className="booking-shell">
+  <header className="booking-header">
+  <div>
+  <p className="booking-tag">Xác nhận đặt phòng</p>
+  <h1>Thông tin đặt phòng của bạn</h1>
+  <p>
  Chọn lịch lưu trú, thêm mã giảm giá và quyết định cách thanh toán trước khi
  hoàn tất booking.
  </p>
@@ -381,16 +452,61 @@ function Booking() {
  <section className="booking-card">
  <h2>Chi tiết đặt phòng</h2>
 
- {!selectedRoom ? (
- <div className="booking-state">
- Chưa có phòng được chọn. Vui lòng vào trang chi tiết khách sạn để chọn phòng.
- <button type="button" onClick={() => navigate("/hotels")}>
- Chọn phòng ngay
- </button>
- </div>
- ) : (
- <form className="booking-form" onSubmit={handleSubmit}>
- <label>
+  {loadingAccount ? (
+   <div className="booking-skeleton-container">
+    <div className="skeleton-line header" />
+    <div className="skeleton-line field" />
+    <div className="skeleton-line field" />
+    <div className="skeleton-grid">
+     <div className="skeleton-line field-half" />
+     <div className="skeleton-line field-half" />
+    </div>
+    <div className="skeleton-line field" />
+    <div className="skeleton-line button" />
+   </div>
+  ) : !selectedRoom ? (
+  <div className="booking-state">
+  Chưa có phòng được chọn. Vui lòng vào trang chi tiết khách sạn để chọn phòng.
+  <button type="button" onClick={() => navigate("/hotels")}>
+  Chọn phòng ngay
+  </button>
+  </div>
+  ) : (
+  <form className="booking-form" onSubmit={handleSubmit}>
+    {account && !account.emailVerified && (
+      <div className="booking-unverified-overlay" style={{
+        background: "rgba(239, 68, 68, 0.08)",
+        border: "1px solid rgba(239, 68, 68, 0.25)",
+        padding: "20px",
+        borderRadius: "12px",
+        marginBottom: "20px",
+        textAlign: "center"
+      }}>
+        <p style={{ margin: "0 0 12px 0", color: "#FCA5A5", fontSize: "0.95rem", fontWeight: 500 }}>
+          📧 Bạn cần xác thực email của tài khoản trước khi có thể thực hiện đặt phòng.
+        </p>
+        <button
+          type="button"
+          className="subtab-btn"
+          style={{
+            background: "var(--color-primary, #F59E0B)",
+            color: "#fff",
+            borderColor: "var(--color-primary, #F59E0B)",
+            padding: "8px 16px",
+            borderRadius: "20px",
+            border: "1px solid transparent",
+            cursor: "pointer",
+            fontSize: "0.85rem",
+            fontWeight: 500
+          }}
+          onClick={handleResend}
+          disabled={resendLoading}
+        >
+          {resendLoading ? "Đang gửi..." : "Gửi lại email xác thực"}
+        </button>
+      </div>
+    )}
+  <label>
  <span>Khách sạn</span>
  <input value={selectedHotel?.name || "-"} readOnly />
  </label>
@@ -577,14 +693,14 @@ function Booking() {
  <article className="summary-card">
  <h3>Tóm tắt</h3>
  <ul>
- <li>
- <span>Khách hàng</span>
- <strong>{account?.name || "-"}</strong>
- </li>
- <li>
- <span>Email</span>
- <strong>{account?.email || "-"}</strong>
- </li>
+  <li>
+  <span>Khách hàng</span>
+  <strong>{loadingAccount ? <span className="skeleton-line" style={{ display: "inline-block", height: "14px", width: "80px", margin: 0 }} /> : account?.name || "-"}</strong>
+  </li>
+  <li>
+  <span>Email</span>
+  <strong>{loadingAccount ? <span className="skeleton-line" style={{ display: "inline-block", height: "14px", width: "120px", margin: 0 }} /> : account?.email || "-"}</strong>
+  </li>
  <li>
  <span>Khách sạn</span>
  <strong>{selectedHotel?.name || "-"}</strong>
@@ -613,12 +729,17 @@ function Booking() {
  : "-"}
  </strong>
  </li>
- <li>
- <span>Giảm giá</span>
- <strong>
- {discountAmount ? `- ${currencyFormatter.format(discountAmount)}` : "-"}
- </strong>
- </li>
+  <li>
+  <span>Giảm giá</span>
+  <strong className={discountAmount ? "discount-savings active" : ""}>
+  {discountAmount ? `- ${currencyFormatter.format(discountAmount)}` : "-"}
+  {selectedCoupon && discountAmount > 0 && (
+    <span className="coupon-badge-glowing">
+      {selectedCoupon.discountType === "PERCENTAGE" ? `${selectedCoupon.discountValue}%` : "Ưu đãi"}
+    </span>
+  )}
+  </strong>
+  </li>
  <li className="summary-total">
  <span>Tổng thanh toán</span>
  <strong>

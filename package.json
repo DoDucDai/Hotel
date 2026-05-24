@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "Monorepo: Hotel Booking — Backend (Spring Boot) + Frontend (React/Vite)",
   "scripts": {
+    "install:all": "npm install && npm install --prefix frontend",
+    "install:fe": "node -e \"const fs = require('fs'); if (!fs.existsSync('frontend/node_modules')) { console.log('Installing frontend dependencies...'); require('child_process').execSync('npm install --prefix frontend', { stdio: 'inherit' }); }\"",
     "dev":    "concurrently --kill-others-on-fail --names \"BE,FE\" --prefix-colors \"bgBlue.bold,bgGreen.bold\" \"npm run dev:be\" \"npm run dev:fe\"",
-    "dev:be": "cd backend && .\\mvnw.cmd spring-boot:run",
-    "dev:fe": "npm run dev --prefix frontend"
+    "dev:be": "cd backend && mvnw spring-boot:run",
+    "dev:fe": "npm run install:fe && npm run dev --prefix frontend"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

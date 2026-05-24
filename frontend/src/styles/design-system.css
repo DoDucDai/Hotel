@@ -1,72 +1,72 @@
 /*
- * HOTEL BOOKING — Design System
- * Based on MASTER.md: Glassmorphism, Dark Navy, Gold + Purple
- * Fonts: Cinzel (heading) + Josefin Sans (body)
+ * HOTEL BOOKING — Agoda-Style Premium Design System
+ * Light, high-converting, modern, clean
+ * Fonts: Outfit (headings) + Inter (body)
  *
  * HOW TO USE:
  *   Import this file ONCE in index.css via @import
  *   Then use var(--token-name) anywhere in your CSS files.
  *   To change the entire theme, edit ONLY this file.
  */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..700;1,400..700&family=Josefin+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 /* =====================================================
    COLOR TOKENS
    ===================================================== */
 :root {
   /* --- Primary Palette --- */
-  --color-primary:      #F59E0B;   /* Muted Gold — trust, luxury */
-  --color-secondary:    #FBBF24;   /* Gold light — highlights */
-  --color-cta:          #8B5CF6;   /* Purple — action, CTA buttons */
-  --color-cta-dark:     #7C3AED;   /* Purple dark — hover state */
+  --color-primary:      #1170E4;   /* Agoda Blue — trust, brand identity */
+  --color-secondary:    #002F6C;   /* Agoda Navy — premium titles, headers */
+  --color-cta:          #E12D6E;   /* Agoda Pink Accent — highlights, shock discounts, booking CTAs */
+  --color-cta-dark:     #C11D59;   /* Pink Accent dark — hover state */
 
   /* --- Background --- */
-  --color-bg:           #0F172A;   /* Deep Navy — page background */
-  --color-bg-mid:       #1E293B;   /* Slate — cards, panels */
-  --color-bg-soft:      #263347;   /* Lighter panel background */
-  --color-bg-glass:     rgba(15, 23, 42, 0.75);  /* Glass panels */
+  --color-bg:           #F8F9FA;   /* Clean light gray — main page background */
+  --color-bg-mid:       #FFFFFF;   /* Pure White — cards, panels, search bars */
+  --color-bg-soft:      #F0F5FF;   /* Light Blue tint — subtle highlights, tags */
+  --color-bg-glass:     rgba(255, 255, 255, 0.85);  /* Glass panels */
 
   /* --- Text --- */
-  --color-text:         #F8FAFC;   /* Near-white — primary text */
-  --color-text-soft:    #CBD5E1;   /* Muted text */
-  --color-text-muted:   #94A3B8;   /* Placeholder, hint */
+  --color-text:         #1E293B;   /* Slate-800 — rich dark gray for high readability */
+  --color-text-soft:    #475569;   /* Slate-600 — subheaders, descriptions */
+  --color-text-muted:   #94A3B8;   /* Slate-400 — placeholder, disabled states */
 
   /* --- Borders & Lines --- */
-  --color-border:       rgba(255, 255, 255, 0.12);
-  --color-border-gold:  rgba(245, 158, 11, 0.35);
-  --color-border-focus: #F59E0B;
+  --color-border:       #E2E8F0;   /* Slate-200 border */
+  --color-border-gold:  #FED7AA;   /* Light orange border */
+  --color-border-focus: #1170E4;   /* Agoda Blue focus border */
 
   /* --- Status Colors --- */
-  --color-success:      #10B981;
-  --color-error:        #EF4444;
-  --color-warning:      #F59E0B;
-  --color-info:         #8B5CF6;
+  --color-success:      #10B981;   /* Agoda Green rating / verified tags */
+  --color-error:        #EF4444;   /* Danger, cancel */
+  --color-warning:      #F59E0B;   /* Warning, yellow stars */
+  --color-info:         #1170E4;   /* Informational blue */
 }
 
 /* =====================================================
    TYPOGRAPHY TOKENS
    ===================================================== */
 :root {
-  --font-heading:  'Playfair Display', Georgia, serif;
-  --font-body:     'Josefin Sans', 'Segoe UI', sans-serif;
+  --font-heading:  'Outfit', 'Inter', 'Segoe UI', sans-serif;
+  --font-body:     'Inter', 'Segoe UI', sans-serif;
 
-  --text-xs:    0.72rem;
-  --text-sm:    0.85rem;
+  --text-xs:    0.75rem;
+  --text-sm:    0.875rem;
   --text-base:  1rem;
   --text-lg:    1.125rem;
   --text-xl:    1.25rem;
   --text-2xl:   1.5rem;
   --text-3xl:   clamp(1.75rem, 2.5vw, 2.25rem);
-  --text-4xl:   clamp(2.25rem, 4vw, 3.5rem);
-  --text-hero:  clamp(2.8rem, 5vw, 4.5rem);
+  --text-4xl:   clamp(2.25rem, 4vw, 3.25rem);
+  --text-hero:  clamp(2.8rem, 5vw, 4rem);
 
-  --tracking-wide:    0.05em;
-  --tracking-wider:   0.1em;
-  --tracking-widest:  0.18em;
-  --leading-tight:    1.1;
+  --tracking-wide:    0.01em;
+  --tracking-wider:   0.03em;
+  --tracking-widest:  0.08em;
+  --leading-tight:    1.15;
   --leading-snug:     1.35;
-  --leading-normal:   1.6;
-  --leading-relaxed:  1.75;
+  --leading-normal:   1.5;
+  --leading-relaxed:  1.65;
 }
 
 /* =====================================================
@@ -82,7 +82,7 @@
   --space-3xl:  4rem;      /* 64px */
   --space-4xl:  6rem;      /* 96px */
 
-  --container:  min(1280px, calc(100% - 3rem));
+  --container:  min(1240px, calc(100% - 2.5rem));
   --navbar-h:   72px;
 }
 
@@ -90,12 +90,13 @@
    BORDER RADIUS TOKENS
    ===================================================== */
 :root {
+  --radius-xs:   0.25rem;   /*  4px */
   --radius-sm:   0.5rem;    /*  8px */
   --radius-md:   0.75rem;   /* 12px */
   --radius-lg:   1rem;      /* 16px */
   --radius-xl:   1.5rem;    /* 24px */
-  --radius-2xl:  2rem;      /* 32px — card standard */
-  --radius-3xl:  2.5rem;    /* 40px — hero panels */
+  --radius-2xl:  2rem;      /* 32px */
+  --radius-3xl:  2.5rem;    /* 40px */
   --radius-full: 999px;     /* Pill */
 }
 
@@ -103,23 +104,23 @@
    SHADOW TOKENS
    ===================================================== */
 :root {
-  --shadow-sm:   0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md:   0 4px 6px rgba(0, 0, 0, 0.1);
-  --shadow-lg:   0 10px 15px rgba(0, 0, 0, 0.1);
-  --shadow-xl:   0 20px 25px rgba(0, 0, 0, 0.15);
-  --shadow-gold: 0 8px 24px rgba(245, 158, 11, 0.25);
-  --shadow-cta:  0 8px 24px rgba(139, 92, 246, 0.35);
+  --shadow-sm:   0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md:   0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-lg:   0 10px 25px rgba(0, 0, 0, 0.06);
+  --shadow-xl:   0 20px 40px rgba(0, 0, 0, 0.08);
+  --shadow-gold: 0 8px 24px rgba(17, 112, 228, 0.1);
+  --shadow-cta:  0 8px 24px rgba(225, 45, 110, 0.15);
 }
 
 /* =====================================================
    GLASSMORPHISM HELPERS
    ===================================================== */
 :root {
-  --glass-bg:      rgba(30, 41, 59, 0.65);
-  --glass-bg-dark: rgba(15, 23, 42, 0.82);
-  --glass-blur:    blur(16px);
-  --glass-border:  1px solid rgba(255, 255, 255, 0.10);
-  --glass-border-gold: 1px solid rgba(245, 158, 11, 0.25);
+  --glass-bg:      rgba(255, 255, 255, 0.75);
+  --glass-bg-dark: rgba(255, 255, 255, 0.9);
+  --glass-blur:    blur(12px);
+  --glass-border:  1px solid rgba(0, 0, 0, 0.06);
+  --glass-border-gold: 1px solid rgba(17, 112, 228, 0.1);
 }
 
 /* =====================================================
@@ -148,19 +149,18 @@
 }
 
 @keyframes pulseGold {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
-  50%       { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(17, 112, 228, 0.3); }
+  50%       { box-shadow: 0 0 0 8px rgba(17, 112, 228, 0); }
 }
 
 /* =====================================================
    SHARED UTILITY CLASSES
-   (Use sparingly — prefer component-specific CSS)
    ===================================================== */
 
-/* Gold divider */
+/* Brand divider */
 .ds-divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+  background: linear-gradient(90deg, transparent, var(--color-border), transparent);
   border: none;
   margin: var(--space-xl) 0;
 }
@@ -184,9 +184,9 @@
 .ds-skeleton {
   background: linear-gradient(
     90deg,
-    var(--color-bg-mid) 25%,
-    var(--color-bg-soft) 50%,
-    var(--color-bg-mid) 75%
+    #F1F5F9 25%,
+    #E2E8F0 50%,
+    #F1F5F9 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
@@ -200,3 +200,35 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* =====================================================
+   THEMES (DYNAMIC OVERRIDES)
+   ===================================================== */
+body.theme-indigo {
+  --color-primary:      #1170E4;   /* Brand Blue */
+  --color-secondary:    #002F6C;   /* Navy */
+  --color-cta:          #E12D6E;   /* Agoda Pink Accent */
+  --color-border-focus: #1170E4;
+}
+
+body.theme-gold {
+  --color-primary:      #B38F4D;   /* Premium Luxury Gold */
+  --color-secondary:    #1E293B;   /* Slate Dark */
+  --color-cta:          #0F172A;   /* Deep Midnight */
+  --color-border-focus: #B38F4D;
+}
+
+body.theme-emerald {
+  --color-primary:      #10B981;   /* Emerald Green */
+  --color-secondary:    #064E3B;   /* Dark Forest */
+  --color-cta:          #3B82F6;   /* Sky Blue */
+  --color-border-focus: #10B981;
+}
+
+body.theme-rosewood {
+  --color-primary:      #BE123C;   /* Rosewood Red */
+  --color-secondary:    #4C0519;   /* Deep Velvet */
+  --color-cta:          #F59E0B;   /* Honey Amber */
+  --color-border-focus: #BE123C;
+}
+

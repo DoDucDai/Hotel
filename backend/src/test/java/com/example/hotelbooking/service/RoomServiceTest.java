@@ -18,6 +18,7 @@ import com.example.hotelbooking.exception.NotFoundException;
 import com.example.hotelbooking.model.Hotel;
 import com.example.hotelbooking.model.HotelApprovalStatus;
 import com.example.hotelbooking.model.Room;
+import com.example.hotelbooking.repository.BookingRepository;
 import com.example.hotelbooking.repository.HotelRepository;
 import com.example.hotelbooking.repository.RoomRepository;
 
@@ -33,11 +34,14 @@ class RoomServiceTest {
     @Mock
     private RoomInventoryService roomInventoryService;
 
+    @Mock
+    private BookingRepository bookingRepository;
+
     private RoomService roomService;
 
     @BeforeEach
     void setUp() {
-        roomService = new RoomService(roomRepository, hotelRepository, roomInventoryService);
+        roomService = new RoomService(roomRepository, hotelRepository, roomInventoryService, bookingRepository);
     }
 
     @Test

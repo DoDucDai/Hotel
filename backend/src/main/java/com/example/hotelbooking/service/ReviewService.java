@@ -62,13 +62,8 @@ public class ReviewService {
             throw new ForbiddenException("Ban khong the danh gia booking nay");
         }
 
-        if (booking.getStatus() == BookingStatus.CANCELLED) {
-            throw new BadRequestException("Khong the danh gia booking da bi huy");
-        }
-
-        LocalDate checkOutDate = booking.getCheckOutDate();
-        if (checkOutDate == null || LocalDate.now().isBefore(checkOutDate)) {
-            throw new BadRequestException("Chi co the danh gia sau khi ket thuc luu tru");
+        if (booking.getStatus() != BookingStatus.CHECKED_OUT) {
+            throw new BadRequestException("Ban chi co the danh gia sau khi hoan tat luu tru (CHECKED_OUT)");
         }
 
         if (reviewRepository.existsByBookingId(bookingId)) {

@@ -93,7 +93,7 @@ public class BookingController {
         bookingService.deleteBooking(id, authenticationEmailResolver.requireEmail(authentication));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @GetMapping("/room/{roomId}")
     public List<Booking> getBookingsByRoom(
             @PathVariable String roomId,

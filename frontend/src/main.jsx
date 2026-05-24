@@ -3,13 +3,17 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { ToastProvider } from "./components/ToastProvider";
+import { BrandingProvider } from "./context/BrandingContext";
 import "./index.css";
 
 
 ReactDOM.createRoot(document.getElementById("root")).render(
- <ToastProvider>
- <BrowserRouter>
- <App />
- </BrowserRouter>
- </ToastProvider>
+  <ToastProvider>
+    <BrandingProvider>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </BrandingProvider>
+  </ToastProvider>
 );
+

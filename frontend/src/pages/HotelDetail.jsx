@@ -247,7 +247,7 @@ export default function HotelDetail() {
  return false;
  }
 
- if (booking.status === "CANCELLED") {
+ if (booking.status !== "CHECKED_OUT") {
  return false;
  }
 

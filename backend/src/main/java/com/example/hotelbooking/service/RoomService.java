@@ -19,9 +19,11 @@ import com.example.hotelbooking.dto.RoomInventoryDayDTO;
 import com.example.hotelbooking.exception.BadRequestException;
 import com.example.hotelbooking.exception.NotFoundException;
 import com.example.hotelbooking.mapper.RoomMapper;
+import com.example.hotelbooking.model.BookingStatus;
 import com.example.hotelbooking.model.Hotel;
 import com.example.hotelbooking.model.HotelApprovalStatus;
 import com.example.hotelbooking.model.Room;
+import com.example.hotelbooking.repository.BookingRepository;
 import com.example.hotelbooking.repository.HotelRepository;
 import com.example.hotelbooking.repository.RoomRepository;
 
@@ -31,14 +33,17 @@ public class RoomService {
     private final RoomRepository roomRepository;
     private final HotelRepository hotelRepository;
     private final RoomInventoryService roomInventoryService;
+    private final BookingRepository bookingRepository;
 
     public RoomService(
             RoomRepository roomRepository,
             HotelRepository hotelRepository,
-            RoomInventoryService roomInventoryService) {
+            RoomInventoryService roomInventoryService,
+            BookingRepository bookingRepository) {
         this.roomRepository = roomRepository;
         this.hotelRepository = hotelRepository;
         this.roomInventoryService = roomInventoryService;
+        this.bookingRepository = bookingRepository;
     }
 
     private @NonNull String requireNonBlank(String value, @NonNull String message) {
@@ -50,7 +55,7 @@ public class RoomService {
     }
 
     public Page<RoomDTO> getAllRooms(Pageable pageable) {
-        return getAllRooms(pageable, true);
+        return getAllRooms(pageable, false);
     }
 
     public Page<RoomDTO> getAllRooms(Pageable pageable, boolean includeUnapproved) {
@@ -79,7 +84,7 @@ public class RoomService {
     }
 
     public Room getRoomById(String id) {
-        return getRoomById(id, true);
+        return getRoomById(id, false);
     }
 
     public Room getRoomById(String id, boolean includeUnapproved) {
@@ -111,11 +116,27 @@ public class RoomService {
 
     public void deleteRoom(String id) {
         String roomId = requireNonBlank(id, "Room id is required");
+        if (hasActiveOrUpcomingBookings(roomId)) {
+            throw new BadRequestException("Khong the xoa phong vi van con booking dang hoat dong hoac sap toi");
+        }
         roomRepository.deleteById(Objects.requireNonNull(roomId));
     }
 
+    private boolean hasActiveOrUpcomingBookings(String roomId) {
+        LocalDate today = LocalDate.now();
+        return bookingRepository.findByRoomId(roomId).stream()
+                .filter(Objects::nonNull)
+                .filter((booking) -> booking.getStatus() != BookingStatus.CANCELLED)
+                .anyMatch((booking) -> {
+                    if (booking.getCheckOutDate() == null) {
+                        return true;
+                    }
+                    return !booking.getCheckOutDate().isBefore(today);
+                });
+    }
+
     public List<Room> getRoomsByHotel(String hotelId) {
-        return getRoomsByHotel(hotelId, true);
+        return getRoomsByHotel(hotelId, false);
     }
 
     public List<Room> getRoomsByHotel(String hotelId, boolean includeUnapproved) {
@@ -131,7 +152,7 @@ public class RoomService {
     }
 
     public List<Room> findAvailableRooms(LocalDate checkIn, LocalDate checkOut) {
-        return findAvailableRooms(checkIn, checkOut, true);
+        return findAvailableRooms(checkIn, checkOut, false);
     }
 
     public List<Room> findAvailableRooms(LocalDate checkIn, LocalDate checkOut, boolean includeUnapproved) {
@@ -146,7 +167,7 @@ public class RoomService {
             Double maxPrice,
             String amenity,
             String sortBy) {
-        return searchRooms(checkIn, checkOut, guests, minPrice, maxPrice, amenity, sortBy, true);
+        return searchRooms(checkIn, checkOut, guests, minPrice, maxPrice, amenity, sortBy, false);
     }
 
     public List<Room> searchRooms(
@@ -180,7 +201,7 @@ public class RoomService {
     }
 
     public List<Room> getRoomsByGuestCount(int guests) {
-        return getRoomsByGuestCount(guests, true);
+        return getRoomsByGuestCount(guests, false);
     }
 
     public List<Room> getRoomsByGuestCount(int guests, boolean includeUnapproved) {
@@ -188,7 +209,7 @@ public class RoomService {
     }
 
     public List<RoomInventoryDayDTO> getInventoryCalendar(String roomId, LocalDate startDate, LocalDate endDate) {
-        return getInventoryCalendar(roomId, startDate, endDate, true);
+        return getInventoryCalendar(roomId, startDate, endDate, false);
     }
 
     public List<RoomInventoryDayDTO> getInventoryCalendar(

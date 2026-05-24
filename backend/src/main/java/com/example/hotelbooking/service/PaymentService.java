@@ -127,13 +127,14 @@ public class PaymentService {
                 buildPaymentInstruction(
                         booking.getPaymentMethod(),
                         booking.getId(),
-                        resolvePayoutUserForBooking(booking)));
+                        resolvePayoutUserForBooking(booking),
+                        false));
 
         return response;
     }
 
     public PaymentInstructionsResponse getPaymentInstructions() {
-        return getPaymentInstructions(null);
+        return getPaymentInstructions(null, null);
     }
 
     public PaymentInstructionsResponse getPaymentInstructions(String roomId) {
@@ -142,14 +143,27 @@ public class PaymentService {
 
     public PaymentInstructionsResponse getPaymentInstructions(String roomId, String requesterEmail) {
         User requester = resolveUserByEmail(requesterEmail);
+        User host = resolvePayoutUserForRoomId(roomId);
+
         User payoutOwner = null;
-        if (requester != null && requester.getRole() == Role.ADMIN) {
-            payoutOwner = resolvePayoutUserForRoomId(roomId);
+        boolean shouldMask = true;
+
+        if (requester != null) {
+            if (requester.getRole() == Role.ADMIN) {
+                payoutOwner = host;
+                shouldMask = false;
+            } else if (host != null && requester.getId().equals(host.getId())) {
+                payoutOwner = host;
+                shouldMask = false;
+            } else {
+                payoutOwner = null;
+                shouldMask = true;
+            }
         }
 
         PaymentInstructionsResponse response = new PaymentInstructionsResponse();
-        response.setBankTransfer(buildPaymentInstruction(PaymentMethod.BANK_TRANSFER, null, payoutOwner));
-        response.setEWallet(buildPaymentInstruction(PaymentMethod.E_WALLET, null, null));
+        response.setBankTransfer(buildPaymentInstruction(PaymentMethod.BANK_TRANSFER, null, payoutOwner, shouldMask));
+        response.setEWallet(buildPaymentInstruction(PaymentMethod.E_WALLET, null, null, shouldMask));
         return response;
     }
 
@@ -158,7 +172,8 @@ public class PaymentService {
         return buildPaymentInstruction(
                 booking.getPaymentMethod(),
                 booking.getId(),
-                resolvePayoutUserForBooking(booking));
+                resolvePayoutUserForBooking(booking),
+                false);
     }
 
     public Map<String, Object> processSandboxWebhook(SandboxPaymentWebhookRequest request) {
@@ -308,7 +323,8 @@ public class PaymentService {
     private PaymentInstructionResponse buildPaymentInstruction(
             PaymentMethod paymentMethod,
             String bookingId,
-            User payoutOwner) {
+            User payoutOwner,
+            boolean shouldMask) {
         PaymentMethod safeMethod = paymentMethod == null ? PaymentMethod.PAY_AT_HOTEL : paymentMethod;
         PaymentInstructionResponse response = new PaymentInstructionResponse();
         response.setMethod(safeMethod.name());
@@ -318,9 +334,15 @@ public class PaymentService {
         if (safeMethod == PaymentMethod.BANK_TRANSFER) {
             if (hasHostPayoutBankAccount(payoutOwner)) {
                 response.setProviderName(coalesce(nonBlankTrim(payoutOwner.getBankProvider()), manualBankProvider));
-                response.setAccountName(resolveHostBankAccountName(payoutOwner));
-                response.setAccountNumber(nonBlankTrim(payoutOwner.getBankAccountNumber()));
-                response.setNote("Chuyen khoan vao STK cua chu khach san va giu nguyen noi dung de doi soat booking.");
+                if (shouldMask) {
+                    response.setAccountName(maskAccountName(resolveHostBankAccountName(payoutOwner)));
+                    response.setAccountNumber(maskAccountNumber(nonBlankTrim(payoutOwner.getBankAccountNumber())));
+                    response.setNote("Chuyen khoan vao STK cua chu khach san (da an bot vi ly do bao mat) va giu nguyen noi dung de doi soat booking.");
+                } else {
+                    response.setAccountName(resolveHostBankAccountName(payoutOwner));
+                    response.setAccountNumber(nonBlankTrim(payoutOwner.getBankAccountNumber()));
+                    response.setNote("Chuyen khoan vao STK cua chu khach san va giu nguyen noi dung de doi soat booking.");
+                }
                 return response;
             }
 
@@ -502,5 +524,40 @@ public class PaymentService {
         }
 
         return value;
+    }
+
+    private String maskAccountNumber(String val) {
+        if (val == null || val.isBlank()) {
+            return "-";
+        }
+        String clean = val.trim();
+        if (clean.length() <= 4) {
+            return "****";
+        }
+        return clean.substring(0, 2) + "****" + clean.substring(clean.length() - 2);
+    }
+
+    private String maskAccountName(String val) {
+        if (val == null || val.isBlank()) {
+            return "-";
+        }
+        String clean = val.trim();
+        String[] words = clean.split("\\s+");
+        if (words.length == 0) {
+            return "-";
+        }
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < words.length; i++) {
+            String word = words[i];
+            if (i == 0 || i == words.length - 1) {
+                builder.append(word);
+            } else {
+                builder.append("***");
+            }
+            if (i < words.length - 1) {
+                builder.append(" ");
+            }
+        }
+        return builder.toString();
     }
 }

@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
  FaArrowRight,
@@ -12,6 +12,7 @@ import {
 } from "react-icons/fa";
 import { register as registerUser } from "../services/authService";
 import { useToast } from "../components/ToastProvider";
+import { useBranding } from "../context/BrandingContext";
 import "./Register.css";
 
 function Register() {

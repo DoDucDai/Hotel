@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
  FaArrowRight,
@@ -13,7 +13,9 @@ import {
 } from "react-icons/fa";
 import { login, resendVerificationEmail } from "../services/authService";
 import { useToast } from "../components/ToastProvider";
+import { useBranding } from "../context/BrandingContext";
 import "./Login.css";
+
 
 function readPendingBooking() {
  try {
@@ -31,9 +33,11 @@ function readPendingBooking() {
 }
 
 function Login() {
- const navigate = useNavigate();
- const location = useLocation();
- const toast = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const toast = useToast();
+  const { brandName } = useBranding();
+
 
  const [email, setEmail] = useState("");
  const [password, setPassword] = useState("");
@@ -64,6 +68,7 @@ function Login() {
  localStorage.setItem("accessToken", accessToken);
  localStorage.setItem("refreshToken", refreshToken);
  localStorage.setItem("role", role);
+ localStorage.setItem("emailVerified", String(res.data.emailVerified));
 
  if (role === "ADMIN") {
  toast.success("Đăng nhập thành công");
@@ -117,7 +122,7 @@ function Login() {
  <main className="login-page">
  <section className="login-shell">
  <article className="login-hero">
- <div className="login-brand">Hotel Booking</div>
+ <div className="login-brand">{brandName}</div>
  <div className="login-hero-copy">
   <p className="login-eyebrow">Đăng nhập để tiếp tục</p>
   <h1>Sẵn sàng quay lại với kỳ nghỉ tiếp theo?</h1>

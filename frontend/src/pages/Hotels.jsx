@@ -152,7 +152,7 @@ export default function Hotels() {
  setHotels([]);
  setTotalPages(1);
  setTotalElements(0);
- setError("Khong the tai danh sach khach san. Vui long thu lai sau.");
+ setError("Không thể tải danh sách khách sạn. Vui lòng thử lại sau.");
  }
  } finally {
  if (isMounted) {
@@ -231,7 +231,7 @@ export default function Hotels() {
 
  if (checkIn && checkOut && new Date(checkOut) <= new Date(checkIn)) {
  setRoomAvailability({});
- setAvailabilityError("Ngay tra phong phai sau ngay nhan phong.");
+ setAvailabilityError("Ngày trả phòng phải sau ngày nhận phòng.");
  return;
  }
 
@@ -269,7 +269,7 @@ export default function Hotels() {
  console.error(fetchError);
  if (isMounted) {
  setRoomAvailability({});
- setAvailabilityError("Chua tai duoc du lieu phong theo bo loc hien tai.");
+ setAvailabilityError("Chưa tải được dữ liệu phòng theo bộ lọc hiện tại.");
  }
  } finally {
  if (isMounted) {
@@ -402,15 +402,15 @@ export default function Hotels() {
  if (alreadySaved) {
  await removeFromWishlist(normalizedHotelId);
  setWishlistIds((prev) => prev.filter((id) => id !== normalizedHotelId));
- toast.success("Da xoa khoi danh sach yeu thich");
+ toast.success("Đã xóa khỏi danh sách yêu thích");
  } else {
  await addToWishlist(normalizedHotelId);
  setWishlistIds((prev) => [...prev, normalizedHotelId]);
- toast.success("Da them vao wishlist");
+ toast.success("Đã thêm vào danh sách yêu thích");
  }
  } catch (wishlistError) {
  console.error("Cannot update wishlist", wishlistError);
- toast.error("Khong the cap nhat wishlist");
+ toast.error("Không thể cập nhật danh sách yêu thích");
  }
  };
 

@@ -20,7 +20,9 @@ import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 
 import com.example.hotelbooking.dto.HotelCatalogItemDTO;
+import com.example.hotelbooking.repository.BookingRepository;
 import com.example.hotelbooking.repository.HotelRepository;
+import com.example.hotelbooking.repository.RoomRepository;
 
 @ExtendWith(MockitoExtension.class)
 class HotelCatalogServiceTest {
@@ -34,11 +36,26 @@ class HotelCatalogServiceTest {
     @Mock
     private MongoTemplate mongoTemplate;
 
+    @Mock
+    private RoomRepository roomRepository;
+
+    @Mock
+    private BookingRepository bookingRepository;
+
+    @Mock
+    private RoomInventoryService roomInventoryService;
+
     private HotelCatalogService hotelCatalogService;
 
     @BeforeEach
     void setUp() {
-        hotelCatalogService = new HotelCatalogService(hotelRepository, uploadStorageService, mongoTemplate);
+        hotelCatalogService = new HotelCatalogService(
+                hotelRepository,
+                uploadStorageService,
+                mongoTemplate,
+                roomRepository,
+                bookingRepository,
+                roomInventoryService);
     }
 
     @Test

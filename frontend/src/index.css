@@ -44,9 +44,9 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
-  font-weight: 600;
+  font-weight: 700;
   line-height: var(--leading-tight);
-  color: var(--color-text);
+  color: var(--color-secondary); /* Agoda Navy */
 }
 
 h1 { font-size: var(--text-hero); }
@@ -114,8 +114,8 @@ input::placeholder, textarea::placeholder {
 }
 
 input:focus, select:focus, textarea:focus {
-  border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(17, 112, 228, 0.15);
 }
 
 img {
@@ -124,20 +124,20 @@ img {
 }
 
 /* =====================================================
-   SCROLLBAR (Dark theme)
+   SCROLLBAR (Light theme)
    ===================================================== */
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-bg);
+  background: #F1F5F9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-bg-soft);
+  background: #CBD5E1;
   border-radius: var(--radius-full);
 }
 
@@ -150,6 +150,6 @@ img {
    ===================================================== */
 
 ::selection {
-  background: rgba(245, 158, 11, 0.3);
-  color: var(--color-text);
+  background: rgba(17, 112, 228, 0.15);
+  color: var(--color-primary);
 }

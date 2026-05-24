@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
  FiBriefcase,
@@ -11,9 +11,10 @@ import {
  FiShield,
  FiStar,
  FiSun,
- FiTag,
- FiTrendingUp,
- FiUsers,
+  FiTag,
+  FiTrendingUp,
+  FiUsers,
+  FiSearch,
 } from "react-icons/fi";
 import {
  currencyFormatter,
@@ -94,8 +95,46 @@ function isUsableHeroImage(value) {
  );
 }
 
-export default function Home() {
- const navigate = useNavigate();
+function getDayOfWeekLabel(dateStr) {
+  if (!dateStr) return "";
+  try {
+    const date = new Date(dateStr);
+    const day = date.getDay();
+    const days = ["Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+    return days[day];
+  } catch (e) {
+    return "";
+  }
+}
+
+function formatAgodaDate(dateStr) {
+  if (!dateStr) return "";
+  try {
+    const d = new Date(dateStr);
+    const day = d.getDate();
+    const month = d.getMonth() + 1;
+    const year = d.getFullYear();
+    return `${day} tháng ${month} ${year}`;
+  } catch (e) {
+    return dateStr;
+  }
+}
+
+ export default function Home() {
+  const navigate = useNavigate();
+  const guestSelectorRef = useRef(null);
+  const [showGuestSelector, setShowGuestSelector] = useState(false);
+
+  // Close guest selector on click outside
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (guestSelectorRef.current && !guestSelectorRef.current.contains(event.target)) {
+        setShowGuestSelector(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
 
  const [hotels, setHotels] = useState([]);
  const [loading, setLoading] = useState(true);
@@ -491,7 +530,7 @@ export default function Home() {
  ];
 
  const preferred = candidates.find(isUsableHeroImage);
- return preferred || homeHeroTravel;
+ return preferred || "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1920&q=80";
  }, [cityInsights, featuredHotels]);
 
  const priceInsightRows = useMemo(() => {
@@ -601,137 +640,147 @@ export default function Home() {
  };
 
  return (
- <div className="home-page">
- <section className="home-shell home-hero-shell">
- <div className="home-hero-backdrop">
- <img src={heroImage} alt="Travel destination" />
- <div className="home-hero-overlay" />
+  <div className="home-page">
+  <section className="home-hero-shell">
+  <div className="home-hero-backdrop">
+    <img src={heroImage} alt="Travel destination" className="home-hero-bg-img" />
+    <div className="home-hero-overlay" />
 
- <div className="home-hero-grid">
- <div className="home-hero-content">
- <p className="home-hero-badge">Trải nghiệm đặt phòng thông minh</p>
- <h1>Tìm nơi lưu trú lý tưởng, khớp lịch trình và ngân sách của bạn</h1>
- <p>
- Bộ lọc và tìm kiếm được kết nối trực tiếp với dữ liệu thực tế. Bạn có thể dễ dàng so sánh giá phòng, đánh giá từ khách hàng và tình trạng phòng trống ngay tại trang chủ.
- </p>
+    <div className="home-hero-centered-content">
+      <h1 className="hero-main-title">Find Your Perfect Stay</h1>
+      <p className="hero-sub-title">Search from millions of hotels worldwide</p>
 
- <div className="home-hero-metrics">
- {quickStats.map((stat) => (
- <article key={stat.id} className="home-hero-metric">
- <span className="home-hero-metric-icon" aria-hidden="true">
- <stat.icon />
- </span>
- <strong>{stat.value}</strong>
- <span>{stat.label}</span>
- </article>
- ))}
- </div>
- </div>
+      {/* Floating White Search Card Container */}
+      <div className="search-bar-card-container">
+        <form className="search-bar-card-form" onSubmit={handleSearchSubmit}>
+          <div className="search-card-grid">
+            {/* Destination Field */}
+            <div className="search-card-col">
+              <label className="search-card-label">Where to?</label>
+              <div className="search-card-input-wrapper">
+                <FiMapPin className="search-card-icon" />
+                <input
+                  type="text"
+                  className="search-card-input"
+                  placeholder="City or hotel name"
+                  value={destination}
+                  onChange={(event) => setDestination(event.target.value)}
+                />
+              </div>
+            </div>
 
- <aside className="home-search-panel" aria-label="Tim kiem khach san">
- <div className="home-product-tabs" role="tablist" aria-label="Loai chuyen di">
- {STAY_OPTIONS.map((tab) => (
- <button
- key={tab.key}
- type="button"
- role="tab"
- aria-selected={stayType === tab.key}
- className={`home-product-tab ${stayType === tab.key ? "active" : ""}`}
- onClick={() => setStayType(tab.key)}
- >
- <tab.icon aria-hidden="true" />
- {tab.label}
- </button>
- ))}
- </div>
+            {/* Check-In Field */}
+            <div className="search-card-col">
+              <label className="search-card-label">Check-in</label>
+              <div className="search-card-input-wrapper">
+                <FiCalendar className="search-card-icon" />
+                <input
+                  type="date"
+                  className="search-card-input-date"
+                  value={checkIn}
+                  min={formatDateInputLocal()}
+                  onChange={(event) => setCheckIn(event.target.value)}
+                />
+              </div>
+            </div>
 
- <form className="home-search-form" onSubmit={handleSearchSubmit}>
- <div className="home-search-grid">
- <label className="home-search-field home-search-field-wide">
- <span>Điểm đến / tên khách sạn</span>
- <input
- type="text"
- value={destination}
- placeholder="Nhập thành phố, khu vực hoặc tên khách sạn"
- onChange={(event) => setDestination(event.target.value)}
- />
- </label>
+            {/* Check-Out Field */}
+            <div className="search-card-col">
+              <label className="search-card-label">Check-out</label>
+              <div className="search-card-input-wrapper">
+                <FiCalendar className="search-card-icon" />
+                <input
+                  type="date"
+                  className="search-card-input-date"
+                  value={checkOut}
+                  min={checkIn || formatDateInputLocal()}
+                  onChange={(event) => setCheckOut(event.target.value)}
+                />
+              </div>
+            </div>
 
- <label className="home-search-field">
- <span>Nhận phòng</span>
- <input
- type="date"
- value={checkIn}
- min={formatDateInputLocal()}
- onChange={(event) => setCheckIn(event.target.value)}
- />
- </label>
+            {/* Guests Selector */}
+            <div className="search-card-col" ref={guestSelectorRef} style={{ position: "relative" }}>
+              <label className="search-card-label">Guests</label>
+              <div
+                className="search-card-input-wrapper"
+                onClick={() => setShowGuestSelector(!showGuestSelector)}
+                style={{ cursor: "pointer" }}
+              >
+                <FiUsers className="search-card-icon" />
+                <div className="search-card-trigger-text">
+                  {guests} Guests, {roomCount} Rooms
+                </div>
+              </div>
 
- <label className="home-search-field">
- <span>Trả phòng</span>
- <input
- type="date"
- value={checkOut}
- min={checkIn || formatDateInputLocal()}
- onChange={(event) => setCheckOut(event.target.value)}
- />
- </label>
+              {showGuestSelector && (
+                <div className="home-guest-popup-dropdown search-card-dropdown">
+                  <div className="home-guest-popup-row">
+                    <div>
+                      <strong>Số khách</strong>
+                      <small>Người lớn &amp; Trẻ em</small>
+                    </div>
+                    <div className="home-counter-controls">
+                      <button
+                        type="button"
+                        onClick={() => setGuests((prev) => String(Math.max(1, Number(prev) - 1)))}
+                        disabled={Number(guests) <= 1}
+                      >
+                        -
+                      </button>
+                      <span>{guests}</span>
+                      <button type="button" onClick={() => setGuests((prev) => String(Number(prev) + 1))}>
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <div className="home-guest-popup-row">
+                    <div>
+                      <strong>Số phòng</strong>
+                      <small>Số lượng phòng cần đặt</small>
+                    </div>
+                    <div className="home-counter-controls">
+                      <button
+                        type="button"
+                        onClick={() => setRoomCount((prev) => String(Math.max(1, Number(prev) - 1)))}
+                        disabled={Number(roomCount) <= 1}
+                      >
+                        -
+                      </button>
+                      <span>{roomCount}</span>
+                      <button type="button" onClick={() => setRoomCount((prev) => String(Number(prev) + 1))}>
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <div className="home-guest-popup-foot">
+                    <button
+                      type="button"
+                      className="home-guest-done-btn"
+                      onClick={() => setShowGuestSelector(false)}
+                    >
+                      Xong
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
- <label className="home-search-field home-search-field-compact">
- <span>Khách</span>
- <input
- type="number"
- min="1"
- value={guests}
- onChange={(event) => setGuests(String(toPositiveInt(event.target.value, 1)))}
- />
- </label>
+          {formError && <p className="home-form-error-bubble" style={{ marginTop: "12px" }}>{formError}</p>}
 
- <label className="home-search-field home-search-field-compact">
- <span>Phòng</span>
- <input
- type="number"
- min="1"
- value={roomCount}
- onChange={(event) => setRoomCount(String(toPositiveInt(event.target.value, 1)))}
- />
- </label>
- </div>
-
- {formError ? <p className="home-form-error">{formError}</p> : null}
-
- <div className="home-search-actions">
- <button type="submit" className="home-btn-primary">
- Tìm khách sạn
- </button>
- <button type="button" className="home-btn-soft" onClick={() => navigateToHotels()}>
- Xem tất cả
- </button>
- <button type="button" className="home-btn-ghost" onClick={handleReset}>
- Đặt lại
- </button>
- </div>
-
- <p className="home-search-disclaimer">
- Giá hiển thị là giá mỗi đêm và có thể thay đổi theo ngày ở, loại phòng, chính sách.
- </p>
- </form>
-
- <div className="home-trust-inline" aria-label="Thong tin nhanh">
- {trustHighlights.map((item) => (
- <article key={item.id} className="home-trust-item">
- <p className="home-trust-title">
- <item.icon aria-hidden="true" />
- <span>{item.title}</span>
- </p>
- <p className="home-trust-copy">{item.copy}</p>
- </article>
- ))}
- </div>
- </aside>
- </div>
- </div>
- </section>
+          {/* Submit Button placed below columns inside card */}
+          <div className="search-card-submit-wrap">
+            <button type="submit" className="search-card-submit-btn">
+              <FiSearch className="submit-icon" />
+              <span>Search Hotels</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  </section>
 
  <section className="home-shell home-section">
  <div className="home-section-head">
@@ -845,7 +894,7 @@ export default function Home() {
  />
  </div>
  <div className="home-city-content">
- <h3>{city.city}</h3>
+ <h3><FiMapPin className="city-pin-icon" /> {city.city}</h3>
  <p>{city.hotelCount} khách sạn đang mở bán</p>
  <div>
  <span>

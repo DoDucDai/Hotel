@@ -22,6 +22,7 @@ import com.example.hotelbooking.exception.ForbiddenException;
 import com.example.hotelbooking.model.Booking;
 import com.example.hotelbooking.model.BookingStatus;
 import com.example.hotelbooking.model.Role;
+import com.example.hotelbooking.model.Room;
 import com.example.hotelbooking.model.User;
 import com.example.hotelbooking.repository.BookingRepository;
 import com.example.hotelbooking.repository.HotelRepository;
@@ -185,7 +186,12 @@ class BookingServiceTest {
         user.setEmail("user@example.com");
         user.setRole(Role.USER);
 
+        Room room = new Room();
+        room.setId("room-1");
+        room.setOwnerId("other-host-id");
+
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+        when(roomRepository.findById("room-1")).thenReturn(Optional.of(room));
 
         ForbiddenException ex = assertThrows(
                 ForbiddenException.class,

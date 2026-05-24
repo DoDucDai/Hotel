@@ -1,4 +1,4 @@
-﻿import { useMemo } from "react";
+import { useMemo } from "react";
 import {
  ADMIN_HOTELS_PER_PAGE,
  bookingMatchesDateRange,
@@ -78,6 +78,13 @@ export default function useAdminDashboardDerivedData({
  return {
  title: "Nhật ký hoạt động",
  subtitle: "Theo dõi những thay đổi quan trọng để kiểm soát vận hành hệ thống",
+ };
+ }
+
+ if (activeView === "branding") {
+ return {
+ title: "Cấu hình thương hiệu & Giao diện",
+ subtitle: "Tùy chỉnh tên thương hiệu, slogan, biểu tượng SVG, màu nhấn và thông tin trình duyệt trực tiếp",
  };
  }
 

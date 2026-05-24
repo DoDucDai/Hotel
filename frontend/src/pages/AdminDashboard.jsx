@@ -1,4 +1,4 @@
-﻿import { useRef } from "react";
+import { useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -345,6 +345,11 @@ function AdminDashboard() {
  currencyFormatter={currencyFormatter}
  />
  );
+ 
+ const renderBranding = () => (
+    <BrandingView />
+  );
+
  const renderMainContent = () => {
  if (loading) {
  return <div className="admin-loading-state">Đang tải dữ liệu dashboard...</div>;
@@ -387,6 +392,10 @@ function AdminDashboard() {
 
  if (activeView === "account") {
  return renderAccount();
+ }
+
+ if (activeView === "branding") {
+ return renderBranding();
  }
 
  return renderOverview();
@@ -512,19 +521,28 @@ function AdminDashboard() {
  </button>
 
  {sectionOpen.account && (
- <ul className="section-submenu">
- <li>
- <button
- type="button"
- className={`submenu-btn ${activeView === "account" ? "active" : ""}`}
- onClick={() => openView("account")}
- >
- Profile admin
- </button>
- </li>
- </ul>
- )}
- </div>
+  <ul className="section-submenu">
+  <li>
+  <button
+  type="button"
+  className={`submenu-btn ${activeView === "account" ? "active" : ""}`}
+  onClick={() => openView("account")}
+  >
+  Profile admin
+  </button>
+  </li>
+  <li>
+  <button
+  type="button"
+  className={`submenu-btn ${activeView === "branding" ? "active" : ""}`}
+  onClick={() => openView("branding")}
+  >
+  Cấu hình Website
+  </button>
+  </li>
+  </ul>
+  )}
+  </div>
 
  <div className="admin-link-group">
  <p className="admin-link-title">Quick Links</p>
